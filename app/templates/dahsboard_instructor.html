@@ -1,0 +1,47 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Instructor Dashboard - C-Insight</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="sidebar">
+    <h2 class="logo">C-Insight</h2>
+    <ul>
+      <li><a href="#">Dashboard</a></li>
+      <li><a href="#">Create Activity</a></li>
+      <li><a href="#">Submissions</a></li>
+      <li><a href="#">Analytics</a></li>
+      <li><a href="#">Settings</a></li>
+    </ul>
+    <div class="user-info">
+      <p>{{ username }}<br><small>Instructor</small></p>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <h1>Welcome back, {{ username }}!</h1>
+    <div class="stats">
+      <div class="card">Total Activities <h3>10</h3></div>
+      <div class="card">Active Students <h3>50</h3></div>
+      <div class="card">Pending Submissions <h3>45</h3></div>
+      <div class="card">Average Score <h3>88.5%</h3></div>
+    </div>
+
+    <h2>Recent Activities</h2>
+    <div class="activities">
+      <div class="activity-card">Basic Variable Activity<br><span>Due: June 25, 2025</span></div>
+      <div class="activity-card">if-else activity<br><span>Due: June 28, 2025</span></div>
+      <div class="activity-card">While Loop<br><span>Due: June 29, 2025</span></div>
+      <div class="activity-card">Nested if-else<br><span>Due: June 30, 2025</span></div>
+      <div class="activity-card">Introduction to Array<br><span>Due: July 1, 2025</span></div>
+    </div>
+
+    <h2>Analytics</h2>
+    <div class="charts">
+      <div class="chart-box">Submissions Over Time (chart placeholder)</div>
+      <div class="chart-box">Activity Completion Rate (chart placeholder)</div>
+    </div>
+  </div>
+</body>
+</html>

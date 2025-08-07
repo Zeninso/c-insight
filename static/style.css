@@ -1,0 +1,104 @@
+/* ========== GLOBAL STYLES ========== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+h1, h2, h3 {
+    color: #2c3e50;
+} 
+
+/* ========== NAVIGATION BAR ========== */
+.navbar {
+    background-color: #34495e;
+}
+
+.navbar a {
+    color: white !important;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+    background-color: #2e3b4e;
+    height: 100vh;
+    width: 220px;
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    overflow-y: auto;
+}
+
+.sidebar a {
+    color: #fff;
+    padding: 12px 20px;
+    display: block;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar a:hover {
+    background-color: #1a252f;
+}
+
+/* ========== MAIN CONTENT ========== */
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}
+
+/* ========== CARDS AND DASHBOARD ========== */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: white;
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.dashboard-widgets .card {
+    text-align: center;
+}
+
+/* ========== BUTTONS ========== */
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* ========== FORMS ========== */
+.form-label {
+    font-weight: 500;
+}
+
+/* ========== FOOTER (optional) ========== */
+.footer {
+    text-align: center;
+    padding: 10px 0;
+    color: #777;
+    font-size: 0.875rem;
+}
