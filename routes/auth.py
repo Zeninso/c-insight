@@ -18,7 +18,7 @@ def login():
             session['role'] = user[3]
             return redirect(url_for('home.home'))
         else:
-            flash('Invalid credentials')
+            flash('Invalid credentials', 'error')
     return render_template('login.html')
 
 
@@ -33,6 +33,6 @@ def register():
         cur.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, %s)", (username, hashed_password, role))
         mysql.connection.commit()
         cur.close()
-        flash('Registration successful. Please login.')
+        flash('Registration successful. Please login.','success')
         return redirect(url_for('auth.login'))
     return render_template('register.html')
