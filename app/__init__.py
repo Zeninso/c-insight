@@ -19,9 +19,13 @@ def create_app():
     # Import and register Blueprints
     from routes.home import home_bp
     from routes.auth import auth_bp
+    from routes.auth import teacher_bp
+    from routes.auth import student_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(teacher_bp)
+    app.register_blueprint(student_bp)
 
 
     return app
