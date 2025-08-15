@@ -30,7 +30,7 @@ def login():
             else:
                 return redirect(url_for('home.home'))
         else:
-            flash('Invalid credentials', 'error')
+            flash('Invalid Username or Password', 'error')
     return render_template('login.html')
 
 @auth_bp.route('/logout')
