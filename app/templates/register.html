@@ -4,190 +4,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Register - C-Insight</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Consistent background styling */
-        body {
-            background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(214, 51, 132, 0.2) 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            padding: 20px;
-            background-attachment: fixed;
-        }
-        
-        /* Matching card design */
-        .register-card {
-            max-width: 500px;
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            background: white;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        /* Gradient button for register */
-        .btn-register {
-            background: linear-gradient(135deg, #920d7a 0%, #756ac6 100%);
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            transition: all 0.3s ease;
-            border-radius: 50px;
-            font-weight: 500;
-        }
-        
-        .btn-register:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(146, 13, 122, 0.3);
-            color: white;
-        }
-        
-        /* Modern role selection */
-        .role-selection {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .role-option {
-            flex: 1;
-            position: relative;
-        }
-        
-        .role-option input {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .role-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem 1rem;
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .role-option input:checked + .role-label {
-            border-color: #6f42c1;
-            background: rgba(111, 66, 193, 0.05);
-            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.1);
-        }
-        
-        .role-icon {
-            font-size: 1.75rem;
-            margin-bottom: 0.75rem;
-            color: #6f42c1;
-        }
-        
-        .role-title {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 0.25rem;
-        }
-        
-        .role-desc {
-            font-size: 0.85rem;
-            color: #718096;
-        }
-        
-        /* Form styling */
-        .form-control {
-            border-radius: 12px;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: #6f42c1;
-            box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 0.75rem;
-        }
-        
-        /* Title styling */
-        h2 {
-            color: #2d3748;
-            font-weight: 700;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-        
-        /* Link styling */
-        .btn-link {
-            color: #6f42c1;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            padding: 10px 15px;
-            font-weight: 500;
-        }
-        
-        .btn-link:hover {
-            color: #d63384;
-            text-decoration: underline;
-        }
-        
-        /* Button container */
-        .btn-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-    </style>
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+
 </head>
 <body>
     <div class="register-card">
         <h2>Join C-Insight</h2>
         
-        <form method="POST">
-            <div class="mb-4">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required />
-            </div>
-            
-            <div class="mb-4">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required />
-            </div>
-            
-            <div class="mb-4">
-                <label class="form-label">Select Your Role</label>
-                <div class="role-selection">
-                    <div class="role-option">
-                        <input type="radio" id="student" name="role" value="student" checked>
-                        <label for="student" class="role-label">
-                            <i class="bi bi-mortarboard-fill role-icon"></i>
-                            <span class="role-title">Student</span>
-                            <span class="role-desc">Learn and submit code</span>
-                        </label>
+        <form method="POST" class="register-form">
+            <div class="form-container">
+                <div class="form-fields">
+                    <div class="form-group">
+                        <label class="form-label">First Name</label>
+                        <input type="text" name="first_name" class="form-control" required placeholder="Enter your First Name" />
                     </div>
-                    <div class="role-option">
-                        <input type="radio" id="teacher" name="role" value="teacher">
-                        <label for="teacher" class="role-label">
-                            <i class="bi bi-person-badge-fill role-icon"></i>
-                            <span class="role-title">Teacher</span>
-                            <span class="role-desc">Review and grade work</span>
-                        </label>
+
+                    <div class="form-group">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" required placeholder="Enter your Last Name" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required placeholder="Enter the Username You Want" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" required placeholder="Enter Password Minimum 8 Characters" />
+                    </div>
+                </div>
+                
+                <div class="role-section">
+                    <div class="form-group">
+                        <label class="form-label">Select Your Role</label>
+                        <div class="role-selection">
+                            <div class="role-option">
+                                <input type="radio" id="student" name="role" value="student" checked>
+                                <label for="student" class="role-label">
+                                    <i class="bi bi-mortarboard-fill role-icon"></i>
+                                    <span class="role-title">Student</span>
+                                    <span class="role-desc">Learn and submit code</span>
+                                </label>
+                            </div>
+                            <div class="role-option">
+                                <input type="radio" id="teacher" name="role" value="teacher">
+                                <label for="teacher" class="role-label">
+                                    <i class="bi bi-person-badge-fill role-icon"></i>
+                                    <span class="role-title">Teacher</span>
+                                    <span class="role-desc">Review and grade work</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -198,6 +66,5 @@
             </div>
         </form>
     </div>
-    
 </body>
 </html>
