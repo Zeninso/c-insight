@@ -5,22 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>C-Insight | Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
-    
-
-
-
-
-
 </head>
-
 <body>
-    <div class="bg-purple">
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-    </div>
+    <div class="bg-purple"></div>
     
     <div class="main-card">
         <h1 id="main-heading"></h1>
@@ -40,9 +27,9 @@
             
             function type() {
                 if (i < text.length) {
-                    element.innerHTML = text.substring(0, i+1) + '<span class="typewriter-cursor"></span>';
+                    element.innerHTML = text.substring(0, i+1) + '<span class="typewriter-cursor">|</span>';
                     i++;
-                    setTimeout(type, speed + Math.random() * 20); // Slight randomness for natural feel
+                    setTimeout(type, speed + Math.random() * 20);
                 } else {
                     element.classList.remove('typewriter-cursor');
                 }
@@ -61,8 +48,26 @@
             }, 500);
             
             setTimeout(() => {
-                typeWriter(subheading, 'A LMS-Integrated C Programming Code Checker');
+                typeWriter(subheading, 'A Code Checker For C Activities Integrated In The LMS');
             }, 1800);
+
+            // Bubble generation
+            const container = document.querySelector('.bg-purple');
+            const bubbleCount = 15;
+            
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                const sizes = ['small', 'medium', 'large'];
+                bubble.classList.add(sizes[Math.floor(Math.random() * sizes.length)]);
+                
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.top = `${Math.random() * 100}%`;
+                bubble.style.animationDelay = `${Math.random() * 5}s`;
+                
+                container.appendChild(bubble);
+            }
         });
     </script>
 </body>

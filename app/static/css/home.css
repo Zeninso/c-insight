@@ -1,5 +1,10 @@
 @import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'); 
 
+
+    :root {
+        --gradient: linear-gradient(135deg, #e0b0ff 0%, #c77dff 100%);
+    }
+
     body {
             margin: 0;
             padding: 0;
@@ -11,96 +16,73 @@
             position: relative;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
-
-    
+       /* Pop animation - bubbles appearing randomly everywhere */
+        /* Background with bubbles */
         .bg-purple {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #e0b0ff 0%, #c77dff 100%);
-            z-index: -1;
             overflow: hidden;
+            z-index: -1;
+            background: var(--gradient);
+        }
+
+        /* Bubble styles */
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.899);
+            border-radius: 50%;
+            animation: pop 4s ease-out infinite;
+            opacity: 0;
+            box-sizing: border-box;
+            transform: scale(0);
+            filter: blur(1px);
+            will-change: transform, opacity; /* Optimize animations */
+        }
+
+        /* Bubble sizes */
+        .bubble.small {
+            width: 30px;
+            height: 30px;
+        }
+
+        .bubble.medium {
+            width: 60px;
+            height: 60px;
+        }
+
+        .bubble.large {
+            width: 90px;
+            height: 90px;
         }
 
         /* Bubble animation */
-        .bg-purple::before {
-            content: "";
-            position: absolute;
-            bottom: -50px;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-        }
-
-        .bubble {
-            position: absolute;
-            bottom: -100px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            animation: bubble 15s linear infinite;
-        }
-
-        .bubble:nth-child(1) {
-            width: 40px;
-            height: 40px;
-            left: 10%;
-            animation-delay: 0s;
-            animation-duration: 12s;
-        }
-
-        .bubble:nth-child(2) {
-            width: 25px;
-            height: 25px;
-            left: 30%;
-            animation-delay: 2s;
-            animation-duration: 15s;
-        }
-
-        .bubble:nth-child(3) {
-            width: 50px;
-            height: 50px;
-            left: 50%;
-            animation-delay: 1s;
-            animation-duration: 18s;
-        }
-
-        .bubble:nth-child(4) {
-            width: 30px;
-            height: 30px;
-            left: 70%;
-            animation-delay: 3s;
-            animation-duration: 14s;
-        }
-
-        .bubble:nth-child(5) {
-            width: 45px;
-            height: 45px;
-            left: 90%;
-            animation-delay: 4s;
-            animation-duration: 16s;
-        }
-
-        @keyframes bubble {
+        @keyframes pop {
             0% {
-                bottom: -100px;
-                transform: translateX(0) scale(1);
+                transform: scale(0);
+                opacity: 0;
             }
             50% {
-                transform: translateX(50px) scale(1.1);
+                opacity: 0.4;
+            }
+            70% {
+                transform: scale(1);
+                opacity: 0.6;
             }
             100% {
-                bottom: 100vh;
-                transform: translateX(0) scale(1);
+                transform: scale(1.1);
+                opacity: 0;
             }
         }
-        
-        /* Glass morphism card */
+
+        /* MAIN CARD */
         .main-card {
+            position: relative;
             max-width: 680px;
             padding: 3rem;
+            margin: 2rem auto;
             border-radius: 24px;
             background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(12px);
@@ -111,12 +93,16 @@
             transform: translateY(20px);
             opacity: 0;
             animation: fade-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            z-index: 10; /* Ensure it's above bubbles */
         }
-        
+
+        /* Add this fade-in animation */
         @keyframes fade-in {
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }  
         /* Gradient buttons with 3D effect */
         .btn-gradient {
             background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);

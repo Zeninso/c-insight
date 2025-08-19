@@ -18,7 +18,7 @@
             </div>
             <ul class="sidebar-nav">
                 <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="#"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}" class="active"><i class="fas fa-tasks"></i> Activities</a></li>
                 <li><a href="#"><i class="fas fa-users"></i> Students</a></li>
                 <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
@@ -28,9 +28,9 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="header">
-                <h1>Welcome back, Teacher {{ username }}</h1>
+                <h1>Welcome back, Teacher {{ first_name }}</h1>
                 <div class="user-profile">
-                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ username }}">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ first_name }}">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>

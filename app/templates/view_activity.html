@@ -1,0 +1,95 @@
+{% extends "teacher_activities.html" %}
+
+{% block content %}
+<div class="activity-view">
+    <div class="card">
+        <div class="card-header">
+            <h2>{{ activity.title }}</h2>
+            <div class="activity-meta">
+                <span>Created by: {{ activity.teacher_username }}</span>
+                <span>
+                    Due:
+                    {% if activity.due_date %}
+                        {{ activity.due_date.strftime('%B %d, %Y at %I:%M %p') }}
+                    {% else %}
+                        No due date
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="activity-section">
+                <h3>Description</h3>
+                <p>{{ activity.description }}</p>
+            </div>
+            
+            <div class="activity-section">
+                <h3>Instructions</h3>
+                <pre>{{ activity.instructions }}</pre>
+            </div>
+            
+            {% if activity.starter_code %}
+            <div class="activity-section">
+                <h3>Starter Code</h3>
+                <pre><code>{{ activity.starter_code }}</code></pre>
+            </div>
+            {% endif %}
+            
+            <div class="activity-section">
+                <h3>Rubrics</h3>
+                <table class="rubrics-table">
+                    <thead>
+                        <tr>
+                            <th>Criterion</th>
+                            <th>Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rubric in activity.rubrics %}
+                        <tr>
+                            <td>{{ rubric.name }}</td>
+                            <td>{{ rubric.weight }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total</th>
+                            <th>100%</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="activity-stats">
+                <div class="stat-card">
+                    <h4>Submissions</h4>
+                    <p>{{ activity.submission_count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Created</h4>
+                    <p>
+                        {% if activity.created_at %}
+                            {{ activity.created_at.strftime('%B %d, %Y') }}
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="activity-actions">
+                <a href="{{ url_for('teacher.edit_activity', activity_id=activity.id) }}" 
+                    class="btn btn-gradient">
+                    <i class="fas fa-edit"></i> Edit Activity
+                </a>
+                <button onclick="deleteActivity('{{ activity.id }}')" 
+                        class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete Activity
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

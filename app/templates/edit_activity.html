@@ -1,0 +1,166 @@
+{% extends "teacher_activities.html" %}
+
+{% block content %}
+<div class="activity-edit">
+    <div class="card">
+        <div class="card-header">
+            <h2>Edit Activity</h2>
+        </div>
+        
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('teacher.edit_activity', activity_id=activity.id) }}">
+                <div class="form-group">
+                    <label for="title">Activity Title</label>
+                    <input type="text" id="title" name="title" value="{{ activity.title }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" required>{{ activity.description }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="instructions">Instructions</label>
+                    <textarea id="instructions" name="instructions" rows="5" required>{{ activity.instructions }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="starter_code">Starter Code (optional)</label>
+                    <textarea id="starter_code" name="starter_code" rows="5">{{ activity.starter_code }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="due_date">Due Date</label>
+                    <input type="datetime-local" id="due_date" name="due_date" value="{{ activity.due_date }}" required>
+                </div>
+                
+                <h3>Rubrics Configuration</h3>
+                <div class="rubrics-section">
+                    <div class="rubrics-header">
+                        <span>Criteria</span>
+                        <span>Weight (%)</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="rubrics-container">
+                        {% for rubric in activity.rubrics %}
+                        <div class="rubric-item" data-id="{{ loop.index }}">
+                            <input type="text" name="rubric_name[]" value="{{ rubric.name }}" placeholder="Criterion name" required>
+                            <input type="number" name="rubric_weight[]" min="0" max="100" value="{{ rubric.weight }}" class="weight-input" required>
+                            <span class="rubric-actions">
+                                <button type="button" class="btn btn-sm btn-add" onclick="addRubricField(this)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-remove" onclick="removeRubricField(this)" 
+                                    {% if loop.length <= 1 %}disabled{% endif %}>
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="rubrics-summary">
+                        <span>Total Weight:</span>
+                        <span id="total-weight">100%</span>
+                        <span id="weight-error" class="error-message"></span>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <a href="{{ url_for('teacher.view_activity', activity_id=activity.id) }}" class="btn btn-cancel">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-gradient" id="submit-btn">
+                        Update Activity
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize with existing rubrics count
+    let rubricCounter = '{{ activity.rubrics|length }}';
+
+        
+        function addRubricField(button) {
+            rubricCounter++;
+            const rubricsContainer = document.getElementById('rubrics-container');
+            const newRubric = document.createElement('div');
+            newRubric.className = 'rubric-item';
+            newRubric.dataset.id = rubricCounter;
+            newRubric.innerHTML = `
+                <input type="text" name="rubric_name[]" placeholder="Criterion name" required>
+                <input type="number" name="rubric_weight[]" min="0" max="100" value="0" class="weight-input" required>
+                <span class="rubric-actions">
+                    <button type="button" class="btn btn-sm btn-add" onclick="addRubricField(this)">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-remove" onclick="removeRubricField(this)">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </span>
+            `;
+            rubricsContainer.appendChild(newRubric);
+            updateTotalWeight();
+        }
+        
+        function removeRubricField(button) {
+            const rubricItem = button.closest('.rubric-item');
+            if (document.querySelectorAll('.rubric-item').length > 1) {
+                rubricItem.remove();
+                updateTotalWeight();
+            }
+        }
+        
+        function updateTotalWeight() {
+            const weightInputs = document.querySelectorAll('.weight-input');
+            let total = 0;
+            
+            weightInputs.forEach(input => {
+                total += parseInt(input.value) || 0;
+            });
+            
+            document.getElementById('total-weight').textContent = total + '%';
+            
+            // Update error message and disable/enable submit button
+            const errorElement = document.getElementById('weight-error');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (total !== 100) {
+                errorElement.textContent = 'Total weight must equal 100%';
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-disabled');
+            } else {
+                errorElement.textContent = '';
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-disabled');
+            }
+        }
+        
+        // Add event listeners for weight inputs
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('weight-input')) {
+                // Ensure value is between 0-100
+                let value = parseInt(e.target.value);
+                if (isNaN(value)) value = 0;
+                if (value < 0) value = 0;
+                if (value > 100) value = 100;
+                e.target.value = value;
+                
+                updateTotalWeight();
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('createActivityModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Initialize total weight calculation
+        updateTotalWeight();
+</script>
+{% endblock %}

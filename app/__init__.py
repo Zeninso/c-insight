@@ -23,10 +23,12 @@ def create_app():
     from routes.auth import student_bp
 
 
+
     app.register_blueprint(home_bp)
     app.register_blueprint(auth_bp)
-    app.register_blueprint(teacher_bp)
+    app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(student_bp)
+    
 
 
     return app
