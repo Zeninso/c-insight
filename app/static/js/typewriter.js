@@ -1,25 +1,50 @@
-function typeWriter(elementId, text, speed = 100) {
-    let i = 0;
-    const elem = document.getElementById(elementId);
-  elem.innerHTML = ""; // Clear existing content
-    
-    function type() {
-    if (i < text.length) {
-        elem.innerHTML += text.charAt(i);
-        i++;
-        setTimeout(type, speed);
-    }
-    }
-    
-    type();
-}
+  // Enhanced typewriter function with smoother animation
+        function typeWriter(element, text, speed = 80) {
+            let i = 0;
+            element.innerHTML = '';
+            element.classList.add('typewriter-cursor');
+            
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML = text.substring(0, i+1) + '<span class="typewriter-cursor">|</span>';
+                    i++;
+                    setTimeout(type, speed + Math.random() * 20);
+                } else {
+                    element.classList.remove('typewriter-cursor');
+                }
+            }
+            
+            type();
+        }
 
-// Optional: Auto-start on page load for specific elements
-document.addEventListener('DOMContentLoaded', function() {
-    const elements = document.querySelectorAll('[data-typewriter]');
-    elements.forEach(el => {
-    const text = el.textContent;
-    el.innerHTML = ''; // Clear original text
-    typeWriter(el.id, text, el.dataset.speed || 100);
-    });
-});
+        // Start animations with delays
+        document.addEventListener('DOMContentLoaded', function() {
+            const heading = document.getElementById('main-heading');
+            const subheading = document.getElementById('sub-heading');
+            
+            setTimeout(() => {
+                typeWriter(heading, 'Welcome to C-Insight');
+            }, 500);
+            
+            setTimeout(() => {
+                typeWriter(subheading, 'A Code Checker For C Activities Integrated In The LMS');
+            }, 1800);
+
+            // Bubble generation
+            const container = document.querySelector('.bg-purple');
+            const bubbleCount = 15;
+            
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                const sizes = ['small', 'medium', 'large'];
+                bubble.classList.add(sizes[Math.floor(Math.random() * sizes.length)]);
+                
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.top = `${Math.random() * 100}%`;
+                bubble.style.animationDelay = `${Math.random() * 5}s`;
+                
+                container.appendChild(bubble);
+            }
+        });

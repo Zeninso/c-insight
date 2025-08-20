@@ -8,67 +8,17 @@
 </head>
 <body>
     <div class="bg-purple"></div>
-    
-    <div class="main-card">
-        <h1 id="main-heading"></h1>
-        <p class="lead" id="sub-heading"></p>
-        <div class="btn-container">
-            <a href="{{ url_for('auth.login') }}" class="btn btn-gradient">Login</a>
-            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-gradient">Register</a>
+        <div class="main-card">
+            <h1 id="main-heading"></h1>
+            <p class="lead" id="sub-heading"></p>
+            <div class="btn-container">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-gradient">Login</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-gradient">Register</a>
+            </div>
         </div>
     </div>
 
-    <script>
-        // Enhanced typewriter function with smoother animation
-        function typeWriter(element, text, speed = 80) {
-            let i = 0;
-            element.innerHTML = '';
-            element.classList.add('typewriter-cursor');
-            
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML = text.substring(0, i+1) + '<span class="typewriter-cursor">|</span>';
-                    i++;
-                    setTimeout(type, speed + Math.random() * 20);
-                } else {
-                    element.classList.remove('typewriter-cursor');
-                }
-            }
-            
-            type();
-        }
-
-        // Start animations with delays
-        document.addEventListener('DOMContentLoaded', function() {
-            const heading = document.getElementById('main-heading');
-            const subheading = document.getElementById('sub-heading');
-            
-            setTimeout(() => {
-                typeWriter(heading, 'Welcome to C-Insight');
-            }, 500);
-            
-            setTimeout(() => {
-                typeWriter(subheading, 'A Code Checker For C Activities Integrated In The LMS');
-            }, 1800);
-
-            // Bubble generation
-            const container = document.querySelector('.bg-purple');
-            const bubbleCount = 15;
-            
-            for (let i = 0; i < bubbleCount; i++) {
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                
-                const sizes = ['small', 'medium', 'large'];
-                bubble.classList.add(sizes[Math.floor(Math.random() * sizes.length)]);
-                
-                bubble.style.left = `${Math.random() * 100}%`;
-                bubble.style.top = `${Math.random() * 100}%`;
-                bubble.style.animationDelay = `${Math.random() * 5}s`;
-                
-                container.appendChild(bubble);
-            }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/typewriter.js') }}"></script>
 </body>
 </html>
