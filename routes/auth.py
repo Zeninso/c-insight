@@ -82,7 +82,7 @@ def teacherDashboard():
     if session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
-    return render_template('teacher_Dashboard.html', username=session['username'])
+    return render_template('teacher_Dashboard.html', first_name=session['first_name'])
 
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])
@@ -225,55 +225,134 @@ def create_activity():
             cur.close()
 
 
-        
-
-@teacher_bp.route('/activity/<int:activity_id>')
-def view_activity(activity_id):
+@teacher_bp.route('/activity/<int:activity_id>', methods=['GET', 'PUT', 'DELETE'])
+def manage_activity(activity_id):
     if 'username' not in session or session.get('role') != 'teacher':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('auth.login'))
+        return jsonify({'error': 'Unauthorized access'}), 401
     
     cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT  a.id, a.teacher_id, a.title, a.description, a.instructions,
-                a.starter_code, a.due_date, a.correctness_weight, a.syntax_weight,
-                a.logic_weight, a.similarity_weight, a.created_at, u.username,
-                COUNT(s.id) as submission_count
-        FROM activities a
-        JOIN users u ON a.teacher_id = u.id
-        LEFT JOIN submissions s ON a.id = s.activity_id
-        WHERE a.id = %s
-        GROUP BY a.id
-    """, (activity_id,))
-    row = cur.fetchone()
-    cur.close()
+    
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_row = cur.fetchone()
+    if not teacher_row:
+        return jsonify({'error': 'Teacher not found'}), 404
+    teacher_id = teacher_row[0]
+    
+    if request.method == 'GET':
+        # Get activity details
+        cur.execute("""
+            SELECT a.*, COUNT(s.id) AS submission_count
+            FROM activities a
+            LEFT JOIN submissions s ON a.id = s.activity_id
+            WHERE a.id = %s AND a.teacher_id = %s
+            GROUP BY a.id
+        """, (activity_id, teacher_id))
+        
+        activity = cur.fetchone()
+        if not activity:
+            return jsonify({'error': 'Activity not found'}), 404
+        
+        # Convert to dict
+        activity_dict = {
+            'id': activity[0],
+            'teacher_id': activity[1],
+            'title': activity[2],
+            'description': activity[3],
+            'instructions': activity[4],
+            'starter_code': activity[5],
+            'due_date': activity[6].strftime('%Y-%m-%d %H:%M:%S') if activity[6] else None,
+            'correctness_weight': activity[7],
+            'syntax_weight': activity[8],
+            'logic_weight': activity[9],
+            'similarity_weight': activity[10],
+            'created_at': activity[11].strftime('%Y-%m-%d %H:%M:%S') if activity[11] else None,
+            'submission_count': activity[12]
+        }
+        
+        return jsonify(activity_dict)
+    
+    elif request.method == 'PUT':
+        try:
+            # Get form data
+            title = request.form['title']
+            description = request.form['description']
+            instructions = request.form['instructions']
+            starter_code = request.form.get('starter_code', '')
+            due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
+            
+            # Get rubrics arrays from form
+            rubric_names = request.form.getlist('rubric_name[]')
+            rubric_weights = request.form.getlist('rubric_weight[]')
+            
+            if not rubric_names or not rubric_weights:
+                return jsonify({'error': 'Rubrics are required'}), 400
+            
+            # Convert to dict { "Correctness": 50, "Syntax": 20, ... }
+            rubrics = {}
+            for name, weight in zip(rubric_names, rubric_weights):
+                rubrics[name.strip()] = int(weight)
+            
+            # Ensure the 4 required rubrics exist
+            required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
+            for r in required_rubrics:
+                if r not in rubrics:
+                    return jsonify({'error': f'Missing rubric: {r}'}), 400
+            
+            correctness_weight = rubrics.get("Correctness", 0)
+            syntax_weight = rubrics.get("Syntax", 0)
+            logic_weight = rubrics.get("Logic", 0)
+            similarity_weight = rubrics.get("Similarity", 0)
+            
+            # Validate weights sum = 100
+            total_weight = correctness_weight + syntax_weight + logic_weight + similarity_weight
+            if total_weight != 100:
+                return jsonify({'error': 'Rubric weights must sum to 100%'}), 400
+            
+            # Update activity in database
+            cur.execute("""
+                UPDATE activities 
+                SET title=%s, description=%s, instructions=%s, starter_code=%s, 
+                    due_date=%s, correctness_weight=%s, syntax_weight=%s, 
+                    logic_weight=%s, similarity_weight=%s
+                WHERE id=%s AND teacher_id=%s
+            """, (
+                title, description, instructions, starter_code, due_date,
+                correctness_weight, syntax_weight, logic_weight, similarity_weight,
+                activity_id, teacher_id
+            ))
+            
+            mysql.connection.commit()
+            return jsonify({'success': 'Activity updated successfully'})
+            
+        except Exception as e:
+            mysql.connection.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            # Check if activity exists and belongs to teacher
+            cur.execute("SELECT id FROM activities WHERE id=%s AND teacher_id=%s", (activity_id, teacher_id))
+            activity = cur.fetchone()
+            
+            if not activity:
+                return jsonify({'error': 'Activity not found'}), 404
+            
+            # Delete activity
+            cur.execute("DELETE FROM activities WHERE id=%s", (activity_id,))
+            mysql.connection.commit()
+            
+            return jsonify({'success': 'Activity deleted successfully'})
+            
+        except Exception as e:
+            mysql.connection.rollback()
+            return jsonify({'error': str(e)}), 500
+        
+        finally:
+            if 'cur' in locals():
+                cur.close()
+    
 
-    if not row:
-        flash("Activity not found", "error")
-        return redirect(url_for('teacher.teacherActivities'))
+        
 
-    # Format into dict
-    activity = {
-        'id': row[0],
-        'teacher_id': row[1],
-        'title': row[2],
-        'description': row[3],
-        'instructions': row[4],
-        'starter_code': row[5],
-        'due_date': row[6],
-        'correctness_weight': row[7],
-        'syntax_weight': row[8],
-        'logic_weight': row[9],
-        'similarity_weight': row[10],
-        'created_at': row[11],
-        'teacher_username': row[12],
-        'submission_count': row[13],
-        'rubrics': [
-            {'name': 'Correctness', 'weight': row[7]},
-            {'name': 'Syntax', 'weight': row[8]},
-            {'name': 'Logic', 'weight': row[9]},
-            {'name': 'Similarity', 'weight': row[10]},
-        ]
-    }
 
-    return render_template('view_activity.html', activity = activity)

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Activities</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/create_activity.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/activity_modal.css') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -92,10 +94,10 @@
 
                                         <td>{{ activity.submission_count }}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-view" onclick="window.location.href='/teacher/activity/{{ activity.id }}'">
+                                            <button class="btn btn-sm btn-view" onclick="showViewActivityModal('{{ activity.id }}')">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-edit" onclick="editActivity('{{ activity.id }}')">
+                                            <button class="btn btn-sm btn-edit" onclick="showEditActivityModal('{{ activity.id }}')">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             <button class="btn btn-sm btn-delete" onclick="deleteActivity('{{ activity.id }}')">
@@ -113,198 +115,132 @@
         </div>
     </div>
     
-    
     <!-- Create Activity Modal -->
     <div id="createActivityModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="hideCreateActivityModal()">&times;</span>
-                    <h2>Create New Activity</h2>
+            <h2>Create New Activity</h2>
     
             <form id="createActivityForm" action="{{ url_for('teacher.create_activity') }}" method="POST">
-            <!-- Activity title -->
-            <label for="title">Title:</label>
-            <input type="text" id="title" name="title" required>
+                <!-- Activity title -->
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required>
 
-            <!-- Description -->
-            <label for="description">Description:</label>
-            <textarea id="description" name="description"></textarea>
+                <!-- Description -->
+                <label for="description">Description:</label>
+                <textarea id="description" name="description"></textarea>
 
-            <!-- Instructions -->
-            <label for="instructions">Instructions:</label>
-            <textarea id="instructions" name="instructions" required></textarea>
+                <!-- Instructions -->
+                <label for="instructions">Instructions:</label>
+                <textarea id="instructions" name="instructions" required></textarea>
 
-            <!-- Starter code -->
-            <label for="starter_code">Starter Code (optional):</label>
-            <textarea id="starter_code" name="starter_code"></textarea>
+                <!-- Starter code -->
+                <label for="starter_code">Starter Code (optional):</label>
+                <textarea id="starter_code" name="starter_code"></textarea>
 
-            <!-- Due date -->
-            <label for="due_date">Due Date:</label>
-            <input type="datetime-local" id="due_date" name="due_date" required>
+                <!-- Due date -->
+                <label for="due_date">Due Date:</label>
+                <input type="datetime-local" id="due_date" name="due_date" required>
 
-            <!-- Rubrics Section -->
-            <h3>Rubrics</h3>
-            <div id="rubrics-container">
-        <!-- Default rubrics-->
-                <div class="rubric-item">
-                        <input type="text" name="rubric_name[]" value="Correctness" required>
+                <!-- Rubrics Section -->
+                <h3>Rubrics</h3>
+                <div id="rubrics-container">
+                    <!-- Default rubrics-->
+                    <div class="rubric-item">
+                        <input type="text" name="rubric_name[]" value="Correctness" required readonly>
                         <input type="number" name="rubric_weight[]" min="0" max="100" value="50" class="weight-input" required>
+                    </div>
+
+                    <div class="rubric-item">
+                        <input type="text" name="rubric_name[]" value="Syntax" required readonly>
+                        <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
+                    </div>
+
+                    <div class="rubric-item">
+                        <input type="text" name="rubric_name[]" value="Logic" required readonly>
+                        <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
+                    </div>
+
+                    <div class="rubric-item">
+                        <input type="text" name="rubric_name[]" value="Similarity" required readonly>
+                        <input type="number" name="rubric_weight[]" min="0" max="100" value="10" class="weight-input" required>   
+                    </div>
                 </div>
 
-                <div class="rubric-item">
-                    <input type="text" name="rubric_name[]" value="Syntax" required>
-                    <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
-                </div>
+                <!-- Total weight display -->
+                <p><strong>Total Weight: <span id="total-weight">100%</span></strong></p>
+                <p id="weight-error" style="color:red;"></p>
 
-                <div class="rubric-item">
-                    <input type="text" name="rubric_name[]" value="Logic" required>
-                    <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
-                </div>
-
-                <div class="rubric-item">
-                    <input type="text" name="rubric_name[]" value="Similarity" required>
-                    <input type="number" name="rubric_weight[]" min="0" max="100" value="10" class="weight-input" required>   
-                </div>
-            </div>
-
-            <!-- Total weight display -->
-            <p><strong>Total Weight: <span id="total-weight">100%</span></strong></p>
-            <p id="weight-error" style="color:red;"></p>
-
-            <!-- Submit -->
-            <button type="submit" id="submit-btn" class="btn btn-primary">Create Activity</button>
+                <!-- Submit -->
+                <button type="submit" id="submit-btn" class="btn btn-primary">Create Activity</button>
             </form>
         </div>
-</div>
+    </div>
+    
+    <!-- View Activity Modal -->
+    <div id="viewActivityModal" class="modal">
+        <div class="modal-content" style="width: 70%; max-height: 80vh; overflow-y: auto;">
+            <span class="close" onclick="hideViewActivityModal()">&times;</span>
+            <h2>Activity Details</h2>
+            <div id="viewActivityContent" class="activity-view">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Activity Modal -->
+    <div id="editActivityModal" class="modal">
+        <div class="modal-content" style="width: 70%; max-height: 80vh; overflow-y: auto;">
+            <span class="close" onclick="hideEditActivityModal()">&times;</span>
+            <h2>Edit Activity</h2>
+            <form id="editActivityForm" method="POST">
+                <input type="hidden" id="edit_activity_id" name="activity_id">
+                
+                <div class="form-group">
+                    <label for="edit_title">Title:</label>
+                    <input type="text" id="edit_title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_description">Description:</label>
+                    <textarea id="edit_description" name="description"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_instructions">Instructions:</label>
+                    <textarea id="edit_instructions" name="instructions" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_starter_code">Starter Code (optional):</label>
+                    <textarea id="edit_starter_code" name="starter_code"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_due_date">Due Date:</label>
+                    <input type="datetime-local" id="edit_due_date" name="due_date" required>
+                </div>
+                
+                <h3>Rubrics</h3>
+                <div id="edit-rubrics-container">
+                    <!-- Rubrics will be loaded dynamically -->
+                </div>
+                
+                <p><strong>Total Weight: <span id="edit-total-weight">100%</span></strong></p>
+                <p id="edit-weight-error" style="color:red;"></p>
+                
+                <button type="submit" id="edit-submit-btn" class="btn btn-primary">Update Activity</button>
+            </form>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
-            // Modal functions
-            function showCreateActivityModal() {
-                document.getElementById('createActivityModal').style.display = 'block';
-            }
-            
-            function hideCreateActivityModal() {
-                document.getElementById('createActivityModal').style.display = 'none';
-            }
-            
-            // Logout confirmation
-            function confirmLogout() {
-                Swal.fire({
-                    title: 'Logout?',
-                    text: "Are you sure you want to logout?",
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, logout!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = "{{ url_for('auth.logout') }}";
-                    }
-                });
-            }
-            
-            // Activity management functions
-            
-            function editActivity(activityId) {
-                window.location.href = `/teacher/activity/${activityId}/edit`;
-        }
-        
-            function deleteActivity(activityId) {
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'This will permanently delete the activity.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/teacher/activity/${activityId}`, { method: 'DELETE' })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    Swal.fire('Deleted!', 'Activity has been deleted.', 'success')
-                                        .then(() => location.reload());
-                                } else {
-                                    Swal.fire('Error!', data.error, 'error');
-                                }
-                            });
-                    }
-                });
-            }
-
-
-    
-
-            //Unified weight update function (works with ALL rubrics dynamically)
-            function updateTotalWeight() {
-                const total = Array.from(document.querySelectorAll('.weight-input'))
-                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-                
-                document.getElementById('total-weight').textContent = total + '%';
-                
-                const errorElement = document.getElementById('weight-error');
-                const submitBtn = document.getElementById('submit-btn');
-                
-                if (total !== 100) {
-                    errorElement.textContent = 'Total weight must equal 100%';
-                    submitBtn.disabled = true;
-                } else {
-                    errorElement.textContent = '';
-                    submitBtn.disabled = false;
-                }
-            }
-
-            //Attach listener dynamically for all rubric weight inputs
-            document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('weight-input')) {
-                    updateTotalWeight();
-                }
-            });
-
-            // Initialize total weight calculation
-            updateTotalWeight();
-
-            // Form submission
-            document.getElementById('createActivityForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Validate weights
-                const totalWeight = Array.from(document.querySelectorAll('.weight-input'))
-                    .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-                
-                if (totalWeight !== 100) {
-                    Swal.fire('Error', 'Total weights must equal 100%', 'error');
-                    return;
-                }
-
-                const formData = new FormData(this);
-                
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else {
-                        return response.json();
-                    }
-                })
-                .then(data => {
-                    if (data && data.error) {
-                        Swal.fire('Error', data.error, 'error');
-                    } else {
-                        window.location.reload();
-                    }
-                })
-                .catch(error => {
-                    Swal.fire('Error', 'Failed to create activity', 'error');
-                });
-            });
+            // Pass Flask url to JS for logout redirection
+            const logoutUrl = "{{ url_for('auth.logout') }}";
         </script>
+    <script src="{{ url_for('static', filename='js/teacher_activities.js') }}"></script>
 
-</body>
+
+</body> 
 </html>

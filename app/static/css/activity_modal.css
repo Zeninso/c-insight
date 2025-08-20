@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+        /* ===== Reset & Box Sizing Fix ===== */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box; /* FIX: padding & border no longer add extra width/height */
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ===== Modal Base ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            inset: 0; /* shorthand for top:0; right:0; bottom:0; left:0 */
+            background-color: rgba(0,0,0,0.6);
+            overflow-y: auto;
+            padding: 30px 0;
+        }
+
+        .modal-content {
+            background: #fff;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 800px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+            animation: fadeInUp 0.3s ease;
+            position: relative;
+        }
+
+        /* Headings */
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            transition: 0.2s ease;
+        }
+        .close:hover { color: var(--danger); }
+
+        /* ===== Activity View ===== */
+        .activity-view {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .activity-section {
+            background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .activity-section:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .activity-section h3,
+        .activity-section h4 {
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+        .activity-section p,
+        .activity-section pre {
+            font-size: 0.95rem;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        /* ===== Rubrics Table ===== */
+        .rubrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+        .rubrics-table th, 
+        .rubrics-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .rubrics-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        .rubrics-table tfoot td { font-weight: 600; }
+
+        /* ===== Stats Section ===== */
+        .activity-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background: linear-gradient(135deg, rgba(72, 40, 133, 0.15) 25%, rgba(214, 51, 132, 0.15) 100%);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+        }
+        .stat-card h4 {
+            font-size: 1rem;
+            color: var(--secondary);
+            margin-bottom: 0.25rem;
+        }
+        .stat-card p {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        /* ===== Activity Actions ===== */
+        .activity-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        /* ===== Edit Form Styles ===== */
+        #editActivityForm .form-group {
+            margin-bottom: 1rem;
+        }
+
+        #editActivityForm label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: var(--dark);
+            
+
+        }
+
+        #editActivityForm input[type="text"],
+        #editActivityForm input[type="datetime-local"],
+        #editActivityForm textarea {
+            box-sizing: border-box; 
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.95rem;
+            resize: vertical;
+            
+        }
+
+        #edit-rubrics-container .rubric-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        #edit-rubrics-container input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #d6cfcf;
+        }
+
+/* ===== Buttons ===== */
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4A90E2, #357ABD);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5AA0F2, #4688D8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+/* ===== Animations ===== */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #editActivityModal .modal-content {
+            animation: fadeInUp 0.3s ease; /*  animate modal when it appears */
+        }
