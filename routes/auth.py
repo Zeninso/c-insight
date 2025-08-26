@@ -232,7 +232,6 @@ def manage_activity(activity_id):
     
     cur = mysql.connection.cursor()
     
-    # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_row = cur.fetchone()
     if not teacher_row:
@@ -293,7 +292,6 @@ def manage_activity(activity_id):
             for name, weight in zip(rubric_names, rubric_weights):
                 rubrics[name.strip()] = int(weight)
             
-            # Ensure the 4 required rubrics exist
             required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
             for r in required_rubrics:
                 if r not in rubrics:

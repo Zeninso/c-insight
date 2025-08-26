@@ -16,7 +16,6 @@ def create_app():
 
     mysql.init_app(app)
 
-    # Import and register Blueprints
     from routes.home import home_bp
     from routes.auth import auth_bp
     from routes.auth import teacher_bp
@@ -28,6 +27,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(student_bp)
+
     
 
 

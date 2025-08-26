@@ -237,7 +237,7 @@ body {
 
 .password-wrap input {
     width: 100%;
-    padding-right: 40px; /* space for the eye icon */
+    padding-right: 40px; 
     box-sizing: border-box;
 }
 

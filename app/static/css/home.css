@@ -28,7 +28,7 @@ body {
     background: var(--gradient);
 }
 
-/* Add coding/tech themed PNG */
+
 .bg-purple::after {
     content: "";
     position: absolute;
@@ -38,7 +38,7 @@ body {
     height: 100%;
     background: url("/static/images/homepage.webp") no-repeat center / contain;
     background-size: 100%;
-    opacity: 0.40; /* faint overlay */
+    opacity: 0.40;
     z-index: -1;
 }
 

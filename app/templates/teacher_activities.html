@@ -96,12 +96,15 @@
                                         <td>
                                             <button class="btn btn-sm btn-view" onclick="showViewActivityModal('{{ activity.id }}')">
                                                 <i class="fas fa-eye"></i>
+                                                <span class="tooltip">View</span>
                                             </button>
                                             <button class="btn btn-sm btn-edit" onclick="showEditActivityModal('{{ activity.id }}')">
                                                 <i class="fas fa-edit"></i>
+                                                <span class="tooltip">Edit</span>
                                             </button>
                                             <button class="btn btn-sm btn-delete" onclick="deleteActivity('{{ activity.id }}')">
                                                 <i class="fas fa-trash"></i>
+                                                <span class="tooltip">Delete</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -223,7 +226,6 @@
                 
                 <h3>Rubrics</h3>
                 <div id="edit-rubrics-container">
-                    <!-- Rubrics will be loaded dynamically -->
                 </div>
                 
                 <p><strong>Total Weight: <span id="edit-total-weight">100%</span></strong></p>
