@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Class - Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_join_class.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('student.studentDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('student.studentClasses') }}"><i class="fas fa-users"></i> My Classes</a></li>
+                <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> Join Class</a></li>
+                <li><a href="#"><i class="fas fa-tasks"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-line"></i> Progress</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Join a Class</h1>
+                <div class="user-profile">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ username }}">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Join Class Section -->
+            <div class="content-section">
+                <div class="section-header">
+                    <h2>Enter Class Code</h2>
+                    <p>Ask your teacher for the class code and enter it below to join</p>
+                </div>
+                
+                <form method="POST" class="join-form">
+                    <div class="form-group">
+                        <label for="classCode">Class Code</label>
+                        <input type="text" id="classCode" name="class_code" required 
+                                placeholder="Enter 6-digit code" maxlength="6"
+                                pattern="[A-Z0-9]{6}" title="Please enter a 6-character code (letters and numbers)">
+                        <small>Codes are typically 6 characters long (e.g., ABC123)</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-sign-in-alt"></i> Join Class
+                    </button>
+                </form>
+                
+                <div class="info-box">
+                    <h3><i class="fas fa-info-circle"></i> How to join a class</h3>
+                    <ol>
+                        <li>Ask your teacher for the class code</li>
+                        <li>Enter the code in the field above</li>
+                        <li>Click "Join Class" to enroll</li>
+                        <li>Once joined, you'll see the class in your dashboard</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    
+    // Auto-format class code to uppercase
+    document.getElementById('classCode').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    </script>
+</body>
+</html>

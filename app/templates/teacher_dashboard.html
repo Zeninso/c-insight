@@ -7,6 +7,7 @@
     <title>Teacher Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
     
+    
 </head>
 <body>
     <div class="dashboard">
@@ -17,9 +18,10 @@
                 <h2>C-INSIGHT</h2>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="{{ url_for('teacher.teacherActivities') }}" class="active"><i class="fas fa-tasks"></i> Activities</a></li>
-                <li><a href="#"><i class="fas fa-users"></i> Students</a></li>
+                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
+                <li><a href="#"><i class="fas fa-tasks"></i>Grades</a></li>
                 <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
@@ -43,79 +45,8 @@
                 </div>
             </div>
             
-            <div class="grid-container">
-                <!-- Recent Activities Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Recent Activities</h3>
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Basic Variable Activity</h4>
-                                <div class="activity-meta">
-                                    <span>Published</span>
-                                    <span>Due: June 28, 2025</span>
-                                </div>
-                            </div>
-                            <button class="btn btn-gradient">View Details</button>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>If-else Activity</h4>
-                                <div class="activity-meta">
-                                    <span>Published</span>
-                                    <span>Due: June 28, 2025</span>
-                                </div>
-                            </div>
-                            <button class="btn btn-gradient">View Details</button>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Write Loop</h4>
-                                <div class="activity-meta">
-                                    <span>Published</span>
-                                    <span>Due: June 29, 2025</span>
-                                </div>
-                            </div>
-                            <button class=" btn btn-gradient">View Details</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Notifications Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Notifications</h3>
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>New Student Submission</h4>
-                                <div class="activity-meta">
-                                    <span>Basic Variable Activity</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-published">Notified</span>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Activity Published</h4>
-                                <div class="activity-meta">
-                                    <span>Write Loop</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-published">Published</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-                </div>
-            </div>
         </div>
+            
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

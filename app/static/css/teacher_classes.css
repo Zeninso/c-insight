@@ -1,0 +1,260 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: #4361ee;
+    --secondary: #3f37c9;
+    --accent: #4895ef;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --success: #4cc9f0;
+    --warning: #f8961e;
+    --danger: #f72585;
+}
+
+body {
+    background-color: #f5f7fa;
+    color: var(--dark);
+    font-family: 'Poppins', sans-serif;
+}
+
+/* ====== Content Section Styling ====== */
+.content-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+    animation: fadeIn 0.6s ease;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.section-header h2 {
+    font-size: 1.6rem;
+    color:#6f42c1;
+    margin-bottom: 0.5rem;
+}
+
+.section-header p {
+    font-size: 0.95rem;
+    color: #666;
+}
+
+/* ====== Form Styling ====== */
+.class-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 0.75rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 6px rgba(67, 97, 238, 0.2);
+}
+
+/* ====== Buttons ====== */
+.btn-custom {
+    background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 1rem;
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(67, 97, 238, 0.25);
+    color: white;
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    color: var(--dark);
+    border: none;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--light);
+    transform: translateY(-1px);
+}
+
+/* ====== Classes Grid ====== */
+.classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* ====== Class Card ====== */
+.class-card {
+    background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* ====== Card Header ====== */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.card-header h3 {
+    font-size: 1.2rem;
+    color: var(--dark);
+}
+
+.class-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.class-stats .stat i {
+    margin-right: 4px;
+}
+
+/* ====== Card Body ====== */
+.card-body {
+    margin-bottom: 1rem;
+}
+
+.class-description {
+    font-size: 0.95rem;
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.class-code-section label {
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.code-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.class-code {
+    background: #f8f9fa;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-family: monospace;
+}
+
+.btn-copy {
+    background: #6f42c1;;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-copy:hover {
+    background: var(--secondary);
+}
+
+/* ====== Regenerate Button ====== */
+.btn-text {
+    background: none;
+    border: none;
+    color: #6f42c1;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.btn-text:hover {
+    text-decoration: underline;
+}
+
+/* ====== Card Footer ====== */
+.card-footer {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.8rem;
+}
+
+/* ====== Empty State ====== */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+/* ====== Animations ====== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

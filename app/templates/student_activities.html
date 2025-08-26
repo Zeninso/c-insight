@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Activities - Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('student.studentDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentActivities') }}" class="active"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('student.studentClasses') }}"><i class="fas fa-users"></i> My Classes</a></li>
+                <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> Join Class</a></li>
+                <li><a href="#"><i class="fas fa-tasks"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-line"></i> Progress</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>My Activities</h1>
+                <div class="user-profile">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ username }}">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activities Section -->
+            <div class="content-section">
+                <div class="section-header">
+                    <h2>Assigned Activities</h2>
+                    <p>Here are all the activities assigned by your teacher</p>
+                </div>
+                
+                {% if activities %}
+                <div class="activities-grid">
+                    {% for activity in activities %}
+                    <div class="activity-card {% if activity.submitted %}submitted{% endif %} {% if activity.overdue and not activity.submitted %}overdue{% endif %}">
+                        <div class="card-header">
+                            <h3>{{ activity.title }}</h3>
+                            <span class="status-badge {% if activity.submitted %}submitted{% elif activity.overdue %}overdue{% else %}pending{% endif %}">
+                                {% if activity.submitted %}Submitted{% elif activity.overdue %}Overdue{% else %}Pending{% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="card-body">
+                            <p class="activity-description">{{ activity.description }}</p>
+                            
+                            <div class="activity-meta">
+                                <div class="meta-item">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>{{ activity.teacher_name }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-book"></i>
+                                    <span>{{ activity.class_name }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Due: {{ activity.due_date.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <a href="{{ url_for('student.viewActivity', activity_id=activity.id) }}" class="btn btn-primary">
+                                {% if activity.submitted %}View Submission{% else %}Start Activity{% endif %}
+                            </a>
+                            <a href="#" class="btn btn-secondary">Details</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-tasks"></i>
+                    <h3>No Activities Assigned</h3>
+                    <p>You don't have any activities assigned at the moment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    </script>
+</body>
+</html>

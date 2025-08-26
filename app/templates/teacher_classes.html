@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Classes - Teacher Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_classes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherClasses') }}" ><i class="fas fa-users"></i> Classes</a></li>
+                <li><a href="#"><i class="fas fa-tasks"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>My Classes</h1>
+                <div class="user-profile">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ first_name }}">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Create Class Section -->
+            <div class="content-section">
+                <div class="section-header">
+                    <h2>Create New Class</h2>
+                    <p>Create a new class and generate a unique code for students to join</p>
+                </div>
+                
+                <form id="createClassForm" class="class-form">
+                    <div class="form-group">
+                        <label for="className">Class Name</label>
+                        <input type="text" id="className" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="classDescription">Description (Optional)</label>
+                        <textarea id="classDescription" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-custom">
+                        <i class="fas fa-plus"></i> Create Class
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Classes List Section -->
+            <div class="content-section">
+                <div class="section-header">
+                    <h2>My Classes</h2>
+                    <p>All classes you've created</p>
+                </div>
+                
+                {% if classes %}
+                <div class="classes-grid">
+                    {% for class in classes %}
+                    <div class="class-card">
+                        <div class="card-header">
+                            <h3>{{ class.name }}</h3>
+                            <div class="class-stats">
+                                <span class="stat"><i class="fas fa-users"></i> {{ class.student_count }} Students</span>
+                                <span class="stat"><i class="fas fa-tasks"></i> {{ class.activity_count }} Activities</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <p class="class-description">{{ class.description or "No description provided" }}</p>
+                            
+                            {% if class.class_code %}
+                            <div class="class-code-section">
+                                <label>Class Join Code:</label>
+                                <div class="code-display">
+                                    <span class="class-code">{{ class.class_code }}</span>
+                                    <button class="btn-copy" data-code="{{ class.class_code }}">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small>Expires: {{ class.code_expires.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                
+                                <form class="regenerate-form" action="{{ url_for('teacher.regenerate_class_code', class_id=class.id) }}" method="POST">
+                                    <button type="submit" class="btn-text">Regenerate Code</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card-footer">
+                            <a href="{{ url_for('teacher.view_class', class_id=class.id) }}" class="btn btn-custom">
+                                <i class="fas fa-eye"></i> View Class
+                            </a>
+                            <a href="#" class="btn btn-secondary">Manage</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>No Classes Yet</h3>
+                    <p>Create your first class to get started</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    
+    // Handle class creation form
+    document.getElementById('createClassForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('{{ url_for("teacher.create_class") }}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                Swal.fire({
+                    title: 'Success!',
+                    html: `Class created successfully!<br><br>
+                            Your class code is: <strong>${result.class_code}</strong><br>
+                            This code will expire on ${result.expires}`,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Error', result.error, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'An error occurred while creating the class', 'error');
+        }
+    });
+    
+    // Copy code functionality
+    document.querySelectorAll('.btn-copy').forEach(button => {
+        button.addEventListener('click', function() {
+            const code = this.getAttribute('data-code');
+            navigator.clipboard.writeText(code).then(() => {
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                
+                setTimeout(() => {
+                    this.innerHTML = originalHtml;
+                }, 2000);
+            });
+        });
+    });
+    
+    // Handle code regeneration
+    document.querySelectorAll('.regenerate-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: 'Regenerate Code?',
+                text: "This will invalidate the current code and generate a new one.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, regenerate!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch(this.action, {
+                            method: 'POST'
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            Swal.fire({
+                                title: 'Success!',
+                                html: `New class code generated!<br><br>
+                                        Your new class code is: <strong>${result.class_code}</strong><br>
+                                        This code will expire on ${result.expires}`,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', result.error, 'error');
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'An error occurred while regenerating the code', 'error');
+                    }
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

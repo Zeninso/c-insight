@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_join_class.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}">
 </head>
 <body>
     <div class="dashboard">
@@ -15,7 +17,11 @@
                 <h2>C-INSIGHT</h2>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('student.studentClasses') }}"><i class="fas fa-users"></i> My Classes</a></li>
+                <li><a href="{{ url_for('student.join_class') }}" class="active"><i class="fas fa-plus-circle"></i> Join Class</a></li>
+                <li><a href="#"><i class="fas fa-tasks"></i>Grades</a></li>
                 <li><a href="#"><i class="fas fa-chart-line"></i> Progress</a></li>
                 <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
@@ -39,134 +45,6 @@
                 </div>
             </div>
             
-            <div class="grid-container">
-                <!-- Current Assignments Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Current Assignments</h3>
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Basic Variable Activity</h4>
-                                <div class="activity-meta">
-                                    <span>Due: June 28, 2025</span>
-                                    <span>Course: Programming 101</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-pending">Pending</span>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>If-else Activity</h4>
-                                <div class="activity-meta">
-                                    <span>Due: June 28, 2025</span>
-                                    <span>Course: Programming 101</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-completed">Completed</span>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Write Loop</h4>
-                                <div class="activity-meta">
-                                    <span>Due: June 29, 2025</span>
-                                    <span>Course: Programming 101</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-pending">In Progress</span>
-                        </div>
-                        <button class="btn btn-gradient" style="width: 100%; margin-top: 10px;">View All Assignments</button>
-                    </div>
-                </div>
-                
-                <!-- Course Progress Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Course Progress</h3>
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="card-body">
-                        <h4>Programming 101</h4>
-                        <div class="progress-container">
-                            <div class="progress-bar" style="width: 65%"></div>
-                        </div>
-                        <p>65% completed (13/20 assignments)</p>
-                        
-                        <h4 style="margin-top: 20px;">Data Structures</h4>
-                        <div class="progress-container">
-                            <div class="progress-bar" style="width: 30%"></div>
-                        </div>
-                        <p>30% completed (6/20 assignments)</p>
-                        
-                        <button class="btn btn-gradient" style="width: 100%; margin-top: 15px;">View All Courses</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="grid-container">
-                <!-- Upcoming Deadlines Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Upcoming Deadlines</h3>
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Basic Variable Activity</h4>
-                                <div class="activity-meta">
-                                    <span>Due: Tomorrow</span>
-                                    <span>Course: Programming 101</span>
-                                </div>
-                            </div>
-                            <button class="btn btn-gradient">Submit</button>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Midterm Exam</h4>
-                                <div class="activity-meta">
-                                    <span>Due: June 30, 2025</span>
-                                    <span>Course: Data Structures</span>
-                                </div>
-                            </div>
-                            <button class="btn btn-gradient">Study Materials</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Notifications Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Notifications</h3>
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="card-body">
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>Grade Updated</h4>
-                                <div class="activity-meta">
-                                    <span>If-else Activity: 95/100</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-completed">Viewed</span>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <h4>New Announcement</h4>
-                                <div class="activity-meta">
-                                    <span>From: Prof. Smith</span>
-                                </div>
-                            </div>
-                            <span class="activity-status status-pending">New</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
