@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Details - C-INSIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
+
+
+</head>
+<body>
+        <div class="dashboard">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h2>C-INSIGHT</h2>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                    <li><a href="{{ url_for('teacher.teacherClasses') }}" class="active"><i class="fas fa-users"></i> Classes</a></li>
+                    <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
+                    <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                    <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="header">
+                    <h1>Class Details</h1>
+                    <div class="user-profile">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User Profile">
+                        <span>Hello, {{ session.first_name }}</span>
+                    </div>
+                </div>
+                
+                <a href="{{ url_for('teacher.teacherClasses') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Classes
+                </a>
+                
+
+                <!-- Class Info Card -->
+                <div class="class-info-card">
+                    <div class="card-header">
+                        <h3>{{ class_data.name }}</h3>
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <p>{{ class_data.description }}</p>
+                    <div class="class-details">
+                        <div class="detail-item">
+                            <strong>Class Code</strong>
+                            <span>{{ class_data.class_code }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Code Expires</strong>
+                            <span>{{ class_data.code_expires }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Created At</strong>
+                            <span>{{ class_data.created_at }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Enrolled Students ({{ students|length }})</h3>
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="students-grid">
+                        {% for student in students %}
+                        <div class="student-card">
+                            <h4>{{ student.first_name }} {{ student.last_name }}</h4>
+                            <p><strong>Username:</strong> {{ student.username }}</p>
+                            <p><strong>Enrolled:</strong> {{ student.enrolled_at }}</p>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <p>No students enrolled yet.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Activities Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Class Activities ({{ activities|length }})</h3>
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="activities-grid">
+                        {% for activity in activities %}
+                        <div class="activity-card">
+                            <h4>{{ activity.title }}</h4>
+                            <p><strong>Due:</strong> {{ activity.due_date }}</p>
+                            <p><strong>Created:</strong> {{ activity.created_at }}</p>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <p>No activities created yet.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+</body>
+</html>
