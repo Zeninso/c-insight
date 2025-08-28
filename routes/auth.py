@@ -231,47 +231,47 @@ def manage_activity(activity_id):
     
     cur = mysql.connection.cursor()
     
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_row = cur.fetchone()
-    if not teacher_row:
-        return jsonify({'error': 'Teacher not found'}), 404
-    teacher_id = teacher_row[0]
-    
-    if request.method == 'GET':
-        # Get activity details
-        cur.execute("""
-            SELECT a.*, COUNT(s.id) AS submission_count
-            FROM activities a
-            LEFT JOIN submissions s ON a.id = s.activity_id
-            WHERE a.id = %s AND a.teacher_id = %s
-            GROUP BY a.id
-        """, (activity_id, teacher_id))
+    try:
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_row = cur.fetchone()
+        if not teacher_row:
+            return jsonify({'error': 'Teacher not found'}), 404
+        teacher_id = teacher_row[0]
         
-        activity = cur.fetchone()
-        if not activity:
-            return jsonify({'error': 'Activity not found'}), 404
+        if request.method == 'GET':
+            # Get activity details
+            cur.execute("""
+                SELECT a.*, COUNT(s.id) AS submission_count
+                FROM activities a
+                LEFT JOIN submissions s ON a.id = s.activity_id
+                WHERE a.id = %s AND a.teacher_id = %s
+                GROUP BY a.id
+            """, (activity_id, teacher_id))
+            
+            activity = cur.fetchone()
+            if not activity:
+                return jsonify({'error': 'Activity not found'}), 404
+            
+            
+            activity_dict = {
+                'id': activity[0],
+                'teacher_id': activity[1],
+                'title': activity[2],
+                'description': activity[3],
+                'instructions': activity[4],
+                'starter_code': activity[5],
+                'due_date': activity[6].strftime('%Y-%m-%d %H:%M:%S') if activity[6] else None,
+                'correctness_weight': activity[7],
+                'syntax_weight': activity[8],
+                'logic_weight': activity[9],
+                'similarity_weight': activity[10],
+                'created_at': activity[11].strftime('%Y-%m-%d %H:%M:%S') if activity[11] else None,
+                'submission_count': activity[12]  
+            }
+            
+            return jsonify(activity_dict)
         
-        # Convert to dict
-        activity_dict = {
-            'id': activity[0],
-            'teacher_id': activity[1],
-            'title': activity[2],
-            'description': activity[3],
-            'instructions': activity[4],
-            'starter_code': activity[5],
-            'due_date': activity[6].strftime('%Y-%m-%d %H:%M:%S') if activity[6] else None,
-            'correctness_weight': activity[7],
-            'syntax_weight': activity[8],
-            'logic_weight': activity[9],
-            'similarity_weight': activity[10],
-            'created_at': activity[11].strftime('%Y-%m-%d %H:%M:%S') if activity[11] else None,
-            'submission_count': activity[12]
-        }
-        
-        return jsonify(activity_dict)
-    
-    elif request.method == 'PUT':
-        try:
+        elif request.method == 'PUT':
             # Get form data
             title = request.form['title']
             description = request.form['description']
@@ -322,12 +322,7 @@ def manage_activity(activity_id):
             mysql.connection.commit()
             return jsonify({'success': 'Activity updated successfully'})
             
-        except Exception as e:
-            mysql.connection.rollback()
-            return jsonify({'error': str(e)}), 500
-    
-    elif request.method == 'DELETE':
-        try:
+        elif request.method == 'DELETE':
             # Check if activity exists and belongs to teacher
             cur.execute("SELECT id FROM activities WHERE id=%s AND teacher_id=%s", (activity_id, teacher_id))
             activity = cur.fetchone()
@@ -341,13 +336,13 @@ def manage_activity(activity_id):
             
             return jsonify({'success': 'Activity deleted successfully'})
             
-        except Exception as e:
-            mysql.connection.rollback()
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
         
-        finally:
-            if 'cur' in locals():
-                cur.close()
+    finally:
+        if 'cur' in locals():
+            cur.close()
     
 
     
@@ -741,3 +736,5 @@ def studentActivities():
         })
     
     return render_template('student_activities.html', activities=activities_list, username=session['username'])
+
+

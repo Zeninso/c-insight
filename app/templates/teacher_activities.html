@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Activities</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/create_activity.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/activity_modal.css') }}">
+
 </head>
 <body>
     <div class="dashboard">
@@ -31,7 +31,7 @@
             <div class="header">
                 <h1>Activities Management</h1>
                 <div class="user-profile">
-                    <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="{{ session['username'] }}">
+                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User Profile">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>
