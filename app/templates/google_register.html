@@ -3,36 +3,36 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Register - C-Insight</title>
+    <title>Complete Google Registration - C-Insight</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
-
 </head>
 <body>
     <div class="register-card">
-        <h2>Join C-Insight</h2>
+        <h2>Complete Your Registration</h2>
         
         <form method="POST" class="register-form">
             <div class="form-container">
                 <div class="form-fields">
                     <div class="form-group">
                         <label class="form-label">First Name</label>
-                        <input type="text" name="first_name" class="form-control" required placeholder="Enter your First Name" />
+                        <input type="text" name="first_name" class="form-control" value="{{ data.first_name }}" readonly />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Last Name</label>
-                        <input type="text" name="last_name" class="form-control" required placeholder="Enter your Last Name" />
+                        <input type="text" name="last_name" class="form-control" value="{{ data.last_name }}" readonly />
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required placeholder="Enter the Username You Want" />
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ data.email }}" readonly />
                     </div>
-                    
+
                     <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required placeholder="Enter Password Minimum 8 Characters" />
+                        <label class="form-label" for="password">Set a Password</label>
+                        <input type="password" id="password" name="password" class="form-control" required minlength="6" />
                     </div>
+
                 </div>
                 
                 <div class="role-section">
@@ -61,27 +61,10 @@
             </div>
             
             <div class="btn-container">
-                <button type="submit" class="btn btn-register">Create Account</button>
-                <a href="{{ url_for('auth.login') }}" class="btn btn-link">Already have an account?</a>
-            </div>
-
-            <!-- OR separator -->
-            <div class="divider">
-                <span>OR</span>
-            </div>
-
-            <!-- Google Register -->
-            <div class="google-btn-container">
-                <a href="{{ url_for('auth.google_login') }}" class="btn-google">
-                    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" class="google-icon">
-                    Sign up with Google
-                </a>
+                <button type="submit" class="btn btn-register">Finish Registration</button>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-link">Back to Login</a>
             </div>
         </form>
     </div>
-
-    
-        
-    
 </body>
 </html>
