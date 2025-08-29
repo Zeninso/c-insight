@@ -11,7 +11,7 @@ from flask import current_app as app
 import MySQLdb
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("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", "dev")
+app.secret_key = os.environ.get("secret-key", "dev") #secret key = app.secret key
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -796,7 +796,7 @@ def google_authorized():
 # MySQL setup
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Letsfuckingcode'
+app.config['MYSQL_PASSWORD'] = 'yourMySQLpassword'
 app.config['MYSQL_DB'] = 'c_insight_db'
 mysql = MySQL(app)
 
@@ -804,8 +804,8 @@ mysql = MySQL(app)
 app.config["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # remove in production
 
 google_bp = make_google_blueprint(
-    client_id="490893083299-21dn9iqobkjgar8h482g5814qavogf78.apps.googleusercontent.com",
-    client_secret="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",
+    client_id="client-id.apps.googleusercontent.com", #nasa GC
+    client_secret="secret-key", #nasa GC
     redirect_to="auth.google_authorized",   # this must match our route name
     scope=[
         "https://www.googleapis.com/auth/userinfo.profile",
