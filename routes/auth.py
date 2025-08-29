@@ -137,19 +137,6 @@ def teacherActivities():
     return render_template('teacher_activities.html', activities=activities_list)
 
 
-
-@student_bp.route('/student_Dashboard')
-def studentDashboard():
-    # Check if user is logged in
-    if 'username' not in session:
-        flash('Please login first', 'error')
-        return redirect(url_for('auth.login'))
-    if session.get('role') != 'student':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('home.home'))
-    return render_template('student_Dashboard.html', username=session['username'])
-
-
 @teacher_bp.route('/create_activity', methods=['POST'])
 def create_activity():
     if 'username' not in session or session.get('role') != 'teacher':
@@ -577,6 +564,19 @@ def view_class(class_id):
                             first_name=session['first_name'])
 
 
+#====================STUDENTS ROUTE=====================
+
+
+@student_bp.route('/student_Dashboard')
+def studentDashboard():
+    # Check if user is logged in
+    if 'username' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('auth.login'))
+    if session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('home.home'))
+    return render_template('student_Dashboard.html', username=session['username'])
 
 
 @student_bp.route('/join_class', methods=['GET', 'POST'])
