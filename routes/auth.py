@@ -82,7 +82,7 @@ def teacherDashboard():
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
     return render_template('teacher_Dashboard.html', first_name=session['first_name'])
-
+        
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])
 def teacherActivities():
@@ -157,6 +157,7 @@ def create_activity():
 
     try:
         #  Basic form fields
+
         title = request.form['title']
         description = request.form['description']
         instructions = request.form['instructions']
@@ -286,7 +287,7 @@ def manage_activity(activity_id):
             if not rubric_names or not rubric_weights:
                 return jsonify({'error': 'Rubrics are required'}), 400
             
-            # Convert to dict { "Correctness": 50, "Syntax": 20, ... }
+        
             rubrics = {}
             for name, weight in zip(rubric_names, rubric_weights):
                 rubrics[name.strip()] = int(weight)

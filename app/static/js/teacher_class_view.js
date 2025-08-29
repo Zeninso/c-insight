@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.nav-tab');
     const tabContents = {
         'stream': document.querySelector('.class-info-card'),
-        'students': document.querySelector('#students-section'),   // Students section
-        'classwork': document.querySelector('#classwork-section')  // Classwork section (Activities)
+        'students': document.querySelector('#students-section'),  
+        'classwork': document.querySelector('#classwork-section')  
     };
 
     // Function to switch tabs
@@ -50,24 +50,3 @@ document.addEventListener('DOMContentLoaded', function() {
     switchTab('stream');
 });
 
-// Function to open create activity modal with pre-selected class
-function openCreateActivityModalForClass(classId) {
-    // Show the create activity modal
-    const modal = document.getElementById('createActivityModal');
-    if (modal) {
-        modal.style.display = 'block';
-
-        // Set the class_id in the create activity form
-        let classIdInput = document.getElementById('createActivityForm').querySelector('input[name="class_id"]');
-        if (!classIdInput) {
-            // If the hidden input doesn't exist, create it
-            classIdInput = document.createElement('input');
-            classIdInput.type = 'hidden';
-            classIdInput.name = 'class_id';
-            document.getElementById('createActivityForm').appendChild(classIdInput);
-        }
-        classIdInput.value = classId;
-    } else {
-        console.error('Create activity modal not found');
-    }
-}
