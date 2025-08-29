@@ -52,66 +52,63 @@
                     </button>
                 </div>
                 
-                <!-- Activities List -->
-                <div class="activities-list">
+                <!-- Activities Grid -->
+                <div class="activities-grid">
                     <div class="card">
                         <div class="card-header">
                             <h3>Your Activities</h3>
                             <i class="fas fa-tasks"></i>
                         </div>
                         <div class="card-body">
-                            <table class="activities-table">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Description</th>
-                                        <th>Created</th>
-                                        <th>Due Date</th>
-                                        <th>Submissions</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for activity in activities %}
-                                    <tr>
-                                        <td>{{ activity.title }}</td>
-                                        <td>{{ activity.description|truncate(50) }}</td>
-
-                                        <td>
-                                            {% if activity.created_at %}
-                                                {{ activity.created_at.strftime('%Y-%m-%d') }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-
-                                        <td>
-                                            {% if activity.due_date %}
-                                                {{ activity.due_date.strftime('%Y-%m-%d') }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-
-                                        <td>{{ activity.submission_count }}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-view" onclick="showViewActivityModal('{{ activity.id }}')">
-                                                <i class="fas fa-eye"></i>
-                                                <span class="tooltip">View</span>
-                                            </button>
-                                            <button class="btn btn-sm btn-edit" onclick="showEditActivityModal('{{ activity.id }}')">
-                                                <i class="fas fa-edit"></i>
-                                                <span class="tooltip">Edit</span>
-                                            </button>
-                                            <button class="btn btn-sm btn-delete" onclick="deleteActivity('{{ activity.id }}')">
-                                                <i class="fas fa-trash"></i>
-                                                <span class="tooltip">Delete</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            {% if activities %}
+                            <div class="activities-cards-container">
+                                {% for activity in activities %}
+                                <div class="activity-card" data-activity-id="{{ activity.id }}">
+                                    <div class="activity-card-header">
+                                        <h4>{{ activity.title }}</h4>
+                                        <span class="activity-class">{{ activity.class_name }}</span>
+                                    </div>
+                                    <div class="activity-card-body">
+                                        <p class="activity-description">{{ activity.description|truncate(100) }}</p>
+                                        <div class="activity-details">
+                                            <div class="detail-item">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                <span>Due: {{ activity.due_date.strftime('%Y-%m-%d') if activity.due_date else 'N/A' }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <i class="fas fa-users"></i>
+                                                <span>{{ activity.submission_count }} submission{% if activity.submission_count != 1 %}s{% endif %}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <i class="fas fa-clock"></i>
+                                                <span>Created: {{ activity.created_at.strftime('%Y-%m-%d') if activity.created_at else 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-card-actions">
+                                        <button class="btn btn-sm btn-view" onclick="showViewActivityModal('{{ activity.id }}')">
+                                            <i class="fas fa-eye"></i>
+                                            <span class="tooltip">View</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-edit" onclick="showEditActivityModal('{{ activity.id }}')">
+                                            <i class="fas fa-edit"></i>
+                                            <span class="tooltip">Edit</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-delete" onclick="deleteActivity('{{ activity.id }}')">
+                                            <i class="fas fa-trash"></i>
+                                            <span class="tooltip">Delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-tasks fa-2x"></i>
+                                <h4>No Activities Yet</h4>
+                                <p>Create your first activity to get started!</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -126,6 +123,15 @@
             <h2>Create New Activity</h2>
     
             <form id="createActivityForm" action="{{ url_for('teacher.create_activity') }}" method="POST">
+                <!-- Class selection -->
+                <label for="class_id">Class:</label>
+                <select id="class_id" name="class_id" required>
+                    <option value="">Select a class...</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class.name }}</option>
+                    {% endfor %}
+                </select>
+
                 <!-- Activity title -->
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" required>

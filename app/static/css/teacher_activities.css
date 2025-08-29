@@ -210,32 +210,32 @@
             animation: fadeInUp 0.3s ease; 
         }
 
-        /* Tooltip Styles for Activity Buttons */
-.btn {
-    position: relative;
-    display: inline-block;
-}
+                /* Tooltip Styles for Activity Buttons */
+        .btn {
+            position: relative;
+            display: inline-block;
+        }
 
-.btn .tooltip {
-    visibility: hidden;
-    width: 80px;
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 0;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -40px;
-    opacity: 0;
-    transition: opacity 0.3s, visibility 0.3s;
-    font-size: 12px;
-    font-weight: 400;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-    pointer-events: none;
-}
+        .btn .tooltip {
+            visibility: hidden;
+            width: 80px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -40px;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-size: 12px;
+            font-weight: 400;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+        }
 
         .btn .tooltip::after {
             content: "";
@@ -367,10 +367,22 @@
         }
 
         #createActivityModal input:focus,
-        #createActivityModal textarea:focus {
+        #createActivityModal textarea:focus,
+        #createActivityModal select:focus {
             border-color: #6f42c1;
             box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
-                
+        }
+
+        #createActivityModal select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
         }
 
         /* Rubrics Section */
@@ -429,6 +441,107 @@
         #createActivityModal button[type="submit"]:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+        }
+
+        /* Activity Cards Styles */
+        .activities-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .activity-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .activity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .activity-card-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+
+        .activity-card-header h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .activity-class {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .activity-card-body {
+            padding: 20px;
+        }
+
+        .activity-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .activity-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .detail-item i {
+            color: #6f42c1;
+            width: 16px;
+        }
+
+        .activity-card-actions {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            margin-bottom: 15px;
+            color: #fffbfb;
+        }
+
+        .empty-state h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
         }
 
         
