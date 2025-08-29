@@ -7,14 +7,14 @@ mysql = MySQL()
 
 def create_app():
     app = Flask(__name__, static_folder='static')
-    app.secret_key = "app-secret-key" #nasa GC
+    app.secret_key = os.environ.get("GOOGLE_CLIENT_SECRET") ###############################################
 
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # only for development
 
     # ✅ Register Google OAuth blueprint
     google_bp = make_google_blueprint(
-        client_id="client-id.apps.googleusercontent.com", #nasa GC
-        client_secret="secret-key", #nasa GC
+        client_id=os.environ.get("GOOGLE_CLIENT_ID"), ###############################################
+        client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"), ###############################################
         scope=[
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -27,7 +27,7 @@ def create_app():
     # MySQL configuration
     app.config['MYSQL_HOST'] = 'localhost'
     app.config['MYSQL_USER'] = 'root'
-    app.config['MYSQL_PASSWORD'] = 'MySQLPassword123!' #nasa GC
+    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD') ###############################################
     app.config['MYSQL_DB'] = 'c_insight_db'
 
     mysql.init_app(app)
