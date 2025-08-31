@@ -44,7 +44,10 @@ def login():
                 return redirect(url_for('home.home'))
         else:
             flash('Invalid Username or Password', 'error')
-    return render_template('login.html')
+    user = {
+        'theme': session.get('theme', 'light')  # or just 'light' if you don't store theme in session yet
+    }
+    return render_template('login.html', user=user)
 
 @auth_bp.route('/logout')
 def logout():
@@ -78,8 +81,10 @@ def register():
             flash(f'Registration failed. Error: {str(e)}', 'error')
         finally:
             cur.close()
-    
-    return render_template('register.html')
+    user = {
+        'theme': session.get('theme', 'light')
+    }
+    return render_template('register.html', user=user)
 
 
 @teacher_bp.route('/teacherDashboard')
@@ -572,7 +577,215 @@ def view_class(class_id):
                             activities=activities_list,
                             first_name=session['first_name'])
 
+########################################################################################
 
+
+@teacher_bp.route('/settings', methods=['GET', 'POST'])
+def teacherSettings():
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    user = cur.fetchone()
+
+    if request.method == 'POST':
+        # Profile info
+        username = request.form.get('username', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        if email == '':
+            email = None
+
+        # Password change fields
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Validate required profile fields
+        if not username or not first_name or not last_name:
+            flash('Username, First name, and Last name, are required.', 'error')
+            return render_template('teacher_settings.html', user=user)
+        
+        # Check if the new username is already taken by another user
+        cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
+        existing_user = cur.fetchone()
+
+        if existing_user:
+            errors = {}
+            # After checking if username exists
+            if existing_user:
+                errors['username'] = 'The username is already taken. Please choose a different one.'
+            # Then, if errors exist, render template with errors and user data
+            if errors:
+                return render_template('teacher_settings.html', user=user, errors=errors)
+
+
+        # Password change validation
+        if new_password or confirm_password:
+            if not current_password:
+                flash('Current password is required to change password.', 'error')
+                return render_template('teacher_settings.html', user=user)
+            if not check_password_hash(user['password'], current_password):
+                flash('Current password is incorrect.', 'error')
+                return render_template('teacher_settings.html', user=user)
+            if new_password != confirm_password:
+                flash('New password and confirmation do not match.', 'error')
+                return render_template('teacher_settings.html', user=user)
+            if len(new_password) < 6:
+                flash('New password must be at least 6 characters.', 'error')
+                return render_template('teacher_settings.html', user=user)
+            hashed_password = generate_password_hash(new_password)
+        else:
+            hashed_password = user['password']
+
+        try:
+            cur.execute("""
+                UPDATE users
+                SET username=%s, first_name=%s, last_name=%s, email=%s, password=%s
+                WHERE username=%s
+            """, (
+                username, first_name, last_name, email, hashed_password,
+                session['username']
+            ))
+            mysql.connection.commit()
+
+            # Update session info
+            session['username'] = username
+            session['first_name'] = first_name
+            session['last_name'] = last_name
+
+            flash('Settings updated successfully.', 'success')
+            return redirect(url_for('teacher.teacherSettings'))
+        except Exception as e:
+            mysql.connection.rollback()
+            flash(f'Failed to update settings: {str(e)}', 'error')
+
+    cur.close()
+    return render_template('teacher_settings.html', user=user)
+
+@student_bp.route('/settings', methods=['GET', 'POST'])
+def studentSettings():
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    user = cur.fetchone()
+
+    if request.method == 'POST':
+        # Profile info
+        username = request.form.get('username', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        if email == '':
+            email = None
+
+        # Password change fields
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Validate required profile fields
+        if not username or not first_name or not last_name:
+            flash('Username, First name, and Last name, are required.', 'error')
+            return render_template('teacher_settings.html', user=user)
+        
+        # Check if the new username is already taken by another user
+        cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
+        existing_user = cur.fetchone()
+
+        if existing_user:
+            errors = {}
+            # After checking if username exists
+            if existing_user:
+                errors['username'] = 'The username is already taken. Please choose a different one.'
+            # Then, if errors exist, render template with errors and user data
+            if errors:
+                return render_template('student_settings.html', user=user, errors=errors)
+
+
+        # Password change validation
+        if new_password or confirm_password:
+            if not current_password:
+                flash('Current password is required to change password.', 'error')
+                return render_template('student_settings.html', user=user)
+            if not check_password_hash(user['password'], current_password):
+                flash('Current password is incorrect.', 'error')
+                return render_template('student_settings.html', user=user)
+            if new_password != confirm_password:
+                flash('New password and confirmation do not match.', 'error')
+                return render_template('student_settings.html', user=user)
+            if len(new_password) < 6:
+                flash('New password must be at least 6 characters.', 'error')
+                return render_template('student_settings.html', user=user)
+            hashed_password = generate_password_hash(new_password)
+        else:
+            hashed_password = user['password']
+
+        try:
+            cur.execute("""
+                UPDATE users
+                SET username=%s, first_name=%s, last_name=%s, email=%s, password=%s
+                WHERE username=%s
+            """, (
+                username, first_name, last_name, email, hashed_password,
+                session['username']
+            ))
+            mysql.connection.commit()
+
+            # Update session info
+            session['username'] = username
+            session['first_name'] = first_name
+            session['last_name'] = last_name
+
+            flash('Settings updated successfully.', 'success')
+            return redirect(url_for('student.studentSettings'))
+        except Exception as e:
+            mysql.connection.rollback()
+            flash(f'Failed to update settings: {str(e)}', 'error')
+
+    cur.close()
+    return render_template('student_settings.html', user=user)
+
+@auth_bp.route('/profile')
+def user_profile():
+    if 'username' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute(
+        "SELECT username, first_name, last_name, role, email FROM users WHERE username = %s",
+        (session['username'],)
+    )
+    user = cur.fetchone()
+    cur.close()
+
+    if not user:
+        flash('User  not found', 'error')
+        return redirect(url_for('auth.login'))
+
+    full_name = f"{user['first_name']} {user['last_name']}"
+
+    # Render different templates or pass role to template
+    if user['role'] == 'teacher':
+        template = 'teacher_profile.html'
+    elif user['role'] == 'student':
+        template = 'student_profile.html'
+    else:
+        # fallback or error
+        flash('Invalid user role', 'error')
+        return redirect(url_for('auth.login'))
+
+    return render_template(template, user=user, full_name=full_name)
+
+
+###################################################################################
 #====================STUDENTS ROUTE=====================
 
 
@@ -927,4 +1140,7 @@ def google_register():
             return redirect(url_for("student.studentDashboard"))
 
     # GET request → show form
-    return render_template("google_register.html", data=data)
+    user = {
+        'theme': session.get('theme', 'light')
+    }
+    return render_template('google_register.html', data=data, user=user)

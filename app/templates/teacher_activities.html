@@ -22,7 +22,7 @@
                 <li><a href="{{ url_for('teacher.teacherClasses') }}" ><i class="fas fa-users"></i> Classes</a></li>
                 <li><a href="#"><i class="fas fa-award"></i>Grades</a></li>
                 <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="{{ url_for('teacher.teacherSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
         </div>
         
@@ -31,7 +31,9 @@
             <div class="header">
                 <h1>Activities Management</h1>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User Profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User  Profile" />
+                    </a>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>
