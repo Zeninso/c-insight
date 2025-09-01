@@ -41,13 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initialize with stream tab active and hide other sections
-    Object.values(tabContents).forEach((content, index) => {
-        if (index > 0 && content) { // Hide all except first tab (stream)
-            content.style.display = 'none';
-        }
-    });
-    switchTab('stream');
+    // Initialize with classwork tab active and hide other sections
 
     // Delete selected students functionality
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
