@@ -88,6 +88,41 @@ def register():
     return render_template('register.html', user=user)
 
 
+
+@auth_bp.route('/profile')
+def user_profile():
+    if 'username' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute(
+        "SELECT username, first_name, last_name, role, email FROM users WHERE username = %s",
+        (session['username'],)
+    )
+    user = cur.fetchone()
+    cur.close()
+
+    if not user:
+        flash('User  not found', 'error')
+        return redirect(url_for('auth.login'))
+
+    full_name = f"{user['first_name']} {user['last_name']}"
+
+    # Render different templates or pass role to template
+    if user['role'] == 'teacher':
+        template = 'teacher_profile.html'
+    elif user['role'] == 'student':
+        template = 'student_profile.html'
+    else:
+        # fallback or error
+        flash('Invalid user role', 'error')
+        return redirect(url_for('auth.login'))
+
+    return render_template(template, user=user, full_name=full_name)
+
+
+
 @teacher_bp.route('/teacherDashboard')
 def teacherDashboard():
     if 'username' not in session:
@@ -104,7 +139,7 @@ def teacherActivities():
     if 'username' not in session or session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
-    
+
     cur = mysql.connection.cursor()
 
     #  Get teacher ID
@@ -115,14 +150,23 @@ def teacherActivities():
         return redirect(url_for('auth.login'))
     teacher_id = teacher_row[0]
 
+    # Get classes for the teacher
+    cur.execute("""
+        SELECT id, name, description
+        FROM classes
+        WHERE teacher_id = %s
+        ORDER BY name
+    """, (teacher_id,))
+    classes = cur.fetchall()
 
     cur.execute("""
-        SELECT  a.id, a.teacher_id, a.title, a.description, a.instructions,
+        SELECT  a.id, a.teacher_id, a.class_id, a.title, a.description, a.instructions,
                 a.starter_code, a.due_date, a.correctness_weight, a.syntax_weight,
                 a.logic_weight, a.similarity_weight, a.created_at,
-                COUNT(s.id) AS submission_count
+                COUNT(s.id) AS submission_count, c.name AS class_name
         FROM activities a
         LEFT JOIN submissions s ON a.id = s.activity_id
+        LEFT JOIN classes c ON a.class_id = c.id
         WHERE a.teacher_id = %s
         GROUP BY a.id
         ORDER BY a.created_at DESC
@@ -133,23 +177,43 @@ def teacherActivities():
     #  Convert to dicts and format datetime fields
     activities_list = []
     for activity in activities:
+        class_name = activity[14]
+        if activity[2] is None:
+            class_name = 'No Class'
+        elif class_name is None:
+            class_name = 'Class Deleted'
+        elif class_name == '':
+            class_name = 'Unnamed Class'
+        # else keep class_name
+
         activities_list.append({
             'id': activity[0],
             'teacher_id': activity[1],
-            'title': activity[2],
-            'description': activity[3],
-            'instructions': activity[4],
-            'starter_code': activity[5],
-            'due_date': activity[6],
-            'correctness_weight': activity[7],
-            'syntax_weight': activity[8],
-            'logic_weight': activity[9],
-            'similarity_weight': activity[10],
-            'created_at': activity[11],
-            'submission_count': activity[12]
+            'class_id': activity[2],
+            'title': activity[3],
+            'description': activity[4],
+            'instructions': activity[5],
+            'starter_code': activity[6],
+            'due_date': activity[7],
+            'correctness_weight': activity[8],
+            'syntax_weight': activity[9],
+            'logic_weight': activity[10],
+            'similarity_weight': activity[11],
+            'created_at': activity[12],
+            'submission_count': activity[13],
+            'class_name': class_name
         })
 
-    return render_template('teacher_activities.html', activities=activities_list)
+    # Convert classes to dicts
+    classes_list = []
+    for class_item in classes:
+        classes_list.append({
+            'id': class_item[0],
+            'name': class_item[1],
+            'description': class_item[2]
+        })
+
+    return render_template('teacher_activities.html', activities=activities_list, classes=classes_list)
 
 
 @teacher_bp.route('/create_activity', methods=['POST'])
@@ -159,13 +223,16 @@ def create_activity():
 
     try:
         #  Basic form fields
+        class_id = request.form.get('class_id')
+        if not class_id:
+            return jsonify({'error': 'Class is required'}), 400
 
         title = request.form['title']
         description = request.form['description']
         instructions = request.form['instructions']
         starter_code = request.form.get('starter_code', '')
         due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
-        created_at = datetime.now() 
+        created_at = datetime.now()
 
         # Get rubrics arrays from form
         rubric_names = request.form.getlist('rubric_name[]')
@@ -174,11 +241,9 @@ def create_activity():
         if not rubric_names or not rubric_weights:
             return jsonify({'error': 'Rubrics are required'}), 400
 
-
         rubrics = {}
         for name, weight in zip(rubric_names, rubric_weights):
             rubrics[name.strip()] = int(weight)
-
 
         required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
         for r in required_rubrics:
@@ -200,15 +265,20 @@ def create_activity():
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
         teacher_id = cur.fetchone()[0]
 
+        # Verify teacher owns the class
+        cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+        if not cur.fetchone():
+            return jsonify({'error': 'Unauthorized access to class'}), 403
+
         # Insert into DB
         cur.execute("""
             INSERT INTO activities (
-                teacher_id, title, description, instructions,
+                teacher_id, class_id, title, description, instructions,
                 starter_code, due_date, correctness_weight,
                 syntax_weight, logic_weight, similarity_weight, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            teacher_id, title, description, instructions,
+            teacher_id, class_id, title, description, instructions,
             starter_code, due_date, correctness_weight,
             syntax_weight, logic_weight, similarity_weight, created_at
         ))
@@ -244,84 +314,116 @@ def manage_activity(activity_id):
         if request.method == 'GET':
             # Get activity details
             cur.execute("""
-                SELECT a.*, COUNT(s.id) AS submission_count
+                SELECT a.*, COUNT(s.id) AS submission_count, c.name AS class_name
                 FROM activities a
                 LEFT JOIN submissions s ON a.id = s.activity_id
+                LEFT JOIN classes c ON a.class_id = c.id
                 WHERE a.id = %s AND a.teacher_id = %s
                 GROUP BY a.id
             """, (activity_id, teacher_id))
-            
+
             activity = cur.fetchone()
             if not activity:
                 return jsonify({'error': 'Activity not found'}), 404
-            
-            
+
+
+            class_name = activity[14]
+            if activity[2] is None:
+                class_name = 'No Class'
+            elif class_name is None:
+                class_name = 'Class Deleted'
+            elif class_name == '':
+                class_name = 'Unnamed Class'
+            # else keep class_name
+
             activity_dict = {
                 'id': activity[0],
                 'teacher_id': activity[1],
-                'title': activity[2],
-                'description': activity[3],
-                'instructions': activity[4],
-                'starter_code': activity[5],
-                'due_date': activity[6].strftime('%Y-%m-%d %H:%M:%S') if activity[6] else None,
-                'correctness_weight': activity[7],
-                'syntax_weight': activity[8],
-                'logic_weight': activity[9],
-                'similarity_weight': activity[10],
-                'created_at': activity[11].strftime('%Y-%m-%d %H:%M:%S') if activity[11] else None,
-                'submission_count': activity[12]  
+                'class_id': activity[2],
+                'title': activity[3],
+                'description': activity[4],
+                'instructions': activity[5],
+                'starter_code': activity[6],
+                'due_date': activity[7].strftime('%Y-%m-%d %H:%M:%S') if activity[7] else None,
+                'correctness_weight': activity[8],
+                'syntax_weight': activity[9],
+                'logic_weight': activity[10],
+                'similarity_weight': activity[11],
+                'created_at': activity[12].strftime('%Y-%m-%d %H:%M:%S') if activity[12] else None,
+                'submission_count': activity[13],
+                'class_name': class_name
             }
-            
+
             return jsonify(activity_dict)
         
         elif request.method == 'PUT':
             # Get form data
+            class_id = request.form.get('class_id')
             title = request.form['title']
             description = request.form['description']
             instructions = request.form['instructions']
             starter_code = request.form.get('starter_code', '')
             due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
-            
+
             # Get rubrics arrays from form
             rubric_names = request.form.getlist('rubric_name[]')
             rubric_weights = request.form.getlist('rubric_weight[]')
-            
+
             if not rubric_names or not rubric_weights:
                 return jsonify({'error': 'Rubrics are required'}), 400
-            
-        
+
+
             rubrics = {}
             for name, weight in zip(rubric_names, rubric_weights):
                 rubrics[name.strip()] = int(weight)
-            
+
             required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
             for r in required_rubrics:
                 if r not in rubrics:
                     return jsonify({'error': f'Missing rubric: {r}'}), 400
-            
+
             correctness_weight = rubrics.get("Correctness", 0)
             syntax_weight = rubrics.get("Syntax", 0)
             logic_weight = rubrics.get("Logic", 0)
             similarity_weight = rubrics.get("Similarity", 0)
-            
+
             # Validate weights sum = 100
             total_weight = correctness_weight + syntax_weight + logic_weight + similarity_weight
             if total_weight != 100:
                 return jsonify({'error': 'Rubric weights must sum to 100%'}), 400
-            
+
+            # If class_id is provided and not empty, verify teacher owns the new class
+            if class_id and class_id.strip():
+                cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
+                if not cur.fetchone():
+                    return jsonify({'error': 'Unauthorized access to class'}), 403
+
             # Update activity in database
-            cur.execute("""
-                UPDATE activities 
-                SET title=%s, description=%s, instructions=%s, starter_code=%s, 
-                    due_date=%s, correctness_weight=%s, syntax_weight=%s, 
-                    logic_weight=%s, similarity_weight=%s
-                WHERE id=%s AND teacher_id=%s
-            """, (
-                title, description, instructions, starter_code, due_date,
-                correctness_weight, syntax_weight, logic_weight, similarity_weight,
-                activity_id, teacher_id
-            ))
-            
+            if class_id and class_id.strip():
+                cur.execute("""
+                    UPDATE activities
+                    SET class_id=%s, title=%s, description=%s, instructions=%s, starter_code=%s,
+                        due_date=%s, correctness_weight=%s, syntax_weight=%s,
+                        logic_weight=%s, similarity_weight=%s
+                    WHERE id=%s AND teacher_id=%s
+                """, (
+                    class_id, title, description, instructions, starter_code, due_date,
+                    correctness_weight, syntax_weight, logic_weight, similarity_weight,
+                    activity_id, teacher_id
+                ))
+            else:
+                cur.execute("""
+                    UPDATE activities
+                    SET class_id=NULL, title=%s, description=%s, instructions=%s, starter_code=%s,
+                        due_date=%s, correctness_weight=%s, syntax_weight=%s,
+                        logic_weight=%s, similarity_weight=%s
+                    WHERE id=%s AND teacher_id=%s
+                """, (
+                    title, description, instructions, starter_code, due_date,
+                    correctness_weight, syntax_weight, logic_weight, similarity_weight,
+                    activity_id, teacher_id
+                ))
+
             mysql.connection.commit()
             return jsonify({'success': 'Activity updated successfully'})
             
@@ -572,13 +674,58 @@ def view_class(class_id):
             'created_at': activity[3]
         })
     
-    return render_template('teacher_class_view.html', 
-                            class_data=class_dict, 
+    return render_template('teacher_class_view.html',
+                            class_data=class_dict,
                             students=students_list,
                             activities=activities_list,
                             first_name=session['first_name'])
 
-########################################################################################
+# New route to delete enrolled students
+@teacher_bp.route('/class/<int:class_id>/delete_students', methods=['POST'])
+def delete_enrolled_students(class_id):
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    student_ids = request.form.getlist('student_ids')
+    if not student_ids:
+        flash('No students selected for deletion.', 'error')
+        return redirect(url_for('teacher.view_class', class_id=class_id))
+
+    cur = mysql.connection.cursor()
+
+    # Verify the teacher owns this class
+    cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
+    class_info = cur.fetchone()
+    if not class_info:
+        flash('Class not found', 'error')
+        cur.close()
+        return redirect(url_for('teacher.teacherClasses'))
+
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+
+    if class_info[0] != teacher_id:
+        flash('Unauthorized access', 'error')
+        cur.close()
+        return redirect(url_for('teacher.teacherClasses'))
+
+    try:
+        # Delete enrollments for selected students in this class
+        format_strings = ','.join(['%s'] * len(student_ids))
+        query = f"DELETE FROM enrollments WHERE class_id=%s AND student_id IN ({format_strings})"
+        cur.execute(query, [class_id] + student_ids)
+        mysql.connection.commit()
+        flash(f'Successfully deleted {len(student_ids)} student(s) from the class.', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'Failed to delete students: {str(e)}', 'error')
+    finally:
+        cur.close()
+
+    return redirect(url_for('teacher.view_class', class_id=class_id))
+
+
 
 
 @teacher_bp.route('/settings', methods=['GET', 'POST'])
@@ -667,126 +814,8 @@ def teacherSettings():
     cur.close()
     return render_template('teacher_settings.html', user=user)
 
-@student_bp.route('/settings', methods=['GET', 'POST'])
-def studentSettings():
-    if 'username' not in session or session.get('role') != 'student':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('auth.login'))
-
-    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
-    user = cur.fetchone()
-
-    if request.method == 'POST':
-        # Profile info
-        username = request.form.get('username', '').strip()
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
-        email = request.form.get('email', '').strip()
-        if email == '':
-            email = None
-
-        # Password change fields
-        current_password = request.form.get('current_password', '')
-        new_password = request.form.get('new_password', '')
-        confirm_password = request.form.get('confirm_password', '')
-
-        # Validate required profile fields
-        if not username or not first_name or not last_name:
-            flash('Username, First name, and Last name, are required.', 'error')
-            return render_template('teacher_settings.html', user=user)
-        
-        # Check if the new username is already taken by another user
-        cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
-        existing_user = cur.fetchone()
-
-        if existing_user:
-            errors = {}
-            # After checking if username exists
-            if existing_user:
-                errors['username'] = 'The username is already taken. Please choose a different one.'
-            # Then, if errors exist, render template with errors and user data
-            if errors:
-                return render_template('student_settings.html', user=user, errors=errors)
 
 
-        # Password change validation
-        if new_password or confirm_password:
-            if not current_password:
-                flash('Current password is required to change password.', 'error')
-                return render_template('student_settings.html', user=user)
-            if not check_password_hash(user['password'], current_password):
-                flash('Current password is incorrect.', 'error')
-                return render_template('student_settings.html', user=user)
-            if new_password != confirm_password:
-                flash('New password and confirmation do not match.', 'error')
-                return render_template('student_settings.html', user=user)
-            if len(new_password) < 6:
-                flash('New password must be at least 6 characters.', 'error')
-                return render_template('student_settings.html', user=user)
-            hashed_password = generate_password_hash(new_password)
-        else:
-            hashed_password = user['password']
-
-        try:
-            cur.execute("""
-                UPDATE users
-                SET username=%s, first_name=%s, last_name=%s, email=%s, password=%s
-                WHERE username=%s
-            """, (
-                username, first_name, last_name, email, hashed_password,
-                session['username']
-            ))
-            mysql.connection.commit()
-
-            # Update session info
-            session['username'] = username
-            session['first_name'] = first_name
-            session['last_name'] = last_name
-
-            flash('Settings updated successfully.', 'success')
-            return redirect(url_for('student.studentSettings'))
-        except Exception as e:
-            mysql.connection.rollback()
-            flash(f'Failed to update settings: {str(e)}', 'error')
-
-    cur.close()
-    return render_template('student_settings.html', user=user)
-
-@auth_bp.route('/profile')
-def user_profile():
-    if 'username' not in session:
-        flash('Please login first', 'error')
-        return redirect(url_for('auth.login'))
-
-    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cur.execute(
-        "SELECT username, first_name, last_name, role, email FROM users WHERE username = %s",
-        (session['username'],)
-    )
-    user = cur.fetchone()
-    cur.close()
-
-    if not user:
-        flash('User  not found', 'error')
-        return redirect(url_for('auth.login'))
-
-    full_name = f"{user['first_name']} {user['last_name']}"
-
-    # Render different templates or pass role to template
-    if user['role'] == 'teacher':
-        template = 'teacher_profile.html'
-    elif user['role'] == 'student':
-        template = 'student_profile.html'
-    else:
-        # fallback or error
-        flash('Invalid user role', 'error')
-        return redirect(url_for('auth.login'))
-
-    return render_template(template, user=user, full_name=full_name)
-
-
-###################################################################################
 #====================STUDENTS ROUTE=====================
 
 
@@ -961,6 +990,93 @@ def studentActivities():
     
     return render_template('student_activities.html', activities=activities_list, username=session['username'])
 
+
+@student_bp.route('/settings', methods=['GET', 'POST'])
+def studentSettings():
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    user = cur.fetchone()
+
+    if request.method == 'POST':
+        # Profile info
+        username = request.form.get('username', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        if email == '':
+            email = None
+
+        # Password change fields
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        # Validate required profile fields
+        if not username or not first_name or not last_name:
+            flash('Username, First name, and Last name, are required.', 'error')
+            return render_template('teacher_settings.html', user=user)
+        
+        # Check if the new username is already taken by another user
+        cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
+        existing_user = cur.fetchone()
+
+        if existing_user:
+            errors = {}
+            # After checking if username exists
+            if existing_user:
+                errors['username'] = 'The username is already taken. Please choose a different one.'
+            # Then, if errors exist, render template with errors and user data
+            if errors:
+                return render_template('student_settings.html', user=user, errors=errors)
+
+
+        # Password change validation
+        if new_password or confirm_password:
+            if not current_password:
+                flash('Current password is required to change password.', 'error')
+                return render_template('student_settings.html', user=user)
+            if not check_password_hash(user['password'], current_password):
+                flash('Current password is incorrect.', 'error')
+                return render_template('student_settings.html', user=user)
+            if new_password != confirm_password:
+                flash('New password and confirmation do not match.', 'error')
+                return render_template('student_settings.html', user=user)
+            if len(new_password) < 6:
+                flash('New password must be at least 6 characters.', 'error')
+                return render_template('student_settings.html', user=user)
+            hashed_password = generate_password_hash(new_password)
+        else:
+            hashed_password = user['password']
+
+        try:
+            cur.execute("""
+                UPDATE users
+                SET username=%s, first_name=%s, last_name=%s, email=%s, password=%s
+                WHERE username=%s
+            """, (
+                username, first_name, last_name, email, hashed_password,
+                session['username']
+            ))
+            mysql.connection.commit()
+
+            # Update session info
+            session['username'] = username
+            session['first_name'] = first_name
+            session['last_name'] = last_name
+
+            flash('Settings updated successfully.', 'success')
+            return redirect(url_for('student.studentSettings'))
+        except Exception as e:
+            mysql.connection.rollback()
+            flash(f'Failed to update settings: {str(e)}', 'error')
+
+    cur.close()
+    return render_template('student_settings.html', user=user)
+
 # --- Google login start ---
 @auth_bp.route("/google")
 def google_login():
@@ -1122,6 +1238,7 @@ def google_register():
         if user is None:
             flash("User  registration failed, please try again.", "error")
             return render_template("google_register.html", data=data)
+
 
         session["user_id"] = user["id"]
         session["username"] = user["username"]

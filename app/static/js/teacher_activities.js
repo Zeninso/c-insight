@@ -54,7 +54,7 @@ function formatActivityView(activity) {
     return `
         <div class="activity-section">
             <h3>${activity.title}</h3>
-            <p><strong>Class:</strong> ${activity.class_name || 'N/A'}</p>
+            <p><strong>Class:</strong> ${ activity.class_name || 'N/A'}</p>
             <p><strong>Description:</strong> ${activity.description || 'N/A'}</p>
         </div>
         

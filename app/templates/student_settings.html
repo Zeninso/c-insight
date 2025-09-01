@@ -66,7 +66,7 @@
                             <div class="error-message" style="color: red;">{{ errors.username }}</div>
                         {% endif %}
                         <label for="username">Username</label>
-                        <input type="text" id="usernmae" name="username" value="{{ user.username }}" required />
+                        <input type="text" id="username" name="username" value="{{ user.username }}" required />
 
                         <label for="first_name">First Name</label>
                         <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required />
@@ -90,7 +90,6 @@
                         <label for="confirm_password">Confirm New Password</label>
                         <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" />
                     </div>
-
 
                     <button type="submit" class="btn btn-custom">Save Changes</button>
                 </form>

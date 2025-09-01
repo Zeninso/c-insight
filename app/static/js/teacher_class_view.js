@@ -48,5 +48,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     switchTab('stream');
+
+    // Delete selected students functionality
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const deleteStudentsForm = document.getElementById('deleteStudentsForm');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const studentCheckboxes = deleteStudentsForm ? deleteStudentsForm.querySelectorAll('input[name="student_ids"]') : [];
+
+    function updateDeleteButtonState() {
+        const anyChecked = Array.from(studentCheckboxes).some(cb => cb.checked);
+        deleteSelectedBtn.disabled = !anyChecked;
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            studentCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            updateDeleteButtonState();
+        });
+    }
+
+    studentCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked && selectAllCheckbox.checked) {
+                selectAllCheckbox.checked = false;
+            } else if (Array.from(studentCheckboxes).every(cb => cb.checked)) {
+                selectAllCheckbox.checked = true;
+            }
+            updateDeleteButtonState();
+        });
+    });
+
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This will permanently delete the selected students from the class.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete them!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteStudentsForm.submit();
+                }
+            });
+        });
+    }
 });
 

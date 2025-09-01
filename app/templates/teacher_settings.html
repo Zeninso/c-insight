@@ -21,7 +21,7 @@
                 <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
                 <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
                 <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-                <li><a href="{{ url_for('teacher.teacherSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="{{ url_for('teacher.teacherSettings') }}" class="active"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
         </div>
 
@@ -65,7 +65,7 @@
                             <div class="error-message" style="color: red;">{{ errors.username }}</div>
                         {% endif %}
                         <label for="username">Username</label>
-                        <input type="text" id="usernmae" name="username" value="{{ user.username }}" required />
+                        <input type="text" id="username" name="username" value="{{ user.username }}" required />
 
                         <label for="first_name">First Name</label>
                         <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required />

@@ -38,10 +38,14 @@
             </div>
 
             <div class="profile-container">
+                <div class="section-header">
+                    <h2>Profile Information</h2>
+                    <p>View and manage your personal details</p>
+                </div>
                 <div class="profile-header">
-                    <img 
-                        src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=random&size=120" 
-                        alt="Profile picture of {{ user.first_name }} {{ user.last_name }}" 
+                    <img
+                        src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=random&size=120"
+                        alt="Profile picture of {{ user.first_name }} {{ user.last_name }}"
                         class="profile-avatar"
                     />
                     <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
