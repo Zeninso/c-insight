@@ -23,7 +23,7 @@
                 <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> <span>Join Class</span></a></li>
                 <li><a href="#"><i class="fas fa-award"></i> <span>Grades</span></a></li>
                 <li><a href="#"><i class="fas fa-chart-line"></i> <span>Progress</span></a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> <span>Settings</span></a></li>
+                <li><a href="{{ url_for('student.studentSettings') }}"><i class="fas fa-cog"></i> <span>Settings</span></a></li>
             </ul>
         </div>
 
@@ -32,7 +32,9 @@
             <div class="header">
                 <h1>My Classes</h1>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User Profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User  Profile" />
+                    </a>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>
@@ -118,5 +120,6 @@
             });
         });
     </script>
+
 </body>
 </html>

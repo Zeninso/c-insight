@@ -194,33 +194,16 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
+        
         .btn-gradient {
             background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
             color: white;
         }
-
+        
         .btn-gradient:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(111, 66, 193, 0.3);
             color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #c82333 0%, #a02622 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3);
-            color: white;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
         }
         
         .chart-container {
@@ -310,7 +293,7 @@
             gap: 1.5rem;
             margin-top: 1rem;
         }
-
+        
         .student-card, .activity-card {
             background: rgba(255, 255, 255, 0.7);
             border-radius: 8px;
@@ -318,48 +301,15 @@
             box-shadow: 0 3px 5px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
         }
-
+        
         .student-card:hover, .activity-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 5px 10px rgba(0,0,0,0.1);
         }
-
+        
         .student-card h4, .activity-card h4 {
             color: #6f42c1;
             margin-bottom: 0.5rem;
-        }
-
-        .students-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.05);
-        }
-
-        .students-table th, .students-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        .students-table th {
-            background: linear-gradient(135deg, rgba(72, 40, 133, 0.2) 25%, rgba(214, 51, 132, 0.2) 100%);
-            color: var(--dark);
-            font-weight: 600;
-        }
-
-        .students-table tr:hover {
-            background: rgba(111, 66, 193, 0.05);
-        }
-
-        .student-profile {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
         }
         
         .empty-state {

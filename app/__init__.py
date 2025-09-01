@@ -34,10 +34,7 @@ def create_app():
 
     # Imported blueprints from routes
     from routes.home import home_bp
-    from routes.auth import auth_bp
-    from routes.teacher import teacher_bp
-    from routes.student import student_bp
-
+    from routes.auth import auth_bp, teacher_bp, student_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(auth_bp)

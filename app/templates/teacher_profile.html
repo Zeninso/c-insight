@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>User Profile - C-INSIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_profile.css') }}">
+    
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
+                <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="{{ url_for('teacher.teacherSettings') }}" class="active"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>User Profile</h1>
+                <div class="user-profile">
+                    <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                </div>
+            </div>
+
+            <div class="profile-container">
+                <div class="profile-header">
+                    <img 
+                        src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=random&size=120" 
+                        alt="Profile picture of {{ user.first_name }} {{ user.last_name }}" 
+                        class="profile-avatar"
+                    />
+                    <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
+                </div>
+
+                <dl class="profile-info">
+                    <dt>Username:</dt>
+                    <dd>{{ user.username }}</dd>
+
+                    <dt>Full Name:</dt>
+                    <dd>{{ full_name }}</dd>
+
+                    <dt>Role:</dt>
+                    <dd>{{ user.role|capitalize }}</dd>
+
+                    <dt>Email:</dt>
+                    <dd>{{ user.email if user.email else 'Not provided' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</body>
+</html>
+
+<script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    </script>
