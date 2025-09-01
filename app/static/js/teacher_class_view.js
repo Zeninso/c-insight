@@ -48,5 +48,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     switchTab('stream');
+
+    // Delete enrolled student functionality
+    window.deleteEnrolledStudent = function(classId, studentId, studentName) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `This will remove ${studentName} from the class.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove them!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/teacher/class/${classId}/delete_student/${studentId}`;
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    };
 });
 

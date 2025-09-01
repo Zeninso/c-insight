@@ -205,6 +205,16 @@
             <h2>Edit Activity</h2>
             <form id="editActivityForm" method="POST">
                 <input type="hidden" id="edit_activity_id" name="activity_id">
+
+                <div class="form-group">
+                    <label for="edit_class_id">Class:</label>
+                    <select id="edit_class_id" name="class_id" required>
+                        <option value="">Select a class...</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 
                 <div class="form-group">
                     <label for="edit_title">Title:</label>

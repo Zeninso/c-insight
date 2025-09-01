@@ -54,6 +54,7 @@ function formatActivityView(activity) {
     return `
         <div class="activity-section">
             <h3>${activity.title}</h3>
+            <p><strong>Class:</strong> ${activity.class_name || 'N/A'}</p>
             <p><strong>Description:</strong> ${activity.description || 'N/A'}</p>
         </div>
         
@@ -127,11 +128,12 @@ function formatActivityView(activity) {
 // Populate edit form
 function populateEditForm(activity) {
     document.getElementById('edit_activity_id').value = activity.id;
+    document.getElementById('edit_class_id').value = activity.class_id;
     document.getElementById('edit_title').value = activity.title;
     document.getElementById('edit_description').value = activity.description || '';
     document.getElementById('edit_instructions').value = activity.instructions;
     document.getElementById('edit_starter_code').value = activity.starter_code || '';
-    
+
     const dueDate = new Date(activity.due_date);
     const formattedDate = dueDate.toISOString().slice(0, 16);
     document.getElementById('edit_due_date').value = formattedDate;
