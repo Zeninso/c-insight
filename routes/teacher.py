@@ -182,6 +182,8 @@ def create_activity():
         ))
         mysql.connection.commit()
 
+        return jsonify({'success': 'Activity created successfully'}), 201
+
 
     except Exception as e:
         mysql.connection.rollback()

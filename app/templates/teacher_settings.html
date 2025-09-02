@@ -47,13 +47,13 @@
 
             <div class="content-section">
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                  {% if messages %}
+                    {% if messages %}
                     <div class="flash-messages">
-                      {% for category, message in messages %}
+                        {% for category, message in messages %}
                         <div class="alert alert-{{ category }}">{{ message }}</div>
-                      {% endfor %}
+                        {% endfor %}
                     </div>
-                  {% endif %}
+                    {% endif %}
                 {% endwith %}
 
                 <form method="POST" action="{{ url_for('teacher.teacherSettings') }}">
@@ -105,7 +105,7 @@
             text: "Are you sure you want to logout?",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: ' #6f42c1',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, logout!'
         }).then((result) => {

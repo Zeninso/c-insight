@@ -179,22 +179,7 @@ function updateEditTotalWeight() {
     }
 }
 
-// Logout confirmation
-function confirmLogout() {
-    Swal.fire({
-        title: 'Logout?',
-        text: "Are you sure you want to logout?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, logout!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = logoutUrl;
-        }
-    });
-}
+
 
 // Delete activity
 function deleteActivity(activityId) {
@@ -285,7 +270,11 @@ document.getElementById('createActivityForm').addEventListener('submit', functio
         if (data && data.error) {
             Swal.fire('Error', data.error, 'error');
         } else {
-            window.location.reload();
+            Swal.fire('Success', 'Activity created successfully', 'success')
+                .then(() => {
+                    hideCreateActivityModal();
+                    location.reload();
+                });
         }
     })
     .catch(error => {
@@ -331,3 +320,21 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
         Swal.fire('Error', 'Failed to update activity', 'error');
     });
 });
+
+
+// Logout confirmation
+function confirmLogout() {
+    Swal.fire({
+        title: 'Logout?',
+        text: "Are you sure you want to logout?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: ' #6f42c1',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, logout!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = logoutUrl;
+        }
+    });
+}
