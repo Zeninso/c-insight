@@ -75,7 +75,7 @@
                                         <div class="activity-details">
                                             <div class="detail-item">
                                                 <i class="fas fa-calendar-alt"></i>
-                                                <span>Due: {{ activity.due_date.strftime('%Y-%m-%d') if activity.due_date else 'N/A' }}</span>
+                                                <span>Due: {{ activity.due_date.strftime('%b %d, %Y at %I:%M %p') if activity.due_date else 'N/A' }}</span>
                                             </div>
                                             <div class="detail-item">
                                                 <i class="fas fa-users"></i>
@@ -83,7 +83,7 @@
                                             </div>
                                             <div class="detail-item">
                                                 <i class="fas fa-clock"></i>
-                                                <span>Created: {{ activity.created_at.strftime('%Y-%m-%d') if activity.created_at else 'N/A' }}</span>
+                                                <span>Created: {{ activity.created_at.strftime('%b %d, %Y at %I:%M %p') if activity.created_at else 'N/A' }}</span>
                                             </div>
                                         </div>
                                     </div>
