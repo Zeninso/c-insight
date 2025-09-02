@@ -7,6 +7,48 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_classes.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
+    <style>
+        .class-card {
+            margin-bottom: 2rem;
+        }
+        .class-activities {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+        .class-activities h4 {
+            margin-bottom: 0.75rem;
+            color: #6f42c1;
+            font-size: 1rem;
+        }
+        .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .activity-item {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border-left: 4px solid #6f42c1;
+        }
+        .activity-item h5 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .activity-item p {
+            margin: 0.25rem 0;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .class-description {
+            margin-bottom: 1rem;
+        }
+        .class-info {
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -69,14 +111,25 @@
                                 <p><strong>Teacher:</strong> {{ class.teacher_name }}</p>
                                 <p><strong>Enrolled:</strong> {{ class.enrolled_at.strftime('%b %d, %Y') }}</p>
                             </div>
+                            <div class="class-activities">
+                                <h4>Classwork</h4>
+                                {% if class.activities %}
+                                <div class="activities-list">
+                                    {% for activity in class.activities %}
+                                    <div class="activity-item">
+                                        <h5>{{ activity.title }}</h5>
+                                        <p><strong>Due:</strong> {{ activity.due_date.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                                        <p><strong>Created:</strong> {{ activity.created_at.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p>No activities yet.</p>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="card-footer">
-                            <a href="{{ url_for('student.studentActivities') }}?class_id={{ class.id }}" class="btn-custom">
-                                <i class="fas fa-tasks"></i> View Activities
-                            </a>
-                            <a href="#" class="btn-secondary">
-                                <i class="fas fa-info-circle"></i> Details
-                            </a>
+                            <a href="{{ url_for('student.class_details', class_id=class.id) }}" class="btn-custom">View Class</a>
                         </div>
                     </div>
                     {% endfor %}

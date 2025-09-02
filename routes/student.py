@@ -118,23 +118,42 @@ def studentClasses():
     
     classes = cur.fetchall()
     
-    # Get activities count for each class
+    # Get activities count and activities for each class
     classes_list = []
     for class_item in classes:
         cur.execute("""
-            SELECT COUNT(*) 
-            FROM activities 
+            SELECT COUNT(*)
+            FROM activities
             WHERE class_id = %s
         """, (class_item[0],))
         activity_count = cur.fetchone()[0]
-        
+
+        # Get activities for this class
+        cur.execute("""
+            SELECT id, title, due_date, created_at
+            FROM activities
+            WHERE class_id = %s
+            ORDER BY due_date ASC
+        """, (class_item[0],))
+        activities = cur.fetchall()
+
+        activities_list = []
+        for activity in activities:
+            activities_list.append({
+                'id': activity[0],
+                'title': activity[1],
+                'due_date': activity[2],
+                'created_at': activity[3]
+            })
+
         classes_list.append({
             'id': class_item[0],
             'name': class_item[1],
             'description': class_item[2],
             'teacher_name': f"{class_item[3]} {class_item[4]}",
             'enrolled_at': class_item[5],
-            'activity_count': activity_count
+            'activity_count': activity_count,
+            'activities': activities_list
         })
     
     cur.close()
@@ -255,6 +274,22 @@ def studentSettings():
         else:
             hashed_password = user['password']
 
+        # Check if any changes were made
+        changed = (
+            username != user['username'] or
+            first_name != user['first_name'] or
+            last_name != user['last_name'] or
+            email != user['email'] or
+            hashed_password != user['password']
+        )
+
+        if not changed:
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'info': 'No changes detected'})
+            else:
+                flash('No changes detected.', 'info')
+                return redirect(url_for('student.studentSettings'))
+
         try:
             cur.execute("""
                 UPDATE users
@@ -271,13 +306,127 @@ def studentSettings():
             session['first_name'] = first_name
             session['last_name'] = last_name
 
-            flash('Settings updated successfully.', 'success')
-            return redirect(url_for('student.studentSettings'))
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'success': True})
+            else:
+                flash('Settings updated successfully.', 'success')
+                return redirect(url_for('student.studentSettings'))
         except Exception as e:
             mysql.connection.rollback()
-            flash(f'Failed to update settings: {str(e)}', 'error')
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'error': f'Failed to update settings: {str(e)}'})
+            else:
+                flash(f'Failed to update settings: {str(e)}', 'error')
 
     cur.close()
     return render_template('student_settings.html', user=user)
+
+
+@student_bp.route('/class_details/<int:class_id>')
+def class_details(class_id):
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Check if student is enrolled in the class
+    cur.execute("""
+        SELECT e.id FROM enrollments e
+        WHERE e.class_id = %s AND e.student_id = %s
+    """, (class_id, student_id))
+
+    if not cur.fetchone():
+        flash('You are not enrolled in this class', 'error')
+        return redirect(url_for('student.studentClasses'))
+
+    # Get class details
+    cur.execute("""
+        SELECT c.id, c.name, c.description, c.class_code, c.code_expires, c.created_at,
+               u.first_name, u.last_name
+        FROM classes c
+        JOIN users u ON c.teacher_id = u.id
+        WHERE c.id = %s
+    """, (class_id,))
+
+    class_data = cur.fetchone()
+
+    if not class_data:
+        flash('Class not found', 'error')
+        return redirect(url_for('student.studentClasses'))
+
+    # Get activities for the class
+    cur.execute("""
+        SELECT id, title, due_date, created_at
+        FROM activities
+        WHERE class_id = %s
+        ORDER BY due_date ASC
+    """, (class_id,))
+
+    activities = cur.fetchall()
+    cur.close()
+
+    # Convert to dict
+    class_info = {
+        'id': class_data[0],
+        'name': class_data[1],
+        'description': class_data[2],
+        'class_code': class_data[3],
+        'code_expires': class_data[4],
+        'created_at': class_data[5],
+        'teacher_name': f"{class_data[6]} {class_data[7]}"
+    }
+
+    activities_list = []
+    for activity in activities:
+        activities_list.append({
+            'id': activity[0],
+            'title': activity[1],
+            'due_date': activity[2],
+            'created_at': activity[3]
+        })
+
+    return render_template('student_class_details.html', class_data=class_info, activities=activities_list)
+
+
+@student_bp.route('/un_enroll/<int:class_id>', methods=['POST'])
+def un_enroll(class_id):
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Check if student is enrolled in the class
+    cur.execute("""
+        SELECT e.id FROM enrollments e
+        WHERE e.class_id = %s AND e.student_id = %s
+    """, (class_id, student_id))
+
+    enrollment = cur.fetchone()
+
+    if not enrollment:
+        flash('You are not enrolled in this class', 'error')
+        return redirect(url_for('student.studentClasses'))
+
+    # Delete the enrollment
+    cur.execute("""
+        DELETE FROM enrollments
+        WHERE class_id = %s AND student_id = %s
+    """, (class_id, student_id))
+
+    mysql.connection.commit()
+    cur.close()
+
+    flash('Successfully left the class', 'success')
+    return redirect(url_for('student.studentClasses'))
 
 

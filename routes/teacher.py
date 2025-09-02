@@ -735,6 +735,22 @@ def teacherSettings():
         else:
             hashed_password = user['password']
 
+        # Check if any changes were made
+        changed = (
+            username != user['username'] or
+            first_name != user['first_name'] or
+            last_name != user['last_name'] or
+            email != user['email'] or
+            hashed_password != user['password']
+        )
+
+        if not changed:
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'info': 'No changes detected'})
+            else:
+                flash('No changes detected.', 'info')
+                return redirect(url_for('teacher.teacherSettings'))
+
         try:
             cur.execute("""
                 UPDATE users
@@ -751,8 +767,11 @@ def teacherSettings():
             session['first_name'] = first_name
             session['last_name'] = last_name
 
-            flash('Settings updated successfully.', 'success')
-            return redirect(url_for('teacher.teacherSettings'))
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'success': 'Settings updated successfully'})
+            else:
+                flash('Settings updated successfully.', 'success')
+                return redirect(url_for('teacher.teacherSettings'))
         except Exception as e:
             mysql.connection.rollback()
             flash(f'Failed to update settings: {str(e)}', 'error')

@@ -46,17 +46,8 @@
             </div>
 
             <div class="content-section">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                {% endwith %}
 
-                <form method="POST" action="{{ url_for('teacher.teacherSettings') }}">
+                <form id="settingsForm" method="POST" action="{{ url_for('teacher.teacherSettings') }}">
                     <!-- Profile Information -->
                     <div class="settings-section">
                         <h3>Profile Information</h3>
@@ -90,7 +81,6 @@
                         <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" />
                     </div>
 
-
                     <button type="submit" class="btn btn-custom">Save Changes</button>
                 </form>
             </div>
@@ -114,6 +104,43 @@
             }
         });
     }
+
+    // Form submission
+    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                return response.json();
+            }
+        })
+                    .then(data => {
+                        if (data && data.error) {
+                            Swal.fire('Error', data.error, 'error');
+                        } else if (data && data.success) {
+                            Swal.fire('Success', data.success, 'success')
+                                .then(() => {
+                                    location.reload();
+                                });
+                        } else if (data && data.info) {
+                            Swal.fire('Info', data.info, 'info');
+                        }
+                    })
+        .catch(error => {
+            Swal.fire('Error', 'Failed to update settings', 'error');
+        });
+    });
     </script>
 
 </body>

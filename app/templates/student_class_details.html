@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Details - C-INSIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
+    <style>
+        .activities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .activity-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .activity-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+        .activity-card p {
+            margin: 0.25rem 0;
+            color: #666;
+        }
+        .activity-card .btn {
+            align-self: flex-start;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('student.studentDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('student.studentClasses') }}" class="active"><i class="fas fa-users"></i> My Classes</a></li>
+                <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> Join Class</a></li>
+                <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-line"></i> Progress</a></li>
+                <li><a href="{{ url_for('student.studentSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Class Details</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <span>Hello, {{ session.first_name }}</span>
+                </div>
+            </div>
+
+            <a href="{{ url_for('student.studentClasses') }}" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to My Classes
+            </a>
+            <form id="un_enroll_form" method="POST" action="{{ url_for('student.un_enroll', class_id=class_data.id) }}" style="display: inline;">
+                <button type="button" onclick="confirmUnEnroll()" class="btn btn-danger" style="margin-left: 1rem;">
+                    <i class="fas fa-sign-out-alt"></i> Un-enroll
+                </button>
+            </form>
+
+            <!-- Class Info Card -->
+            <div class="class-info-card">
+                <div class="card-header">
+                    <h3>{{ class_data.name }}</h3>
+                    <i class="fas fa-users"></i>
+                </div>
+                <p>{{ class_data.description }}</p>
+                <div class="class-details">
+                    <div class="detail-item">
+                        <strong>Teacher</strong>
+                        <span>{{ class_data.teacher_name }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classwork Section -->
+            <div class="card" id="classwork-section">
+                <div class="card-header">
+                    <h3>Class Activities ({{ activities|length }})</h3>
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="activities-grid">
+                    {% for activity in activities %}
+                    <div class="activity-card">
+                        <h4>{{ activity.title }}</h4>
+                        <p><strong>Due:</strong> {{ activity.due_date.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                        <a href="{{ url_for('student.studentActivities') }}?class_id={{ class_data.id }}" class="btn btn-primary">View Activity</a>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <p>No activities created yet.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmUnEnroll() {
+            Swal.fire({
+                title: 'Leave Class?',
+                text: "Do you want to leave this class?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, leave class!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('un_enroll_form').submit();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
