@@ -31,7 +31,70 @@ def studentDashboard():
     if session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
-    return render_template('student_Dashboard.html', username=session['username'])
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Get enrolled classes count
+    cur.execute("""
+        SELECT COUNT(*) FROM enrollments WHERE student_id = %s
+    """, (student_id,))
+    enrolled_classes_count = cur.fetchone()[0]
+
+    # Get upcoming activities (next 5 due in the future)
+    cur.execute("""
+        SELECT a.title, a.due_date, c.name as class_name
+        FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        JOIN enrollments e ON c.id = e.class_id
+        WHERE e.student_id = %s AND a.due_date > NOW()
+        ORDER BY a.due_date ASC
+        LIMIT 5
+    """, (student_id,))
+    upcoming_activities = cur.fetchall()
+
+    # Get recent submissions (last 5)
+    cur.execute("""
+        SELECT a.title, s.submitted_at, c.name as class_name
+        FROM submissions s
+        JOIN activities a ON s.activity_id = a.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE s.student_id = %s
+        ORDER BY s.submitted_at DESC
+        LIMIT 5
+    """, (student_id,))
+    recent_submissions = cur.fetchall()
+
+    # Get total activities and submitted activities for progress
+    cur.execute("""
+        SELECT COUNT(*) FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        JOIN enrollments e ON c.id = e.class_id
+        WHERE e.student_id = %s
+    """, (student_id,))
+    total_activities = cur.fetchone()[0]
+
+    cur.execute("""
+        SELECT COUNT(*) FROM submissions s
+        WHERE s.student_id = %s
+    """, (student_id,))
+    submitted_activities = cur.fetchone()[0]
+
+    progress_percentage = (submitted_activities / total_activities * 100) if total_activities > 0 else 0
+
+    cur.close()
+
+    return render_template('student_Dashboard.html',
+                          username=session['username'],
+                          enrolled_classes_count=enrolled_classes_count,
+                          upcoming_activities=upcoming_activities,
+                          recent_submissions=recent_submissions,
+                          total_activities=total_activities,
+                          submitted_activities=submitted_activities,
+                          progress_percentage=progress_percentage)
 
 
 @student_bp.route('/join_class', methods=['GET', 'POST'])

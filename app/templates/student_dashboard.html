@@ -46,7 +46,90 @@
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Dashboard Content -->
+            <div class="grid-container">
+                <!-- Enrolled Classes Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users"></i> Enrolled Classes</h3>
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <p>You are enrolled in <strong>{{ enrolled_classes_count }}</strong> class{{ 'es' if enrolled_classes_count != 1 else '' }}.</p>
+                    <a href="{{ url_for('student.studentClasses') }}" class="btn btn-gradient">View Classes</a>
+                </div>
+
+                <!-- Upcoming Activities Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Upcoming Activities</h3>
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    {% if upcoming_activities %}
+                        {% for activity in upcoming_activities %}
+                            <div class="activity-item">
+                                <div class="activity-info">
+                                    <h4>{{ activity[0] }}</h4>
+                                    <div class="activity-meta">
+                                        <span><i class="fas fa-clock"></i> Due: {{ activity[1].strftime('%b %d, %Y') }}</span>
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ activity[2] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No upcoming activities.</p>
+                    {% endif %}
+                    <a href="{{ url_for('student.studentActivities') }}" class="btn btn-gradient">View All Activities</a>
+                </div>
+
+                <!-- Recent Submissions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Recent Submissions</h3>
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    {% if recent_submissions %}
+                        {% for submission in recent_submissions %}
+                            <div class="activity-item">
+                                <div class="activity-info">
+                                    <h4>{{ submission[0] }}</h4>
+                                    <div class="activity-meta">
+                                        <span><i class="fas fa-calendar-check"></i> Submitted: {{ submission[1].strftime('%b %d, %Y') }}</span>
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ submission[2] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No recent submissions.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Progress Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> Activity Progress</h3>
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <p>You have completed <strong>{{ submitted_activities }}</strong> out of <strong>{{ total_activities }}</strong> activities.</p>
+                    <div class="progress-container">
+                        <div class="progress-fill" style="width: {{ progress_percentage }}%;"></div>
+                    </div>
+                    <p class="progress-text">{{ progress_percentage|round(1) }}% Complete</p>
+                </div>
+
+                <!-- Quick Actions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <a href="{{ url_for('student.join_class') }}" class="btn btn-gradient" style="margin-bottom: 10px;">Join New Class</a>
+                    <a href="{{ url_for('student.studentActivities') }}" class="btn btn-gradient">View Activities</a>
+                </div>
+            </div>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 

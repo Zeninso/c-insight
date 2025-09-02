@@ -29,7 +29,54 @@ def teacherDashboard():
     if session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
-    return render_template('teacher_Dashboard.html', first_name=session['first_name'])
+
+    cur = mysql.connection.cursor()
+
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+
+    # Get total classes
+    cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
+    total_classes = cur.fetchone()[0]
+
+    # Get total students (across all classes)
+    cur.execute("""
+        SELECT COUNT(DISTINCT e.student_id)
+        FROM enrollments e
+        JOIN classes c ON e.class_id = c.id
+        WHERE c.teacher_id = %s
+    """, (teacher_id,))
+    total_students = cur.fetchone()[0]
+
+    # Get recent activities (last 5)
+    cur.execute("""
+        SELECT a.title, a.created_at, c.name as class_name
+        FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.teacher_id = %s
+        ORDER BY a.created_at DESC
+        LIMIT 5
+    """, (teacher_id,))
+    recent_activities = cur.fetchall()
+
+    # Get pending submissions (activities with submissions but not graded, assuming no grading system yet)
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM submissions s
+        JOIN activities a ON s.activity_id = a.id
+        WHERE a.teacher_id = %s
+    """, (teacher_id,))
+    pending_submissions = cur.fetchone()[0]
+
+    cur.close()
+
+    return render_template('teacher_Dashboard.html',
+                          first_name=session['first_name'],
+                          total_classes=total_classes,
+                          total_students=total_students,
+                          recent_activities=recent_activities,
+                          pending_submissions=pending_submissions)
         
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])

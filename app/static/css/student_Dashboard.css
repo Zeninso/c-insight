@@ -245,12 +245,21 @@
             background-color: #e9ecef;
             border-radius: 8px;
             margin: 10px 0;
+            overflow: hidden;
         }
-        
-        .progress-bar {
+
+        .progress-fill {
             height: 10px;
             border-radius: 8px;
             background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: var(--dark);
+            margin-top: 5px;
+            text-align: center;
         }
 
         .btn-logout {
