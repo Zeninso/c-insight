@@ -625,6 +625,53 @@ def delete_enrolled_students(class_id):
     return redirect(url_for('teacher.view_class', class_id=class_id))
 
 
+@teacher_bp.route('/delete_class/<int:class_id>', methods=['POST'])
+def delete_class(class_id):
+    if 'username' not in session or session.get('role') != 'teacher':
+        return jsonify({'error': 'Unauthorized access'}), 401
+
+    cur = mysql.connection.cursor()
+
+    try:
+        # Verify the teacher owns this class
+        cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
+        class_info = cur.fetchone()
+        if not class_info:
+            return jsonify({'error': 'Class not found'}), 404
+
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_id = cur.fetchone()[0]
+
+        if class_info[0] != teacher_id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+
+        # Delete submissions for activities in this class
+        cur.execute("""
+            DELETE s FROM submissions s
+            INNER JOIN activities a ON s.activity_id = a.id
+            WHERE a.class_id = %s
+        """, (class_id,))
+
+        # Delete activities for this class
+        cur.execute("DELETE FROM activities WHERE class_id=%s", (class_id,))
+
+        # Delete enrollments for this class
+        cur.execute("DELETE FROM enrollments WHERE class_id=%s", (class_id,))
+
+        # Delete the class
+        cur.execute("DELETE FROM classes WHERE id=%s", (class_id,))
+
+        mysql.connection.commit()
+
+        return jsonify({'success': 'Class and all associated activities deleted successfully'}), 200
+
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+
+
 
 
 @teacher_bp.route('/settings', methods=['GET', 'POST'])

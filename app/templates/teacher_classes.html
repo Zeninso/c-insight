@@ -90,7 +90,7 @@
                             <a href="{{ url_for('teacher.view_class', class_id=class.id) }}" class="btn btn-custom">
                                 <i class="fas fa-eye"></i> View Class
                             </a>
-                            <a href="#" class="btn btn-secondary">Manage</a>
+                            <button class="btn btn-secondary btn-remove-class" data-class-id="{{ class.id }}">Remove Class</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -132,113 +132,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Logout?',
-            text: "Are you sure you want to logout?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: ' #6f42c1',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, logout!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = "{{ url_for('auth.logout') }}";
-            }
-        });
-    }
-    
-    // Handle class creation form
-    document.getElementById('createClassForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        
-        try {
-            const response = await fetch('{{ url_for("teacher.create_class") }}', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                Swal.fire({
-                    title: 'Success!',
-                    html: `Class created successfully!<br><br>
-                            Your class code is: <strong>${result.class_code}</strong><br>
-                            This code will expire on ${result.expires}`,
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else {
-                Swal.fire('Error', result.error, 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'An error occurred while creating the class', 'error');
-        }
-    });
-    
-    // Copy code functionality
-    document.querySelectorAll('.btn-copy').forEach(button => {
-        button.addEventListener('click', function() {
-            const code = this.getAttribute('data-code');
-            navigator.clipboard.writeText(code).then(() => {
-                const originalHtml = this.innerHTML;
-                this.innerHTML = '<i class="fas fa-check"></i>';
-                
-                setTimeout(() => {
-                    this.innerHTML = originalHtml;
-                }, 2000);
-            });
-        });
-    });
-    
-    // Handle code regeneration
-    document.querySelectorAll('.regenerate-form').forEach(form => {
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            Swal.fire({
-                title: 'Regenerate Code?',
-                text: "This will invalidate the current code and generate a new one.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, regenerate!'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(this.action, {
-                            method: 'POST'
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (response.ok) {
-                            Swal.fire({
-                                title: 'Success!',
-                                html: `New class code generated!<br><br>
-                                        Your new class code is: <strong>${result.class_code}</strong><br>
-                                        This code will expire on ${result.expires}`,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire('Error', result.error, 'error');
-                        }
-                    } catch (error) {
-                        Swal.fire('Error', 'An error occurred while regenerating the code', 'error');
-                    }
-                }
-            });
-        });
-    });
+        const urls = {
+            createClass: '{{ url_for("teacher.create_class") }}',
+            deleteClass: '{{ url_for("teacher.delete_class", class_id=0) }}',
+            logout: '{{ url_for("auth.logout") }}'
+        };
     </script>
+    <script src="{{ url_for('static', filename='js/teacher_classes.js') }}"></script>
 </body>
 </html>

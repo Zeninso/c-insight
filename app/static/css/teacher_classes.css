@@ -103,8 +103,8 @@ body {
 }
 
 .btn-secondary {
-    background: #e9ecef;
-    color: var(--dark);
+    background: var(--danger);
+    color: var(--light);
     border: none;
     padding: 0.7rem 1rem;
     border-radius: 8px;
@@ -114,7 +114,7 @@ body {
 }
 
 .btn-secondary:hover {
-    background: var(--light);
+    background: var(--dark);
     transform: translateY(-1px);
 }
 
