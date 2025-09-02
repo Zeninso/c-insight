@@ -83,10 +83,9 @@
                         </div>
                         
                         <div class="card-footer">
-                            <a href="{{ url_for('student.viewActivity', activity_id=activity.id) }}" class="btn btn-primary">
+                            <a href="{{ url_for('student.viewActivity', activity_id=activity.id) }}" class="btn btn-gradient">
                                 {% if activity.submitted %}View Submission{% else %}Start Activity{% endif %}
                             </a>
-                            <a href="#" class="btn btn-secondary">Details</a>
                         </div>
                     </div>
                     {% endfor %}

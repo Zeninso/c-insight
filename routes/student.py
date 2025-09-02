@@ -347,7 +347,7 @@ def class_details(class_id):
     # Get class details
     cur.execute("""
         SELECT c.id, c.name, c.description, c.class_code, c.code_expires, c.created_at,
-               u.first_name, u.last_name
+                u.first_name, u.last_name
         FROM classes c
         JOIN users u ON c.teacher_id = u.id
         WHERE c.id = %s
@@ -391,6 +391,128 @@ def class_details(class_id):
         })
 
     return render_template('student_class_details.html', class_data=class_info, activities=activities_list)
+
+
+@student_bp.route('/activity/<int:activity_id>')
+def viewActivity(activity_id):
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Get activity details and check if student is enrolled in the class
+    cur.execute("""
+        SELECT a.id, a.teacher_id, a.class_id, a.title, a.description,
+                a.instructions, a.starter_code, a.due_date, a.created_at,
+                u.first_name, u.last_name, c.name as class_name,
+                CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
+                CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
+                s.submitted_code, s.submitted_at
+        FROM activities a
+        JOIN users u ON a.teacher_id = u.id
+        JOIN classes c ON a.class_id = c.id
+        JOIN enrollments e ON c.id = e.class_id AND e.student_id = %s
+        LEFT JOIN submissions s ON a.id = s.activity_id AND s.student_id = %s
+        WHERE a.id = %s
+    """, (student_id, student_id, activity_id))
+
+    activity = cur.fetchone()
+    cur.close()
+
+    if not activity:
+        flash('Activity not found or you are not enrolled in this class', 'error')
+        return redirect(url_for('student.studentActivities'))
+
+    # Convert to dict
+    activity_dict = {
+        'id': activity[0],
+        'teacher_id': activity[1],
+        'class_id': activity[2],
+        'title': activity[3],
+        'description': activity[4],
+        'instructions': activity[5],
+        'starter_code': activity[6],
+        'due_date': activity[7],
+        'created_at': activity[8],
+        'teacher_name': f"{activity[9]} {activity[10]}",
+        'class_name': activity[11],
+        'submitted': bool(activity[12]),
+        'overdue': bool(activity[13]),
+        'submitted_code': activity[14],
+        'submitted_at': activity[15]
+    }
+
+    return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''))
+
+
+@student_bp.route('/submit_activity/<int:activity_id>', methods=['POST'])
+def submit_activity(activity_id):
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    code = request.form.get('code', '').strip()
+    if not code:
+        flash('Submission code cannot be empty.', 'error')
+        return redirect(url_for('student.viewActivity', activity_id=activity_id))
+
+    cur = mysql.connection.cursor()
+
+    try:
+        # Get student ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        student_id = cur.fetchone()[0]
+
+        # Check if student is enrolled in the class for this activity
+        cur.execute("""
+            SELECT a.id FROM activities a
+            JOIN classes c ON a.class_id = c.id
+            JOIN enrollments e ON c.id = e.class_id AND e.student_id = %s
+            WHERE a.id = %s
+        """, (student_id, activity_id))
+
+        if not cur.fetchone():
+            flash('You are not enrolled in the class for this activity.', 'error')
+            return redirect(url_for('student.studentActivities'))
+
+        # Insert or update submission
+        cur.execute("""
+            SELECT id FROM submissions
+            WHERE activity_id = %s AND student_id = %s
+        """, (activity_id, student_id))
+
+        submission = cur.fetchone()
+
+        now = datetime.now()
+
+        if submission:
+            # Update existing submission
+            cur.execute("""
+                UPDATE submissions
+                SET submitted_code=%s, submitted_at=%s
+                WHERE id=%s
+            """, (code, now, submission[0]))
+        else:
+            # Insert new submission
+            cur.execute("""
+                INSERT INTO submissions (activity_id, student_id, submitted_code, submitted_at)
+                VALUES (%s, %s, %s, %s)
+            """, (activity_id, student_id, code, now))
+
+        mysql.connection.commit()
+        flash('Activity submitted successfully!', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'Failed to submit activity: {str(e)}', 'error')
+    finally:
+        cur.close()
+
+    return redirect(url_for('student.viewActivity', activity_id=activity_id))
 
 
 @student_bp.route('/un_enroll/<int:class_id>', methods=['POST'])
