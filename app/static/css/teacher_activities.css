@@ -184,13 +184,13 @@
             transition: all 0.2s ease;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #4A90E2, #357ABD);
+        .btn-gradient {
+            background:  linear-gradient(135deg, #f72585 0%, #b5179e 100%);
             color: white;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #5AA0F2, #4688D8);
+        .btn-gradient:hover {
+            background:  linear-gradient(135deg, #f72585 0%, #b5179e 100%);
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }

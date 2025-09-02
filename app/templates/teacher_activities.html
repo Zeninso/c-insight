@@ -31,7 +31,9 @@
             <div class="header">
                 <h1>Activities Management</h1>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random" alt="User Profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>
@@ -248,7 +250,7 @@
                 <p><strong>Total Weight: <span id="edit-total-weight">100%</span></strong></p>
                 <p id="edit-weight-error" style="color:red;"></p>
                 
-                <button type="submit" id="edit-submit-btn" class="btn btn-primary">Update Activity</button>
+                <button type="submit" id="edit-submit-btn" class="btn btn-gradient">Update Activity</button>
             </form>
         </div>
     </div>
