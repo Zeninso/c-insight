@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - C-Insight</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+   
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-cog"></i> Admin Dashboard</h1>
+            <div class="user-info">
+                <span>Welcome, {{ first_name }}!</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </header>
+
+        <nav class="dashboard-nav">
+            <ul>
+                <li><a href="{{ url_for('admin.adminDashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="{{ url_for('admin.adminClasses') }}"><i class="fas fa-chalkboard"></i> Classes</a></li>
+                <li><a href="{{ url_for('admin.adminActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+            </ul>
+        </nav>
+
+        <main class="dashboard-main">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.teachers }}</h3>
+                        <p>Teachers</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.students }}</h3>
+                        <p>Students</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.admins }}</h3>
+                        <p>Admins</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.classes }}</h3>
+                        <p>Classes</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ stats.activities }}</h3>
+                        <p>Activities</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="actions-grid">
+                    <a href="{{ url_for('admin.createAdmin') }}" class="action-btn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Create Admin</span>
+                    </a>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="action-btn">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Manage Users</span>
+                    </a>
+                    <a href="{{ url_for('admin.adminClasses') }}" class="action-btn">
+                        <i class="fas fa-chalkboard"></i>
+                        <span>View Classes</span>
+                    </a>
+                    <a href="{{ url_for('admin.adminActivities') }}" class="action-btn">
+                        <i class="fas fa-tasks"></i>
+                        <span>View Activities</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
