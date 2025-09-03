@@ -475,7 +475,7 @@ def viewActivity(activity_id):
                 u.first_name, u.last_name, c.name as class_name,
                 CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
                 CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
-                s.submitted_code, s.submitted_at
+                s.code, s.submitted_at
         FROM activities a
         JOIN users u ON a.teacher_id = u.id
         JOIN classes c ON a.class_id = c.id
@@ -506,7 +506,7 @@ def viewActivity(activity_id):
         'class_name': activity[11],
         'submitted': bool(activity[12]),
         'overdue': bool(activity[13]),
-        'submitted_code': activity[14],
+        'code': activity[14],
         'submitted_at': activity[15]
     }
 
@@ -557,13 +557,13 @@ def submit_activity(activity_id):
             # Update existing submission
             cur.execute("""
                 UPDATE submissions
-                SET submitted_code=%s, submitted_at=%s
+                SET code=%s, submitted_at=%s
                 WHERE id=%s
             """, (code, now, submission[0]))
         else:
             # Insert new submission
             cur.execute("""
-                INSERT INTO submissions (activity_id, student_id, submitted_code, submitted_at)
+                INSERT INTO submissions (activity_id, student_id, code, submitted_at)
                 VALUES (%s, %s, %s, %s)
             """, (activity_id, student_id, code, now))
 

@@ -156,7 +156,7 @@
                         <p><strong>Submitted on:</strong> {{ activity.submitted_at.strftime('%b %d, %Y at %I:%M %p') }}</p>
                         <p><strong>Status:</strong> Submitted</p>
                         <h4>Your Submitted Code:</h4>
-                        <pre><code>{{ activity.submitted_code }}</code></pre>
+                        <pre><code>{{ activity.code }}</code></pre>
                     </div>
                     {% else %}
                     <div class="submit-section">
