@@ -7,6 +7,8 @@
     <title>Teacher Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
     
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}">
+    
     
 </head>
 <body>
@@ -35,12 +37,12 @@
                     <a href="{{ url_for('auth.user_profile') }}">
                         <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
                     </a>
-                    <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
                         <div class="notification-icon">
                             <i class="fas fa-bell"></i>
                             <span class="notification-badge">3</span>
                         </div>
-                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
                     </div>
@@ -56,7 +58,7 @@
                         <i class="fas fa-graduation-cap"></i>
                     </div>
                     <p>You have created <strong>{{ total_classes }}</strong> class{{ 'es' if total_classes != 1 else '' }}.</p>
-                    <a href="{{ url_for('teacher.teacherClasses') }}" class="btn btn-gradient">Manage Classes</a>
+                        <a href="{{ url_for('teacher.teacherClasses') }}" class="btn btn-gradient">Manage Classes</a>
                 </div>
 
                 <!-- Total Students Card -->
