@@ -5,7 +5,7 @@ import MySQLdb
 
 admin_bp = Blueprint('admin', __name__)
 
-#ADMIN PASS = '_adminPassword08'
+
 
 @admin_bp.route('/dashboard')
 def adminDashboard():
