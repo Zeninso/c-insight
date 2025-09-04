@@ -5,102 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - C-Insight</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
-   
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1><i class="fas fa-cog"></i> Admin Dashboard</h1>
-            <div class="user-info">
-                <span>Welcome, {{ first_name }}!</span>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cog"></i>
+                <h2>C-INSIGHT</h2>
             </div>
-        </header>
-
-        <nav class="dashboard-nav">
-            <ul>
+            <ul class="sidebar-nav">
                 <li><a href="{{ url_for('admin.adminDashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="{{ url_for('admin.adminClasses') }}"><i class="fas fa-chalkboard"></i> Classes</a></li>
                 <li><a href="{{ url_for('admin.adminActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
             </ul>
-        </nav>
+        </div>
 
-        <main class="dashboard-main">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>{{ stats.teachers }}</h3>
-                        <p>Teachers</p>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Welcome back, Admin {{ first_name }}</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
                     </div>
                 </div>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">
+            <!-- Dashboard Content -->
+            <div class="grid-container">
+                <!-- Teachers Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard-teacher"></i> Teachers</h3>
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <p>Total Teachers: <strong>{{ stats.teachers }}</strong></p>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Teachers</a>
+                </div>
+
+                <!-- Students Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-graduate"></i> Students</h3>
                         <i class="fas fa-user-graduate"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>{{ stats.students }}</h3>
-                        <p>Students</p>
-                    </div>
+                    <p>Total Students: <strong>{{ stats.students }}</strong></p>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Students</a>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">
+                <!-- Admins Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-shield"></i> Admins</h3>
                         <i class="fas fa-user-shield"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>{{ stats.admins }}</h3>
-                        <p>Admins</p>
-                    </div>
+                    <p>Total Admins: <strong>{{ stats.admins }}</strong></p>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Admins</a>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">
+                <!-- Classes Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard"></i> Classes</h3>
                         <i class="fas fa-chalkboard"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>{{ stats.classes }}</h3>
-                        <p>Classes</p>
-                    </div>
+                    <p>Total Classes: <strong>{{ stats.classes }}</strong></p>
+                    <a href="{{ url_for('admin.adminClasses') }}" class="btn btn-gradient">View Classes</a>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon">
+                <!-- Activities Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Activities</h3>
                         <i class="fas fa-tasks"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>{{ stats.activities }}</h3>
-                        <p>Activities</p>
-                    </div>
+                    <p>Total Activities: <strong>{{ stats.activities }}</strong></p>
+                    <a href="{{ url_for('admin.adminActivities') }}" class="btn btn-gradient">View Activities</a>
                 </div>
-            </div>
 
-            <div class="quick-actions">
-                <h2>Quick Actions</h2>
-                <div class="actions-grid">
-                    <a href="{{ url_for('admin.createAdmin') }}" class="action-btn">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Create Admin</span>
-                    </a>
-                    <a href="{{ url_for('admin.adminUsers') }}" class="action-btn">
-                        <i class="fas fa-users-cog"></i>
-                        <span>Manage Users</span>
-                    </a>
-                    <a href="{{ url_for('admin.adminClasses') }}" class="action-btn">
-                        <i class="fas fa-chalkboard"></i>
-                        <span>View Classes</span>
-                    </a>
-                    <a href="{{ url_for('admin.adminActivities') }}" class="action-btn">
-                        <i class="fas fa-tasks"></i>
-                        <span>View Activities</span>
-                    </a>
+                <!-- Quick Actions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <a href="{{ url_for('admin.createAdmin') }}" class="btn btn-gradient" style="margin-bottom: 10px;">Create Admin</a>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Users</a>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
+
+<script>
+function confirmLogout() {
+    Swal.fire({
+        title: 'Logout?',
+        text: "Are you sure you want to logout?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: ' #6f42c1',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, logout!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "{{ url_for('auth.logout') }}";
+        }
+    });
+}
+</script>

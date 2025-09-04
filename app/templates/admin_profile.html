@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Profile- C-INSIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_profile.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cog"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin.adminDashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="{{ url_for('admin.adminClasses') }}"><i class="fas fa-chalkboard"></i> Classes</a></li>
+                <li><a href="{{ url_for('admin.adminActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+                    <div class="header">
+                        <div class="title-section">
+                            <h1>Admin Profile</h1>
+                            <button onclick="window.history.back()" class="btn btn-gradient" style="padding: 8px 12px; margin-top: 10px;">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                        </div>
+                        <div class="user-profile">
+                            <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                        </div>
+                    </div>
+
+                    <div class="profile-container">
+                        <div class="section-header">
+                            <h2>Profile Information</h2>
+                            <p>View and manage your personal details</p>
+                        </div>
+                        <div class="profile-header">
+                            <img
+                                src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=random&size=120"
+                                alt="Profile picture of {{ user.first_name }} {{ user.last_name }}"
+                                class="profile-avatar"
+                            />
+                            <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
+                        </div>
+
+                        <dl class="profile-info">
+                            <dt>Username:</dt>
+                            <dd>{{ user.username }}</dd>
+
+                            <dt>Full Name:</dt>
+                            <dd>{{ full_name }}</dd>
+
+                            <dt>Role:</dt>
+                            <dd>{{ user.role|capitalize }}</dd>
+
+                            <dt>Email:</dt>
+                            <dd>{{ user.email if user.email else 'Not provided' }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</body>
+</html>
+
+<script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: ' #6f42c1',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    </script>

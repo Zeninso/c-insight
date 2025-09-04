@@ -139,6 +139,8 @@ def user_profile():
         template = 'teacher_profile.html'
     elif user['role'] == 'student':
         template = 'student_profile.html'
+    elif user['role'] == 'admin':
+        template = 'admin_profile.html'
     else:
         # fallback or error
         flash('Invalid user role', 'error')
