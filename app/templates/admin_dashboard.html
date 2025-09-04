@@ -17,94 +17,51 @@
             <ul class="sidebar-nav">
                 <li><a href="{{ url_for('admin.adminDashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="{{ url_for('admin.adminClasses') }}"><i class="fas fa-chalkboard"></i> Classes</a></li>
-                <li><a href="{{ url_for('admin.adminActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
-            </ul>
-        </div>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+    </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="header">
-                <h1>Welcome back, Admin {{ first_name }}</h1>
-                <div class="user-profile">
-                    <a href="{{ url_for('auth.user_profile') }}">
-                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Welcome back, {{ first_name }}</h1>
+            <div class="user-profile">
+                <a href="{{ url_for('auth.user_profile') }}">
+                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                </a>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="notification-icon">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <a href="#" onclick="confirmLogout()" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="notification-icon">
-                            <i class="fas fa-bell"></i>
-                            <span class="notification-badge">3</span>
-                        </div>
-                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dashboard Content -->
-            <div class="grid-container">
-                <!-- Teachers Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chalkboard-teacher"></i> Teachers</h3>
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <p>Total Teachers: <strong>{{ stats.teachers }}</strong></p>
-                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Teachers</a>
-                </div>
-
-                <!-- Students Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-user-graduate"></i> Students</h3>
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    <p>Total Students: <strong>{{ stats.students }}</strong></p>
-                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Students</a>
-                </div>
-
-                <!-- Admins Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-user-shield"></i> Admins</h3>
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <p>Total Admins: <strong>{{ stats.admins }}</strong></p>
-                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Admins</a>
-                </div>
-
-                <!-- Classes Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chalkboard"></i> Classes</h3>
-                        <i class="fas fa-chalkboard"></i>
-                    </div>
-                    <p>Total Classes: <strong>{{ stats.classes }}</strong></p>
-                    <a href="{{ url_for('admin.adminClasses') }}" class="btn btn-gradient">View Classes</a>
-                </div>
-
-                <!-- Activities Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-tasks"></i> Activities</h3>
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <p>Total Activities: <strong>{{ stats.activities }}</strong></p>
-                    <a href="{{ url_for('admin.adminActivities') }}" class="btn btn-gradient">View Activities</a>
-                </div>
-
-                <!-- Quick Actions Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-                        <i class="fas fa-plus-circle"></i>
-                    </div>
-                    <a href="{{ url_for('admin.createAdmin') }}" class="btn btn-gradient" style="margin-bottom: 10px;">Create Admin</a>
-                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Users</a>
                 </div>
             </div>
         </div>
+
+        <!-- Dashboard Content -->
+        <div class="grid-container">
+            <!-- Teachers Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chalkboard-teacher"></i> Teachers</h3>
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <p>Total Teachers: <strong>{{ stats.teachers }}</strong></p>
+                <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Teachers</a>
+            </div>
+
+            <!-- Students Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-graduate"></i> Students</h3>
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <p>Total Students: <strong>{{ stats.students }}</strong></p>
+                <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Students</a>
+            </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
