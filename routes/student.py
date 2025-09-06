@@ -56,6 +56,11 @@ def studentDashboard():
     """, (student_id,))
     upcoming_activities = cur.fetchall()
 
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
+
     # Get recent submissions (last 5)
     cur.execute("""
         SELECT a.title, s.submitted_at, c.name as class_name
@@ -94,11 +99,21 @@ def studentDashboard():
                           recent_submissions=recent_submissions,
                           total_activities=total_activities,
                           submitted_activities=submitted_activities,
-                          progress_percentage=progress_percentage)
+                          progress_percentage=progress_percentage,
+                          unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/join_class', methods=['GET', 'POST'])
 def join_class():
+
+    cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
+    cur.close()
+
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
@@ -147,6 +162,22 @@ def join_class():
             INSERT INTO enrollments (class_id, student_id)
             VALUES (%s, %s)
         """, (class_id, student_id))
+
+        # Insert notification for student
+        message = f"You have been added to class '{class_name}' by your teacher."
+        link = url_for('student.class_details', class_id=class_id)
+        cur.execute("""
+            INSERT INTO notifications (user_id, role, type, message, link)
+            VALUES (%s, 'student', 'added_to_class', %s, %s)
+        """, (student_id, message, link))
+
+        # Insert notification for teacher
+        cur.execute("SELECT teacher_id, name FROM classes WHERE id = %s", (class_id,))
+        class_info = cur.fetchone()
+        teacher_id = class_info[0]
+        class_name = class_info[1]
+        student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
+        notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'joined')
         
         mysql.connection.commit()
         cur.close()
@@ -154,7 +185,8 @@ def join_class():
         flash(f'Successfully joined {class_name}!', 'success')
         return redirect(url_for('student.studentDashboard'))
     
-    return render_template('student_join_class.html', username=session['username'])
+    return render_template('student_join_class.html', username=session['username'],
+                           unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/my_classes')
@@ -168,6 +200,11 @@ def studentClasses():
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_id = cur.fetchone()[0]
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
     
     # Get all classes the student is enrolled in
     cur.execute("""
@@ -221,7 +258,8 @@ def studentClasses():
     
     cur.close()
     
-    return render_template('student_classes.html', classes=classes_list, username=session['username'])    
+    return render_template('student_classes.html', classes=classes_list, username=session['username'],
+                           unread_notifications_count=unread_notifications_count)    
 
 
 @student_bp.route('/activities')
@@ -231,6 +269,11 @@ def studentActivities():
         return redirect(url_for('auth.login'))
     
     cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
     
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -273,14 +316,25 @@ def studentActivities():
             'overdue': bool(activity[13])
         })
     
-    return render_template('student_activities.html', activities=activities_list, username=session['username'])
+    return render_template('student_activities.html', activities=activities_list, username=session['username'],
+                           unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/settings', methods=['GET', 'POST'])
 def studentSettings():
+    
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
+    
+
+    
+    cur = mysql.connection.cursor()
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
+    cur.close()
 
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
@@ -382,7 +436,8 @@ def studentSettings():
                 flash(f'Failed to update settings: {str(e)}', 'error')
 
     cur.close()
-    return render_template('student_settings.html', user=user)
+    return render_template('student_settings.html', user=user,
+                           unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/class_details/<int:class_id>')
@@ -464,6 +519,11 @@ def viewActivity(activity_id):
 
     cur = mysql.connection.cursor()
 
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
+
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_id = cur.fetchone()[0]
@@ -510,7 +570,8 @@ def viewActivity(activity_id):
         'submitted_at': activity[15]
     }
 
-    return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''))
+    return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''),
+                           unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/submit_activity/<int:activity_id>', methods=['POST'])
@@ -586,6 +647,11 @@ def un_enroll(class_id):
 
     cur = mysql.connection.cursor()
 
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(student_id)
+
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_id = cur.fetchone()[0]
@@ -608,10 +674,96 @@ def un_enroll(class_id):
         WHERE class_id = %s AND student_id = %s
     """, (class_id, student_id))
 
+    # Insert notification for teacher
+    cur.execute("SELECT teacher_id, name FROM classes WHERE id = %s", (class_id,))
+    class_info = cur.fetchone()
+    teacher_id = class_info[0]
+    class_name = class_info[1]
+
+    student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
+    notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'left')
+
     mysql.connection.commit()
     cur.close()
 
     flash('Successfully left the class', 'success')
-    return redirect(url_for('student.studentClasses'))
+    return redirect(url_for('student.studentClasses'), unread_notifications_count=unread_notifications_count)
+
+def get_unread_notifications_count(user_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT COUNT(*) FROM notifications
+        WHERE user_id = %s AND role = 'student' AND is_read = FALSE
+    """, (user_id,))
+    count = cur.fetchone()[0]
+    cur.close()
+    return count
+
+def add_notification(user_id, role, notif_type, message, link=None):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        INSERT INTO notifications (user_id, role, type, message, link)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (user_id, role, notif_type, message, link))
+    mysql.connection.commit()
+    cur.close()
+
+def notify_students_activity_assigned(class_id, activity_id, activity_title, due_date):
+    cur = mysql.connection.cursor()
+    # Get all students enrolled in the class
+    cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
+    students = cur.fetchall()
+    for (student_id,) in students:
+        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%Y-%m-%d %H:%M')}."
+        link = url_for('student.viewActivity', activity_id=activity_id)
+        add_notification(student_id, 'student', 'new_activity', message, link)
+    cur.close()
+
+def notify_teacher_student_join_leave(teacher_id, student_name, class_name, action):
+    # action: 'joined' or 'left'
+    message = f"Student {student_name} has {action} your class '{class_name}'."
+    add_notification(teacher_id, 'teacher', f'student_{action}', message)
+
+def notify_teacher_activity_finished(teacher_id, activity_title, class_name, total_submissions, total_students):
+    message = (f"Activity '{activity_title}' in class '{class_name}' is finished. "
+               f"Submissions: {total_submissions}/{total_students}.")
+    add_notification(teacher_id, 'teacher', 'activity_finished', message)
+
+
+@student_bp.route('/notifications')
+def notifications():
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    if not user:
+        flash('User  not found', 'error')
+        return redirect(url_for('auth.login'))
+    student_id = user['id']
+
+    cur.execute("""
+        SELECT id, type, message, link, is_read, created_at
+        FROM notifications
+        WHERE user_id = %s AND role = 'student'
+        ORDER BY created_at DESC
+    """, (student_id,))
+    notifications = cur.fetchall()
+
+    cur.execute("""
+        UPDATE notifications SET is_read = TRUE
+        WHERE user_id = %s AND role = 'student' AND is_read = FALSE
+    """, (student_id,))
+    mysql.connection.commit()
+    cur.close()
+
+    return render_template('student_notifications.html', notifications=notifications, username=session['username'])
+
+
+
+
+
 
 

@@ -32,6 +32,11 @@ def teacherDashboard():
 
     cur = mysql.connection.cursor()
 
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
+
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()[0]
@@ -76,7 +81,8 @@ def teacherDashboard():
                           total_classes=total_classes,
                           total_students=total_students,
                           recent_activities=recent_activities,
-                          pending_submissions=pending_submissions)
+                          pending_submissions=pending_submissions,
+                          unread_notifications_count=unread_notifications_count)
         
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])
@@ -86,6 +92,11 @@ def teacherActivities():
         return redirect(url_for('auth.login'))
 
     cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     #  Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -158,7 +169,8 @@ def teacherActivities():
             'description': class_item[2]
         })
 
-    return render_template('teacher_activities.html', activities=activities_list, classes=classes_list)
+    return render_template('teacher_activities.html', activities=activities_list, classes=classes_list,
+                           unread_notifications_count=unread_notifications_count)
 
 
 @teacher_bp.route('/create_activity', methods=['POST'])
@@ -227,6 +239,14 @@ def create_activity():
             starter_code, due_date, correctness_weight,
             syntax_weight, logic_weight, similarity_weight, created_at
         ))
+
+        # Get the last inserted activity ID
+        cur.execute("SELECT LAST_INSERT_ID()")
+        activity_id = cur.fetchone()[0]
+
+        # Notify students about the new activity
+        notify_students_activity_assigned(class_id, activity_id, title, due_date)
+
         mysql.connection.commit()
 
         return jsonify({'success': 'Activity created successfully'}), 201
@@ -404,6 +424,11 @@ def teacherClasses():
         return redirect(url_for('auth.login'))
     
     cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
     
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -440,7 +465,8 @@ def teacherClasses():
     
     cur.close()
     
-    return render_template('teacher_classes.html', classes=classes_list, first_name=session['first_name'])
+    return render_template('teacher_classes.html', classes=classes_list, first_name=session['first_name'],
+                           unread_notifications_count=unread_notifications_count)
 
 
 @teacher_bp.route('/create_class', methods=['POST'])
@@ -544,6 +570,11 @@ def view_class(class_id):
         return redirect(url_for('auth.login'))
     
     cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
     
     # Verify the teacher owns this class
     cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
@@ -624,7 +655,8 @@ def view_class(class_id):
                             class_data=class_dict,
                             students=students_list,
                             activities=activities_list,
-                            first_name=session['first_name'])
+                            first_name=session['first_name'],
+                            unread_notifications_count=unread_notifications_count)
 
 # New route to delete enrolled students
 @teacher_bp.route('/class/<int:class_id>/delete_students', methods=['POST'])
@@ -639,6 +671,11 @@ def delete_enrolled_students(class_id):
         return redirect(url_for('teacher.view_class', class_id=class_id))
 
     cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     # Verify the teacher owns this class
     cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
@@ -669,7 +706,8 @@ def delete_enrolled_students(class_id):
     finally:
         cur.close()
 
-    return redirect(url_for('teacher.view_class', class_id=class_id))
+    return redirect(url_for('teacher.view_class', class_id=class_id),
+                    unread_notifications_count=unread_notifications_count)
 
 
 @teacher_bp.route('/delete_class/<int:class_id>', methods=['POST'])
@@ -726,6 +764,13 @@ def teacherSettings():
     if 'username' not in session or session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
+    
+    cur = mysql.connection.cursor()
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
+    cur.close()
 
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
@@ -824,5 +869,108 @@ def teacherSettings():
             flash(f'Failed to update settings: {str(e)}', 'error')
 
     cur.close()
-    return render_template('teacher_settings.html', user=user)
+    return render_template('teacher_settings.html', user=user,
+                           unread_notifications_count=unread_notifications_count)
+
+
+def get_unread_notifications_count(user_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT COUNT(*) FROM notifications
+        WHERE user_id = %s AND role = 'teacher' AND is_read = FALSE
+    """, (user_id,))
+    count = cur.fetchone()[0]
+    cur.close()
+    return count
+
+def add_notification(user_id, role, notif_type, message, link=None):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        INSERT INTO notifications (user_id, role, type, message, link)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (user_id, role, notif_type, message, link))
+    mysql.connection.commit()
+    cur.close()
+
+def notify_students_activity_assigned(class_id, activity_id, activity_title, due_date):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
+    students = cur.fetchall()
+    for (student_id,) in students:
+        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%Y-%m-%d %H:%M')}."
+        link = url_for('student.viewActivity', activity_id=activity_id)
+        cur.execute("""
+            INSERT INTO notifications (user_id, role, type, message, link)
+            VALUES (%s, 'student', 'new_activity', %s, %s)
+        """, (student_id, message, link))
+    mysql.connection.commit()
+    cur.close()
+
+def notify_finished_activities():
+    cur = mysql.connection.cursor()
+
+    # Find activities where deadline passed or all students submitted but not notified yet
+    # You may want to add a 'notified_finished' boolean column in activities or notifications to avoid duplicates
+
+    # For simplicity, find activities with deadline passed and not notified
+    cur.execute("""
+        SELECT a.id, a.title, a.class_id, c.teacher_id, c.name
+        FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.due_date < NOW()
+        AND NOT EXISTS (
+            SELECT 1 FROM notifications n
+            WHERE n.type = 'activity_finished' AND n.link LIKE CONCAT('%', a.id, '%')
+            AND n.user_id = c.teacher_id AND n.role = 'teacher'
+        )
+    """)
+    activities = cur.fetchall()
+
+    for activity_id, title, class_id, teacher_id, class_name in activities:
+        # Count total students in class
+        cur.execute("SELECT COUNT(*) FROM enrollments WHERE class_id = %s", (class_id,))
+        total_students = cur.fetchone()[0]
+
+        # Count total submissions for activity
+        cur.execute("SELECT COUNT(*) FROM submissions WHERE activity_id = %s", (activity_id,))
+        total_submissions = cur.fetchone()[0]
+
+        notify_teacher_activity_finished(teacher_id, title, class_name, total_submissions, total_students)
+
+    cur.close()
+
+
+@teacher_bp.route('/notifications')
+def notifications():
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    if not user:
+        flash('User  not found', 'error')
+        return redirect(url_for('auth.login'))
+    teacher_id = user['id']
+
+    cur.execute("""
+        SELECT id, type, message, link, is_read, created_at
+        FROM notifications
+        WHERE user_id = %s AND role = 'teacher'
+        ORDER BY created_at DESC
+    """, (teacher_id,))
+    notifications = cur.fetchall()
+
+    cur.execute("""
+        UPDATE notifications SET is_read = TRUE
+        WHERE user_id = %s AND role = 'teacher' AND is_read = FALSE
+    """, (teacher_id,))
+    mysql.connection.commit()
+    cur.close()
+
+    return render_template('teacher_notifications.html', notifications=notifications, username=session['username'])
+
+
+
 

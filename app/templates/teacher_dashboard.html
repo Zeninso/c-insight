@@ -39,8 +39,12 @@
                     </a>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <div class="notification-icon">
-                            <i class="fas fa-bell"></i>
-                            <span class="notification-badge">3</span>
+                            <a href="{{ url_for('teacher.notifications') }}" class="notification-icon" title="Notifications" style="position: relative; display: inline-block; color: inherit; text-decoration: none;">
+                                <i class="fas fa-bell"></i>
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="notification-badge">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
                         </div>
                         <a href="#" onclick="confirmLogout()" class="btn btn-gradient">
                             <i class="fas fa-sign-out-alt"></i> Logout

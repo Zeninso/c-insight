@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+:root {
+    --primary: #4361ee;
+    --secondary: #3f37c9;
+    --accent: #4895ef;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --success: #4cc9f0;
+    --warning: #f8961e;
+    --danger: #f72585;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: #f5f7fa;
+    color: var(--dark);
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--dark);
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--secondary);
+    text-decoration: underline;
+}
+
+.notifications-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.notifications-list li {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%; 
+    box-sizing: border-box;
+}
+
+.notifications-list li.unread {
+    background-color: #e0f7fa; /* Light cyan for unread */
+    font-weight: 600;
+}
+
+.notifications-list li:hover {
+    background-color: #f0f0f0;
+}
+
+.notification-message {
+    flex: 1;
+    font-size: 1rem;
+    color: var(--dark);
+}
+
+.notification-date {
+    font-size: 0.85rem;
+    color: #666;
+    margin-left: 1rem;
+    white-space: nowrap;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(111, 66, 193, 0.3);
+    transition: background-color 0.3s ease;
+}
+
+.back-link:hover {
+    background: var(--secondary);
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 1rem;
+    }
+    .notifications-list li {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .notification-date {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+}
+
