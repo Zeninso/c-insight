@@ -27,7 +27,7 @@ def create_app():
     # MySQL configuration
     app.config['MYSQL_HOST'] = 'localhost'
     app.config['MYSQL_USER'] = 'root'
-    app.config['MYSQL_PASSWORD'] = 'yourdbpass'  
+    app.config['MYSQL_PASSWORD'] = '_Zac@110502'  
     app.config['MYSQL_DB'] = 'c_insight_db'
 
     mysql.init_app(app)

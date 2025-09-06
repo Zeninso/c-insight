@@ -122,8 +122,7 @@
             padding: 1rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: box-shadow 0.3s ease;
-            width: 280px;
-            aspect-ratio: 1 / 1.2;
+            min-width: 280px;
             display: flex;
             flex-direction: column;
         }
@@ -134,7 +133,7 @@
 
         @media (max-width: 768px) {
             .card {
-                width: 250px;
+                min-width: 250px;
                 padding: 0.5rem;
                 margin-bottom: 0.5rem;
             }
@@ -202,8 +201,8 @@
             background-color: var(--danger);
             color: white;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            min-width: 18px;
+            min-height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;

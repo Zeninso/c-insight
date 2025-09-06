@@ -40,7 +40,7 @@ def adminUsers():
         return redirect(url_for('auth.login'))
 
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cur.execute("SELECT id, username, first_name, last_name, email, role FROM users ORDER BY role, first_name")
+    cur.execute("SELECT id, username, first_name, last_name, email, role FROM users WHERE role != 'admin' ORDER BY role, first_name")
     users = cur.fetchall()
     cur.close()
 
@@ -72,11 +72,10 @@ def editUser(user_id):
                 WHERE id=%s
             """, (username, first_name, last_name, email, role, user_id))
             mysql.connection.commit()
-            flash('User updated successfully', 'success')
-            return redirect(url_for('admin.adminUsers'))
+            return jsonify({'success': True})
         except Exception as e:
             mysql.connection.rollback()
-            flash(f'Failed to update user: {str(e)}', 'error')
+            return jsonify({'success': False, 'error': str(e)}), 500
         finally:
             cur.close()
 
@@ -93,19 +92,16 @@ def editUser(user_id):
 @admin_bp.route('/user/<int:user_id>/delete', methods=['POST'])
 def deleteUser(user_id):
     if 'username' not in session or session.get('role') != 'admin':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('auth.login'))
+        return jsonify({'success': False, 'error': 'Unauthorized access'}), 403
 
     cur = mysql.connection.cursor()
 
     try:
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
-        flash('User deleted successfully', 'success')
+        return jsonify({'success': True})
     except Exception as e:
         mysql.connection.rollback()
-        flash(f'Failed to delete user: {str(e)}', 'error')
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cur.close()
-
-    return redirect(url_for('admin.adminUsers'))

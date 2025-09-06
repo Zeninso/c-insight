@@ -1,0 +1,36 @@
+<div id="editUserModal" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; inset: 0; overflow: auto; background-color: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s ease;">
+  <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; max-width: 600px; border-radius: 8px; position: relative;">
+    <span class="close" onclick="closeEditModal()" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+    <h2 style="font-family: Arial, sans-serif; font-weight: 700; font-size: 1.8rem; margin-bottom: 20px;">Edit User</h2>
+    <form id="editUserForm" method="POST" action="">
+      <input type="hidden" name="user_id" id="modalUserId" />
+      <div style="margin-bottom: 15px;">
+        <label for="modalUsername" style="font-weight: 600; display: block; margin-bottom: 5px;">Username:</label>
+        <input type="text" id="modalUsername" name="username" required style="padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;"/>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="modalFirstName" style="font-weight: 600; display: block; margin-bottom: 5px;">First Name:</label>
+        <input type="text" id="modalFirstName" name="first_name" required style="padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;"/>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="modalLastName" style="font-weight: 600; display: block; margin-bottom: 5px;">Last Name:</label>
+        <input type="text" id="modalLastName" name="last_name" required style="padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;"/>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="modalEmail" style="font-weight: 600; display: block; margin-bottom: 5px;">Email:</label>
+        <input type="email" id="modalEmail" name="email" style="padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;"/>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="modalRole" style="font-weight: 600; display: block; margin-bottom: 5px;">Role:</label>
+        <select id="modalRole" name="role" required style="padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box;">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-gradient" style="display: block; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px;">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+

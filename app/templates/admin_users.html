@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Users - C-Insight</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cog"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin.adminDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.adminUsers') }}" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Manage Users</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="card" style="width: 100%; margin-top: 2rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-users"></i> All Users</h3>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Username</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">First Name</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Last Name</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Email</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Role</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr id="user-{{ user.id }}" data-username="{{ user.username }}" data-firstname="{{ user.first_name }}" data-lastname="{{ user.last_name }}" data-email="{{ user.email }}" data-role="{{ user.role }}">
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.id }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.username }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.first_name }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.last_name }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.email }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.role }}</td>
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">
+                                <button onclick="editUser('{{ user.id }}')" class="btn btn-gradient" style="margin-right: 0.5rem;">Edit</button>
+                                <button type="button" onclick="confirmDelete('{{ user.id }}')" class="btn-logout" style="padding: 0.5rem 1rem;">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% include 'admin_edit_user_modal.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: ' #6f42c1',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+
+    function confirmDelete(userId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This will permanently delete the user.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/admin/user/${userId}/delete`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', 'User has been deleted.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire('Error!', data.error, 'error');
+                        }
+                    });
+            }
+        });
+    }
+
+    function editUser(userId) {
+        // Find the user row by id
+        const row = document.getElementById('user-' + userId);
+        if (!row) return;
+
+        // Populate modal fields with user data attributes
+        document.getElementById('modalUserId').value = userId;
+        document.getElementById('modalUsername').value = row.getAttribute('data-username');
+        document.getElementById('modalFirstName').value = row.getAttribute('data-firstname');
+        document.getElementById('modalLastName').value = row.getAttribute('data-lastname');
+        document.getElementById('modalEmail').value = row.getAttribute('data-email');
+        document.getElementById('modalRole').value = row.getAttribute('data-role');
+
+        // Set form action URL dynamically
+        document.getElementById('editUserForm').action = '/admin/user/' + userId + '/edit';
+
+        // Show the modal with fade-in
+        const modal = document.getElementById('editUserModal');
+        modal.style.display = 'block';
+        setTimeout(() => {
+            modal.style.opacity = '1';
+        }, 10);
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editUserModal');
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    // Close modal when clicking outside the modal content
+    window.onclick = function(event) {
+        const modal = document.getElementById('editUserModal');
+        if (event.target == modal) {
+            closeEditModal();
+        }
+    }
+
+    // Handle edit form submission
+    document.getElementById('editUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Updated!', 'User has been updated.', 'success')
+                    .then(() => location.reload());
+            } else {
+                Swal.fire('Error!', data.error, 'error');
+            }
+        });
+    });
+    </script>
+</body>
+</html>
