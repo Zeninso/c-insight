@@ -105,3 +105,52 @@ def deleteUser(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cur.close()
+
+@admin_bp.route('/settings')
+def adminSettings():
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT * FROM settings WHERE id=1")
+    settings = cur.fetchone()
+    cur.close()
+
+    if not settings:
+        settings = {'site_name': 'C-Insight', 'admin_email': 'admin@cinsight.com'}
+
+    # Get user statistics for status display
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT COUNT(*) FROM users WHERE role='teacher'")
+    teacher_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
+    student_count = cur.fetchone()[0]
+    cur.close()
+
+    stats = {
+        'teachers': teacher_count,
+        'students': student_count
+    }
+
+    return render_template('admin_settings.html', settings=settings, stats=stats, first_name=session['first_name'])
+
+@admin_bp.route('/update-settings', methods=['POST'])
+def updateSettings():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized access'}), 403
+
+    site_name = request.form['site_name']
+    admin_email = request.form['admin_email']
+
+    cur = mysql.connection.cursor()
+
+    try:
+        cur.execute("UPDATE settings SET site_name=%s, admin_email=%s WHERE id=1", (site_name, admin_email))
+        mysql.connection.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        cur.close()
