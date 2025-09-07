@@ -647,11 +647,6 @@ def un_enroll(class_id):
 
     cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(student_id)
-
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_id = cur.fetchone()[0]
@@ -687,7 +682,7 @@ def un_enroll(class_id):
     cur.close()
 
     flash('Successfully left the class', 'success')
-    return redirect(url_for('student.studentClasses'), unread_notifications_count=unread_notifications_count)
+    return redirect(url_for('student.studentClasses'))
 
 def get_unread_notifications_count(user_id):
     cur = mysql.connection.cursor()

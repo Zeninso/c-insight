@@ -650,6 +650,10 @@ def view_class(class_id):
             'due_date': activity[2],
             'created_at': activity[3]
         })
+
+    unread_notifications_count = session.pop('unread_notifications_count', None)
+
+
     
     return render_template('teacher_class_view.html',
                             class_data=class_dict,
@@ -692,12 +696,30 @@ def delete_enrolled_students(class_id):
         flash('Unauthorized access', 'error')
         cur.close()
         return redirect(url_for('teacher.teacherClasses'))
+    
+    cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
+    class_name_row = cur.fetchone()
+    if class_name_row:
+        class_name = class_name_row[0]
+    else:
+        class_name = "the class"
 
     try:
         # Delete enrollments for selected students in this class
         format_strings = ','.join(['%s'] * len(student_ids))
         query = f"DELETE FROM enrollments WHERE class_id=%s AND student_id IN ({format_strings})"
         cur.execute(query, [class_id] + student_ids)
+
+        # Insert notifications for each removed student
+        notification_query = """
+            INSERT INTO notifications (user_id, message, link, is_read, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """
+        for student_id in student_ids:
+            message = f'You have been removed from class {class_name} by your teacher.'
+            link = url_for('student.studentClasses')  # or any relevant link
+            cur.execute(notification_query, (student_id, message, link, False))
+
         mysql.connection.commit()
         flash(f'Successfully deleted {len(student_ids)} student(s) from the class.', 'success')
     except Exception as e:
@@ -706,8 +728,11 @@ def delete_enrolled_students(class_id):
     finally:
         cur.close()
 
-    return redirect(url_for('teacher.view_class', class_id=class_id),
-                    unread_notifications_count=unread_notifications_count)
+    session['unread_notifications_count'] = unread_notifications_count
+
+    return redirect(url_for('teacher.view_class', class_id=class_id))
+    
+    
 
 
 @teacher_bp.route('/delete_class/<int:class_id>', methods=['POST'])
@@ -729,6 +754,26 @@ def delete_class(class_id):
 
         if class_info[0] != teacher_id:
             return jsonify({'error': 'Unauthorized access'}), 403
+        
+        # Get all students enrolled in the class
+        cur.execute("SELECT student_id FROM enrollments WHERE class_id=%s", (class_id,))
+        students = cur.fetchall()
+        student_ids = [row[0] for row in students]
+
+        # Get class name
+        cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
+        class_name_row = cur.fetchone()
+        class_name = class_name_row[0] if class_name_row else "the class"
+
+        # Notify students about class deletion
+        notification_query = """
+            INSERT INTO notifications (user_id, message, link, is_read, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+        """
+        for student_id in student_ids:
+            message = f'The class "{class_name}" has been deleted by your teacher.'
+            link = url_for('student.studentClasses')
+            cur.execute(notification_query, (student_id, message, link, False))
 
         # Delete submissions for activities in this class
         cur.execute("""

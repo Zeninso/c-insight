@@ -23,8 +23,8 @@
 body {
     background-color: #f5f7fa;
     color: var(--dark);
-    padding: 2rem;
-    min-height: 100vh;
+    
+
 }
 
 h1 {
