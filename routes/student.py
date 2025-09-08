@@ -186,7 +186,7 @@ def join_class():
         return redirect(url_for('student.studentDashboard'))
     
     return render_template('student_join_class.html', username=session['username'],
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/my_classes')
@@ -259,7 +259,7 @@ def studentClasses():
     cur.close()
     
     return render_template('student_classes.html', classes=classes_list, username=session['username'],
-                           unread_notifications_count=unread_notifications_count)    
+                            unread_notifications_count=unread_notifications_count)    
 
 
 @student_bp.route('/activities')
@@ -317,7 +317,7 @@ def studentActivities():
         })
     
     return render_template('student_activities.html', activities=activities_list, username=session['username'],
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/settings', methods=['GET', 'POST'])
@@ -437,7 +437,7 @@ def studentSettings():
 
     cur.close()
     return render_template('student_settings.html', user=user,
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/class_details/<int:class_id>')
@@ -570,7 +570,7 @@ def viewActivity(activity_id):
         'code': activity[14],
         'submitted_at': activity[15],
         'correctness_weight': activity[16],
-        'syntax_weight': activity[17],
+        'syntax_weight': (activity[17]),
         'logic_weight': activity[18],
         'similarity_weight': activity[19]
     }
@@ -714,7 +714,7 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
     cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
     students = cur.fetchall()
     for (student_id,) in students:
-        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
+        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%Y-%m-%d %H:%M')}."
         link = url_for('student.viewActivity', activity_id=activity_id)
         add_notification(student_id, 'student', 'new_activity', message, link)
     cur.close()
@@ -726,7 +726,7 @@ def notify_teacher_student_join_leave(teacher_id, student_name, class_name, acti
 
 def notify_teacher_activity_finished(teacher_id, activity_title, class_name, total_submissions, total_students):
     message = (f"Activity '{activity_title}' in class '{class_name}' is finished. "
-                f"Submissions: {total_submissions}/{total_students}.")
+               f"Submissions: {total_submissions}/{total_students}.")
     add_notification(teacher_id, 'teacher', 'activity_finished', message)
 
 

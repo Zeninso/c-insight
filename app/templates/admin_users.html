@@ -82,6 +82,26 @@
     {% include 'admin_edit_user_modal.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="{{ url_for('static', filename='js/admin_users.js') }}"> </script>
+    <script src="{{ url_for('static', filename='js/admin_users.js') }}"></script>
+
 </body>
 </html>
+
+<script>
+function confirmLogout() {
+    Swal.fire({
+        title: 'Logout?',
+        text: "Are you sure you want to logout?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: ' #6f42c1',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, logout!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "{{ url_for('auth.logout') }}";
+        }
+    });
+}
+</script>
+

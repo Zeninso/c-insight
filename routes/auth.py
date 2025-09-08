@@ -198,7 +198,7 @@ def google_authorized():
 # MySQL setup
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Letsfuckingcode'
+app.config['MYSQL_PASSWORD'] = '_Zac@110502'
 app.config['MYSQL_DB'] = 'c_insight_db'
 mysql = MySQL(app)
 

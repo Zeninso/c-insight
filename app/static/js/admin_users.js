@@ -80,20 +80,4 @@
         });
     });
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Logout?',
-            text: "Are you sure you want to logout?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: ' #6f42c1',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, logout!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = "{{ url_for('auth.logout') }}";
-            }
-        });
-    }
-
   
