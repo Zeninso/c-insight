@@ -714,7 +714,7 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
     cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
     students = cur.fetchall()
     for (student_id,) in students:
-        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%Y-%m-%d %H:%M')}."
+        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
         link = url_for('student.viewActivity', activity_id=activity_id)
         add_notification(student_id, 'student', 'new_activity', message, link)
     cur.close()

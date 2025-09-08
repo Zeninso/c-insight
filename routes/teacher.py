@@ -915,7 +915,7 @@ def teacherSettings():
 
     cur.close()
     return render_template('teacher_settings.html', user=user,
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 def get_unread_notifications_count(user_id):
@@ -942,7 +942,7 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
     cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
     students = cur.fetchall()
     for (student_id,) in students:
-        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%Y-%m-%d %H:%M')}."
+        message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
         link = url_for('student.viewActivity', activity_id=activity_id)
         cur.execute("""
             INSERT INTO notifications (user_id, role, type, message, link)
@@ -950,6 +950,11 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
         """, (student_id, message, link))
     mysql.connection.commit()
     cur.close()
+
+def notify_teacher_activity_finished(teacher_id, activity_title, class_name, total_submissions, total_students):
+    message = (f"Activity '{activity_title}' in class '{class_name}' is finished. "
+                f"Submissions: {total_submissions}/{total_students}.")
+    add_notification(teacher_id, 'teacher', 'activity_finished', message)
 
 def notify_finished_activities():
     cur = mysql.connection.cursor()
