@@ -65,3 +65,35 @@
             border-radius: 5px;
             margin-bottom: 1rem;
         }
+
+        .rubrics-section {
+            margin-top: 2rem;
+        }
+
+        .rubrics-section h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .rubrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .rubrics-table th,
+        .rubrics-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .rubrics-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color:  linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);;
+        }
+
+        .rubrics-table tbody tr:hover {
+            background-color: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
+        }

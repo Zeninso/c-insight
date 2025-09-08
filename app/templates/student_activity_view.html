@@ -87,6 +87,36 @@
                         <pre>{{ activity.instructions }}</pre>
                     </div>
 
+                    <div class="rubrics-section">
+                        <h3>Rubrics</h3>
+                        <table class="rubrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Weight (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Correctness</td>
+                                    <td>{{ activity.correctness_weight }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>Syntax</td>
+                                    <td>{{ activity.syntax_weight }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>Logic</td>
+                                    <td>{{ activity.logic_weight }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>Similarity</td>
+                                    <td>{{ activity.similarity_weight }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                     {% if activity.submitted %}
                     <div class="submission-info">
                         <h3><i class="fas fa-check-circle"></i> Submission Details</h3>

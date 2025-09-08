@@ -571,7 +571,7 @@ def viewActivity(activity_id):
     }
 
     return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''),
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/submit_activity/<int:activity_id>', methods=['POST'])
