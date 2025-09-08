@@ -536,7 +536,8 @@ def viewActivity(activity_id):
                 CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
                 CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
                 s.code, s.submitted_at, a.correctness_weight, a.syntax_weight,
-                a.logic_weight, a.similarity_weight
+                a.logic_weight, a.similarity_weight, s.correctness_score,
+                s.syntax_score, s.logic_score, s.similarity_score, s.feedback
         FROM activities a
         JOIN users u ON a.teacher_id = u.id
         JOIN classes c ON a.class_id = c.id
@@ -570,9 +571,14 @@ def viewActivity(activity_id):
         'code': activity[14],
         'submitted_at': activity[15],
         'correctness_weight': activity[16],
-        'syntax_weight': (activity[17]),
+        'syntax_weight': activity[17],
         'logic_weight': activity[18],
-        'similarity_weight': activity[19]
+        'similarity_weight': activity[19],
+        'correctness_score': activity[20],
+        'syntax_score': activity[21],
+        'logic_score': activity[22],
+        'similarity_score': activity[23],
+        'feedback': activity[24]
     }
 
     return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''),
@@ -581,6 +587,8 @@ def viewActivity(activity_id):
 
 @student_bp.route('/submit_activity/<int:activity_id>', methods=['POST'])
 def submit_activity(activity_id):
+    from app.grading import grade_submission
+
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
@@ -626,15 +634,39 @@ def submit_activity(activity_id):
                 SET code=%s, submitted_at=%s
                 WHERE id=%s
             """, (code, now, submission[0]))
+            submission_id = submission[0]
         else:
             # Insert new submission
             cur.execute("""
                 INSERT INTO submissions (activity_id, student_id, code, submitted_at)
                 VALUES (%s, %s, %s, %s)
             """, (activity_id, student_id, code, now))
+            submission_id = cur.lastrowid
 
         mysql.connection.commit()
-        flash('Activity submitted successfully!', 'success')
+
+        # Grade the submission
+        grading_result = grade_submission(activity_id, student_id, code)
+
+        if 'error' not in grading_result:
+            # Update submission with scores and feedback
+            cur.execute("""
+                UPDATE submissions
+                SET correctness_score=%s, syntax_score=%s, logic_score=%s, similarity_score=%s, feedback=%s
+                WHERE id=%s
+            """, (
+                grading_result['correctness_score'],
+                grading_result['syntax_score'],
+                grading_result['logic_score'],
+                grading_result['similarity_score'],
+                grading_result['feedback'],
+                submission_id
+            ))
+            mysql.connection.commit()
+            flash('Activity submitted and graded successfully!', 'success')
+        else:
+            flash(f"Activity submitted but grading failed: {grading_result['error']}", 'warning')
+
     except Exception as e:
         mysql.connection.rollback()
         flash(f'Failed to submit activity: {str(e)}', 'error')
