@@ -535,7 +535,8 @@ def viewActivity(activity_id):
                 u.first_name, u.last_name, c.name as class_name,
                 CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
                 CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
-                s.code, s.submitted_at
+                s.code, s.submitted_at, a.correctness_weight, a.syntax_weight,
+                a.logic_weight, a.similarity_weight
         FROM activities a
         JOIN users u ON a.teacher_id = u.id
         JOIN classes c ON a.class_id = c.id
@@ -567,7 +568,11 @@ def viewActivity(activity_id):
         'submitted': bool(activity[12]),
         'overdue': bool(activity[13]),
         'code': activity[14],
-        'submitted_at': activity[15]
+        'submitted_at': activity[15],
+        'correctness_weight': activity[16],
+        'syntax_weight': activity[17],
+        'logic_weight': activity[18],
+        'similarity_weight': activity[19]
     }
 
     return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''),
@@ -721,7 +726,7 @@ def notify_teacher_student_join_leave(teacher_id, student_name, class_name, acti
 
 def notify_teacher_activity_finished(teacher_id, activity_title, class_name, total_submissions, total_students):
     message = (f"Activity '{activity_title}' in class '{class_name}' is finished. "
-               f"Submissions: {total_submissions}/{total_students}.")
+                f"Submissions: {total_submissions}/{total_students}.")
     add_notification(teacher_id, 'teacher', 'activity_finished', message)
 
 
