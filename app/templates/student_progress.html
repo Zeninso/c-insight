@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Progress - Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/student_progress.css') }}">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('student.studentDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.studentActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('student.studentClasses') }}"><i class="fas fa-users"></i> My Classes</a></li>
+                <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> Join Class</a></li>
+                <li><a href="{{ url_for('student.studentGrades') }}"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="{{ url_for('student.studentProgress') }}" class="active"><i class="fas fa-chart-line"></i> Progress</a></li>
+                <li><a href="{{ url_for('student.studentSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>My Progress</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <a href="{{ url_for('student.notifications') }}" class="notification-icon" title="Notifications" style="position: relative; display: inline-block; color: inherit; text-decoration: none;">
+                                <i class="fas fa-bell"></i>
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="notification-badge">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="progress-overview">
+                <h2>Overall Progress</h2>
+                <div class="progress-circle" id="progress-circle" data-percentage="{{ progress_percentage }}">
+                    {{ progress_percentage|round(1) }}%
+                </div>
+                <p>You have completed <strong>{{ submitted_activities }}</strong> out of <strong>{{ total_activities }}</strong> activities</p>
+            </div>
+
+            <!-- Class Progress -->
+            {% if classes_progress %}
+            <div class="content-section">
+                <h2>Progress by Class</h2>
+                <div class="class-progress-grid">
+                    {% for class_item in classes_progress %}
+                    <div class="class-progress-card">
+                        <h3>{{ class_item.name }}</h3>
+                        <p>{{ class_item.submitted_activities }} / {{ class_item.total_activities }} activities completed</p>
+                        <div class="class-progress-bar">
+                            <div class="class-progress-fill" data-width="{{ class_item.progress_percentage }}"></div>
+                        </div>
+                        <div class="class-progress-text">{{ class_item.progress_percentage|round(1) }}% Complete</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Activities Progress -->
+            <div class="content-section">
+                <h2>Activity Progress</h2>
+                {% if activities_progress %}
+                <div class="activities-progress-section">
+                    {% for activity in activities_progress %}
+                    <div class="activity-progress-card {% if activity.submitted %}submitted{% elif activity.overdue %}overdue{% else %}pending{% endif %}">
+                        <div class="activity-header">
+                            <div class="activity-title">{{ activity.title }}</div>
+                            <div class="activity-status {% if activity.submitted %}status-submitted{% elif activity.overdue %}status-overdue{% else %}status-pending{% endif %}">
+                                {% if activity.submitted %}Submitted{% elif activity.overdue %}Overdue{% else %}Pending{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="activity-meta">
+                            <span><i class="fas fa-book"></i> {{ activity.class_name }}</span>
+                            <span><i class="fas fa-clock"></i> Due: {{ activity.due_date.strftime('%b %d, %Y') }}</span>
+                        </div>
+
+                        {% if activity.submitted and activity.correctness_score is not none %}
+                        <div class="activity-scores">
+                            <div class="score-item">
+                                <div class="score-label">Correctness</div>
+                                <div class="score-value">{{ "%.1f"|format(activity.correctness_score * activity.correctness_weight / 100) }}</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">Syntax</div>
+                                <div class="score-value">{{ "%.1f"|format(activity.syntax_score * activity.syntax_weight / 100) }}</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">Logic</div>
+                                <div class="score-value">{{ "%.1f"|format(activity.logic_score * activity.logic_weight / 100) }}</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">Similarity</div>
+                                <div class="score-value">{{ "%.1f"|format(activity.similarity_score * activity.similarity_weight / 100) }}</div>
+                            </div>
+                        </div>
+
+                        {% if activity.total_score is not none %}
+                        <div class="total-score">
+                            <div class="score-label">Total Score</div>
+                            <div class="score-value">{{ activity.total_score|round(1) }}%</div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>No Activities Found</h3>
+                    <p>You don't have any activities assigned yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    // Set progress circle background dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressCircle = document.getElementById('progress-circle');
+        const progressPercentage = parseFloat(progressCircle.getAttribute('data-percentage'));
+    });
+
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: ' #6f42c1',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    </script>
+
+</body>
+</html>

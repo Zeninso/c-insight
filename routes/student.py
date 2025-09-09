@@ -762,6 +762,185 @@ def notify_teacher_activity_finished(teacher_id, activity_title, class_name, tot
     add_notification(teacher_id, 'teacher', 'activity_finished', message)
 
 
+@student_bp.route('/progress')
+def studentProgress():
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(student_id)
+
+    # Get overall progress
+    cur.execute("""
+        SELECT COUNT(*) FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        JOIN enrollments e ON c.id = e.class_id
+        WHERE e.student_id = %s
+    """, (student_id,))
+    total_activities = cur.fetchone()[0]
+
+    cur.execute("""
+        SELECT COUNT(*) FROM submissions s
+        WHERE s.student_id = %s
+    """, (student_id,))
+    submitted_activities = cur.fetchone()[0]
+
+    progress_percentage = (submitted_activities / total_activities * 100) if total_activities > 0 else 0
+
+    # Get progress per class
+    cur.execute("""
+        SELECT c.name, c.id,
+               COUNT(a.id) as total_activities,
+               COUNT(s.id) as submitted_activities
+        FROM classes c
+        JOIN enrollments e ON c.id = e.class_id
+        LEFT JOIN activities a ON c.id = a.class_id
+        LEFT JOIN submissions s ON a.id = s.activity_id AND s.student_id = %s
+        WHERE e.student_id = %s
+        GROUP BY c.id, c.name
+        ORDER BY c.name
+    """, (student_id, student_id))
+
+    class_progress = cur.fetchall()
+
+    # Get progress per activity with scores
+    cur.execute("""
+        SELECT a.id, a.title, c.name as class_name, a.due_date,
+               CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
+               CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
+               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight
+        FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        JOIN enrollments e ON c.id = e.class_id
+        LEFT JOIN submissions s ON a.id = s.activity_id AND s.student_id = %s
+        WHERE e.student_id = %s
+        ORDER BY a.due_date DESC
+    """, (student_id, student_id))
+
+    activity_progress = cur.fetchall()
+    cur.close()
+
+    # Process activity progress data
+    activities_progress_list = []
+    for activity in activity_progress:
+        total_score = None
+        if activity[5] and all(score is not None for score in activity[6:10]):  # submitted and has scores
+            total_score = (
+                (activity[6] * activity[10] / 100) +  # correctness
+                (activity[7] * activity[11] / 100) +  # syntax
+                (activity[8] * activity[12] / 100) +  # logic
+                (activity[9] * activity[13] / 100)    # similarity
+            )
+
+        activities_progress_list.append({
+            'id': activity[0],
+            'title': activity[1],
+            'class_name': activity[2],
+            'due_date': activity[3],
+            'submitted': bool(activity[4]),
+            'overdue': bool(activity[5]),
+            'correctness_score': activity[6],
+            'syntax_score': activity[7],
+            'logic_score': activity[8],
+            'similarity_score': activity[9],
+            'correctness_weight': activity[10],
+            'syntax_weight': activity[11],
+            'logic_weight': activity[12],
+            'similarity_weight': activity[13],
+            'total_score': total_score
+        })
+
+    # Process class progress data
+    classes_progress_list = []
+    for class_item in class_progress:
+        class_progress_percentage = (class_item[3] / class_item[2] * 100) if class_item[2] > 0 else 0
+        classes_progress_list.append({
+            'name': class_item[0],
+            'id': class_item[1],
+            'total_activities': class_item[2],
+            'submitted_activities': class_item[3],
+            'progress_percentage': class_progress_percentage
+        })
+
+    return render_template('student_progress.html',
+                          total_activities=total_activities,
+                          submitted_activities=submitted_activities,
+                          progress_percentage=progress_percentage,
+                          classes_progress=classes_progress_list,
+                          activities_progress=activities_progress_list,
+                          unread_notifications_count=unread_notifications_count)
+
+
+@student_bp.route('/grades')
+def studentGrades():
+    if 'username' not in session or session.get('role') != 'student':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor()
+
+    # Get student ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_id = cur.fetchone()[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(student_id)
+
+    # Get all submissions with grading results
+    cur.execute("""
+        SELECT s.id, a.title, c.name as class_name, s.submitted_at,
+               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
+               s.feedback
+        FROM submissions s
+        JOIN activities a ON s.activity_id = a.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE s.student_id = %s AND s.correctness_score IS NOT NULL
+        ORDER BY s.submitted_at DESC
+    """, (student_id,))
+
+    submissions = cur.fetchall()
+    cur.close()
+
+    # Convert to list of dictionaries
+    grades_list = []
+    for submission in submissions:
+        total_score = (
+            (submission[4] * submission[8] / 100) +  # correctness
+            (submission[5] * submission[9] / 100) +  # syntax
+            (submission[6] * submission[10] / 100) + # logic
+            (submission[7] * submission[11] / 100)   # similarity
+        ) if submission[4] is not None else None
+
+        grades_list.append({
+            'id': submission[0],
+            'activity_title': submission[1],
+            'class_name': submission[2],
+            'submitted_at': submission[3],
+            'correctness_score': submission[4],
+            'syntax_score': submission[5],
+            'logic_score': submission[6],
+            'similarity_score': submission[7],
+            'correctness_weight': submission[8],
+            'syntax_weight': submission[9],
+            'logic_weight': submission[10],
+            'similarity_weight': submission[11],
+            'total_score': total_score,
+            'feedback': submission[12]
+        })
+
+    return render_template('student_grades.html', grades=grades_list,
+                          unread_notifications_count=unread_notifications_count)
+
+
 @student_bp.route('/notifications')
 def notifications():
     if 'username' not in session or session.get('role') != 'student':

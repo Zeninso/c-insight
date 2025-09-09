@@ -20,8 +20,8 @@
                 <li><a href="{{ url_for('student.studentActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
                 <li><a href="{{ url_for('student.studentClasses') }}"><i class="fas fa-users"></i> My Classes</a></li>
                 <li><a href="{{ url_for('student.join_class') }}"><i class="fas fa-plus-circle"></i> Join Class</a></li>
-                <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
-                <li><a href="#"><i class="fas fa-chart-line"></i> Progress</a></li>
+                <li><a href="{{ url_for('student.studentGrades') }}"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="{{ url_for('student.studentProgress') }}"><i class="fas fa-chart-line"></i> Progress</a></li>
                 <li><a href="{{ url_for('student.studentSettings') }}" class="active"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
         </div>

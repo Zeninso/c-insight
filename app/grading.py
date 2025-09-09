@@ -520,26 +520,26 @@ class CodeGrader:
             vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 3), min_df=2)
             try:
                 tfidf_matrix = vectorizer.fit_transform(all_codes)
-                
+
                 # Calculate similarities
                 similarities = cosine_similarity(tfidf_matrix[-1:], tfidf_matrix[:-1])[0]
-                
+
                 if len(similarities) > 0:
                     max_sim = np.max(similarities) * 100
                     score = max(0, 100 - max_sim)
-                    
+
                     # Determine similarity level
                     if max_sim > 80: similarity_level = "very high"
                     elif max_sim > 60: similarity_level = "high"
                     elif max_sim > 40: similarity_level = "moderate"
                     elif max_sim > 20: similarity_level = "low"
                     else: similarity_level = "very low"
-                    
+
                     feedback = f"Similarity with other submissions: {similarity_level} ({max_sim:.1f}%)."
                 else:
                     score = 100
                     feedback = "No similar submissions found."
-                    
+
             except ValueError:
                 score = 100
                 feedback = "No similar submissions found."
@@ -549,6 +549,96 @@ class CodeGrader:
         except Exception as e:
             logger.error(f"Similarity check failed: {str(e)}")
             return 50, f"Similarity check failed: {str(e)}"
+
+    def train_ml_grading_model(self):
+        """Train machine learning models using historical grading data."""
+        try:
+            logger.info("Starting ML model training...")
+
+            # Get historical graded submissions
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                SELECT code, correctness_score, syntax_score, logic_score
+                FROM submissions
+                WHERE code IS NOT NULL
+                AND LENGTH(code) > 20
+                AND correctness_score IS NOT NULL
+                AND syntax_score IS NOT NULL
+                AND logic_score IS NOT NULL
+                ORDER BY submitted_at DESC
+                LIMIT 1000
+            """)
+            training_data = cur.fetchall()
+            cur.close()
+
+            if len(training_data) < 50:
+                logger.warning(f"Insufficient training data: {len(training_data)} submissions found. Need at least 50.")
+                return False
+
+            logger.info(f"Found {len(training_data)} submissions for training")
+
+            # Prepare training data
+            codes = []
+            correctness_scores = []
+            syntax_scores = []
+            logic_scores = []
+
+            for row in training_data:
+                code, correctness, syntax, logic = row
+                codes.append(code)
+                correctness_scores.append(correctness)
+                syntax_scores.append(syntax)
+                logic_scores.append(logic)
+
+            # Extract features from all codes
+            logger.info("Extracting features from training data...")
+            feature_vectors = []
+            for code in codes:
+                features = self.extract_code_features(code)
+                feature_vectors.append(list(features.values()))
+
+            # Convert to numpy arrays
+            X = np.array(feature_vectors)
+            y_correctness = np.array(correctness_scores)
+            y_syntax = np.array(syntax_scores)
+            y_logic = np.array(logic_scores)
+
+            # Scale features
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+
+            # Train models
+            logger.info("Training ML models...")
+
+            correctness_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            correctness_model.fit(X_scaled, y_correctness)
+
+            logic_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            logic_model.fit(X_scaled, y_logic)
+
+            syntax_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            syntax_model.fit(X_scaled, y_syntax)
+
+            # Save models
+            ml_models = {
+                'correctness_model': correctness_model,
+                'logic_model': logic_model,
+                'syntax_model': syntax_model,
+                'scaler': scaler,
+                'feature_names': list(self.extract_code_features(codes[0]).keys()),
+                'training_samples': len(training_data),
+                'trained_at': str(os.path.getctime(__file__)) if os.path.exists(__file__) else 'unknown'
+            }
+
+            with open('ml_grading_models.pkl', 'wb') as f:
+                pickle.dump(ml_models, f)
+
+            logger.info(f"ML models trained and saved successfully with {len(training_data)} samples")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error training ML models: {str(e)}")
+            return False
 
 
 # Create a global instance of the grader

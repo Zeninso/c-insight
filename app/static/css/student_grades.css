@@ -1,0 +1,224 @@
+/* Student Grades Page Styles */
+
+.grades-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.grade-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.grade-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.grade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.grade-title h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.grade-class {
+    display: inline-block;
+    background: #fde3f6;
+    color: #3a4a5a;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.grade-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.grade-date i {
+    color: #adb5bd;
+}
+
+.grade-scores {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.score-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    flex: 1;
+}
+
+.score-item {
+    text-align: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.score-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.score-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.total-score {
+    text-align: center;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #f72585 0%, #b5179e 100%);
+    color: white;
+    border-radius: 12px;
+    min-width: 120px;
+}
+
+.total-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+
+.total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.grade-feedback {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f8f9fa;
+}
+
+.btn-info {
+    background:  linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, rgba(72, 40, 133, 0.2) 25%, rgba(214, 51, 132, 0.2) 100%);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+}
+
+.btn-sm i {
+    margin-right: 6px;
+}
+
+.feedback-content {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+}
+
+.feedback-text {
+    color: #495057;
+    line-height: 1.5;
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin: 0 0 12px 0;
+    color: #495057;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .grade-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .grade-date {
+        align-self: flex-start;
+    }
+
+    .grade-scores {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .score-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .total-score {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .grade-card {
+        padding: 16px;
+    }
+
+    .score-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .score-item {
+        padding: 8px;
+    }
+}
