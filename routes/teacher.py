@@ -17,6 +17,102 @@ app.secret_key = os.environ.get("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", "dev")
 
 teacher_bp = Blueprint('teacher', __name__)
 
+@teacher_bp.route('/analytics')
+def teacherAnalytics():
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()['id']
+
+    # Get students in teacher's classes
+    cur.execute("""
+        SELECT DISTINCT u.id, u.first_name, u.last_name, u.username
+        FROM users u
+        JOIN enrollments e ON u.id = e.student_id
+        JOIN classes c ON e.class_id = c.id
+        WHERE c.teacher_id = %s
+        ORDER BY u.first_name, u.last_name
+    """, (teacher_id,))
+    students = cur.fetchall()
+
+    # For each student, get submission scores over time
+    student_progress = []
+    for student in students:
+        cur.execute("""
+            SELECT s.submitted_at,
+                   ((s.correctness_score * a.correctness_weight / 100) +
+                    (s.syntax_score * a.syntax_weight / 100) +
+                    (s.logic_score * a.logic_weight / 100) +
+                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
+                    s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score
+            FROM submissions s
+            JOIN activities a ON s.activity_id = a.id
+            JOIN classes c ON a.class_id = c.id
+            WHERE s.student_id = %s AND c.teacher_id = %s
+            ORDER BY s.submitted_at ASC
+        """, (student['id'], teacher_id))
+        submissions = cur.fetchall()
+
+        # Aggregate scores by date
+        progress_data = []
+        total_score_sum = 0
+        correctness_sum = 0
+        syntax_sum = 0
+        logic_sum = 0
+        similarity_sum = 0
+
+        for sub in submissions:
+            progress_data.append({
+                'date': sub['submitted_at'].strftime('%Y-%m-%d') if sub['submitted_at'] else None,
+                'total_score': float(sub['total_score']),
+                'correctness_score': float(sub['correctness_score']),
+                'syntax_score': float(sub['syntax_score']),
+                'logic_score': float(sub['logic_score']),
+                'similarity_score': float(sub['similarity_score'])
+            })
+            total_score_sum += sub['total_score']
+            correctness_sum += sub['correctness_score']
+            syntax_sum += sub['syntax_score']
+            logic_sum += sub['logic_score']
+            similarity_sum += sub['similarity_score']
+
+        # Calculate averages
+        num_submissions = len(submissions)
+        avg_total = total_score_sum / num_submissions if num_submissions > 0 else 0
+        avg_correctness = correctness_sum / num_submissions if num_submissions > 0 else 0
+        avg_syntax = syntax_sum / num_submissions if num_submissions > 0 else 0
+        avg_logic = logic_sum / num_submissions if num_submissions > 0 else 0
+        avg_similarity = similarity_sum / num_submissions if num_submissions > 0 else 0
+
+        student_progress.append({
+            'student': student,
+            'progress': progress_data,
+            'stats': {
+                'total_submissions': num_submissions,
+                'avg_total_score': round(avg_total, 1),
+                'avg_correctness': round(avg_correctness, 1),
+                'avg_syntax': round(avg_syntax, 1),
+                'avg_logic': round(avg_logic, 1),
+                'avg_similarity': round(avg_similarity, 1)
+            }
+        })
+
+    cur.close()
+
+    import json
+    # Ensure student_progress_json is always a valid JSON string
+    try:
+        student_progress_json = json.dumps(student_progress) if student_progress else '[]'
+    except (TypeError, ValueError):
+        student_progress_json = '[]'
+
+    return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'])
+
 @teacher_bp.route('/grades')
 def teacherGrades():
     if 'username' not in session or session.get('role') != 'teacher':
