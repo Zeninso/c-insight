@@ -20,7 +20,7 @@
                 <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('teacher.teacherActivities') }}" class="active"><i class="fas fa-tasks"></i> Activities</a></li>
                 <li><a href="{{ url_for('teacher.teacherClasses') }}" ><i class="fas fa-users"></i> Classes</a></li>
-                <li><a href="#"><i class="fas fa-award"></i>Grades</a></li>
+                <li><a href="{{ url_for('teacher.teacherGrades') }}"><i class="fas fa-award"></i>Grades</a></li>
                 <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="{{ url_for('teacher.teacherSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
@@ -164,12 +164,12 @@
                     <!-- Default rubrics-->
                     <div class="rubric-item">
                         <input type="text" name="rubric_name[]" value="Correctness" required readonly>
-                        <input type="number" name="rubric_weight[]" min="0" max="100" value="50" class="weight-input" required>
+                        <input type="number" name="rubric_weight[]" min="0" max="100" value="40" class="weight-input" required>
                     </div>
 
                     <div class="rubric-item">
                         <input type="text" name="rubric_name[]" value="Syntax" required readonly>
-                        <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
+                        <input type="number" name="rubric_weight[]" min="0" max="100" value="30" class="weight-input" required>
                     </div>
 
                     <div class="rubric-item">

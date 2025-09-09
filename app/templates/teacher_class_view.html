@@ -20,7 +20,7 @@
                     <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                     <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
                     <li><a href="{{ url_for('teacher.teacherClasses') }}" class="active"><i class="fas fa-users"></i> Classes</a></li>
-                    <li><a href="#"><i class="fas fa-award"></i> Grades</a></li>
+                    <li><a href="{{ url_for('teacher.teacherGrades') }}"><i class="fas fa-award"></i> Grades</a></li>
                     <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                     <li><a href="{{ url_for('teacher.teacherSettings') }}" class="active"><i class="fas fa-cog"></i> Settings</a></li>
                 </ul>
@@ -194,7 +194,7 @@
 
                         <div class="rubric-item">
                             <input type="text" name="rubric_name[]" value="Logic" required readonly>
-                            <input type="number" name="rubric_weight[]" min="0" max="100" value="极速赛车开奖直播记录20" class="weight-input" required>
+                            <input type="number" name="rubric_weight[]" min="0" max="100" value="20" class="weight-input" required>
                         </div>
 
                         <div class="rubric-item">

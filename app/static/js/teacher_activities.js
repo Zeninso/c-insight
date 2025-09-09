@@ -209,12 +209,19 @@ function deleteActivity(activityId) {
 function updateTotalWeight() {
     const total = Array.from(document.querySelectorAll('.weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-    
-    document.getElementById('total-weight').textContent = total + '%';
-    
+
+    const totalWeightSpan = document.getElementById('total-weight');
+    totalWeightSpan.textContent = total + '%';
+
+    if (total !== 100) {
+        totalWeightSpan.style.color = 'red';
+    } else {
+        totalWeightSpan.style.color = 'black';
+    }
+
     const errorElement = document.getElementById('weight-error');
     const submitBtn = document.getElementById('submit-btn');
-    
+
     if (total !== 100) {
         errorElement.textContent = 'Total weight must equal 100%';
         submitBtn.disabled = true;

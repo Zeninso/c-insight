@@ -14,7 +14,44 @@ import random, string
 app = Flask(__name__)
 app.secret_key = os.environ.get("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", "dev")
 
+
 teacher_bp = Blueprint('teacher', __name__)
+
+@teacher_bp.route('/grades')
+def teacherGrades():
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()['id']
+
+    # Query submissions with grades and code for teacher's activities
+    cur.execute("""
+        SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
+               a.title as activity_title, a.class_id, c.name as class_name,
+               s.code, s.submitted_at,
+               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+               ((s.correctness_score * a.correctness_weight / 100) +
+                (s.syntax_score * a.syntax_weight / 100) +
+                (s.logic_score * a.logic_weight / 100) +
+                (s.similarity_score * a.similarity_weight / 100)) as total_score,
+               s.feedback
+        FROM submissions s
+        JOIN users u ON s.student_id = u.id
+        JOIN activities a ON s.activity_id = a.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.teacher_id = %s
+        ORDER BY s.submitted_at DESC
+    """, (teacher_id,))
+
+    submissions = cur.fetchall()
+    cur.close()
+
+    return render_template('teacher_grades.html', submissions=submissions, first_name=session['first_name'])
 
 
 
@@ -65,12 +102,12 @@ def teacherDashboard():
     """, (teacher_id,))
     recent_activities = cur.fetchall()
 
-    # Get pending submissions (activities with submissions but not graded, assuming no grading system yet)
+    # Get pending submissions (submissions that have not been graded yet)
     cur.execute("""
         SELECT COUNT(*)
         FROM submissions s
         JOIN activities a ON s.activity_id = a.id
-        WHERE a.teacher_id = %s
+        WHERE a.teacher_id = %s AND s.correctness_score IS NULL
     """, (teacher_id,))
     pending_submissions = cur.fetchone()[0]
 

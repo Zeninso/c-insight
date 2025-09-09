@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Submissions - C-INSIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_grades.css') }}" />
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
+                <li><a href="{{ url_for('teacher.teacherGrades') }}" class="active"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="#"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="{{ url_for('teacher.teacherSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Student Submissions</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <a href="{{ url_for('teacher.notifications') }}" class="notification-icon" title="Notifications" style="position: relative; display: inline-block; color: inherit; text-decoration: none;">
+                                <i class="fas fa-bell"></i>
+                            </a>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                {% if submissions %}
+                <div class="grades-container">
+                    {% for submission in submissions %}
+                    <div class="grade-card">
+                        <div class="grade-header">
+                            <div class="grade-title">
+                                <h3>{{ submission.activity_title }}</h3>
+                                <span class="grade-class">{{ submission.class_name }}</span>
+                            </div>
+                            <div class="grade-date">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                            </div>
+                        </div>
+
+                        <div class="student-info">
+                            <h4>Student: {{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
+                        </div>
+
+                        {% if submission.correctness_score is not none %}
+                        <div class="grade-scores">
+                            <div class="score-grid">
+                                <div class="score-item">
+                                    <div class="score-label">Correctness</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.correctness_score) }}%</div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-label">Syntax</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.syntax_score) }}%</div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-label">Logic</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.logic_score) }}%</div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-label">Similarity</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score) }}%</div>
+                                </div>
+                            </div>
+
+                            <div class="total-score">
+                                <div class="total-label">Total Score</div>
+                                <div class="total-value">
+                                    {% if submission.total_score is not none %}
+                                        {{ "%.1f"|format(submission.total_score) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="code-section">
+                            <h4>Submitted Code</h4>
+                            <div class="code-container">
+                                <pre><code>{{ submission.code_submitted }}</code></pre>
+                            </div>
+                        </div>
+
+                        {% if submission.feedback %}
+                        <div class="grade-feedback">
+                            <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
+                                <i class="fas fa-comment"></i> View Feedback
+                            </button>
+                            <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
+                                <div class="feedback-text">{{ submission.feedback }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-award"></i>
+                    <h3>No Submissions Yet</h3>
+                    <p>No student submissions have been received yet. Submissions will appear here once students submit their work.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Logout?',
+                text: "Are you sure you want to logout?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#6f42c1',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{{ url_for('auth.logout') }}";
+                }
+            });
+        }
+
+        function toggleFeedback(id) {
+            const elem = document.getElementById(id);
+            if (elem.style.display === 'none') {
+                elem.style.display = 'block';
+            } else {
+                elem.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
