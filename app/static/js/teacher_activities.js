@@ -2,6 +2,8 @@
 
 // Modal functions
 function showCreateActivityModal() {
+    document.getElementById('createActivityForm').reset();
+    updateTotalWeight();
     document.getElementById('createActivityModal').style.display = 'block';
 }
 
