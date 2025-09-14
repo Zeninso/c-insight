@@ -97,6 +97,11 @@ def deleteUser(user_id):
     cur = mysql.connection.cursor()
 
     try:
+        cur.execute("DELETE FROM notifications WHERE user_id=%s", (user_id,))
+        cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
+        cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
+        cur.execute("DELETE FROM activities WHERE teacher_id=%s", (user_id,))
+        cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
         return jsonify({'success': True})

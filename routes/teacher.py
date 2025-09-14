@@ -131,6 +131,7 @@ def teacherGrades():
                a.title as activity_title, a.class_id, c.name as class_name,
                s.code, s.submitted_at,
                s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
                ((s.correctness_score * a.correctness_weight / 100) +
                 (s.syntax_score * a.syntax_weight / 100) +
                 (s.logic_score * a.logic_weight / 100) +

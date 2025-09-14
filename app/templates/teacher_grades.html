@@ -72,19 +72,19 @@
                             <div class="score-grid">
                                 <div class="score-item">
                                     <div class="score-label">Correctness</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.correctness_score) }}%</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
                                 </div>
                                 <div class="score-item">
                                     <div class="score-label">Syntax</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.syntax_score) }}%</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
                                 </div>
                                 <div class="score-item">
                                     <div class="score-label">Logic</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.logic_score) }}%</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
                                 </div>
                                 <div class="score-item">
                                     <div class="score-label">Similarity</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score) }}%</div>
+                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
                                 </div>
                             </div>
 
@@ -104,7 +104,7 @@
                         <div class="code-section">
                             <h4>Submitted Code</h4>
                             <div class="code-container">
-                                <pre><code>{{ submission.code_submitted }}</code></pre>
+                                <pre><code>{{ submission.code }}</code></pre>
                             </div>
                         </div>
 
