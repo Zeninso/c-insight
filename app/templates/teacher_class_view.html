@@ -82,7 +82,7 @@
                 <div class="card" id="students-section">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h3>Enrolled Students ({{ students|length }})</h3>
-                        <button id="deleteSelectedBtn" class="btn btn-danger" disabled>Delete Student</button>
+                        <button id="deleteSelectedBtn" class="btn btn-danger" disabled>Remove Student</button>
                     </div>
                     {% if students %}
                     <form id="deleteStudentsForm" method="POST" action="{{ url_for('teacher.delete_enrolled_students', class_id=class_data.id) }}">

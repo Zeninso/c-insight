@@ -76,10 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteSelectedBtn.addEventListener('click', function() {
             Swal.fire({
                 title: 'Are you sure?',
-                text: 'This will permanently delete the selected students from the class.',
+                text: 'This will permanently Remove the selected students from the class.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, delete them!'
+                confirmButtonText: 'Yes, remove them!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     deleteStudentsForm.submit();
