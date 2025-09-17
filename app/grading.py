@@ -104,15 +104,15 @@ class CodeGrader:
             return {'error': f'Grading failed: {str(e)}'}
 
     def check_syntax(self, code):
-        """Check syntax using GCC compiler for C code."""
+        """Check syntax and basic compilation using GCC compiler for C code."""
         try:
             with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as f:
                 f.write(code)
                 temp_file = f.name
 
-            # Compile with GCC
+            # Compile with GCC syntax check and basic compilation (no linking)
             result = subprocess.run(
-                ['gcc', '-fsyntax-only', temp_file],
+                ['gcc', '-Wall', '-Wextra', '-fsyntax-only', temp_file],
                 capture_output=True, text=True, timeout=10
             )
 
@@ -216,49 +216,88 @@ class CodeGrader:
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
     def extract_code_features(self, code):
-        """Extract features from C code for machine learning analysis."""
+        """Extract enhanced features from C code for machine learning analysis."""
         lines = code.split('\n')
         code_lines = [line.strip() for line in lines if line.strip()]
         
+        # Basic counts
+        variable_declarations = len([line for line in code_lines if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+        function_calls = code.count('(') - code.count('main(')
+        return_statements = code.count('return ')
+        semicolon_count = code.count(';')
+        brace_balance = abs(code.count('{') - code.count('}'))
+        if_statements = code.count('if ') + code.count('else if')
+        loop_statements = code.count('for ') + code.count('while ') + code.count('do ')
+        switch_statements = code.count('switch ')
+        pointer_operations = code.count('*') + code.count('&')
+        memory_functions = code.count('malloc') + code.count('free') + code.count('calloc') + code.count('realloc')
+        array_operations = code.count('[') + code.count(']')
+        include_statements = code.count('#include')
+        stdio_usage = 1 if '#include <stdio.h>' in code else 0
+        printf_calls = code.count('printf(')
+        scanf_calls = code.count('scanf(')
+        comment_lines = code.count('//') + code.count('/*')
+        logical_operators = code.count('&&') + code.count('||')
+        comparison_operators = code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>=')
+        arithmetic_operators = code.count('+') + code.count('-') + code.count('*') + code.count('/') + code.count('%')
+        null_checks = code.count('NULL') + code.count('null')
+
+        # Additional features
+        # Cyclomatic complexity approximation: count of decision points
+        decision_points = if_statements + loop_statements + switch_statements + code.count('case ')
+        # Halstead metrics approximation: count operators and operands
+        operators = arithmetic_operators + logical_operators + comparison_operators
+        operands = variable_declarations + function_calls + return_statements
+
+        # Average line length
+        avg_line_length = np.mean([len(line) for line in code_lines]) if code_lines else 0
+
         features = {
             'total_lines': len(code_lines),
             'code_length': len(code),
-            'variable_declarations': len([line for line in code_lines if any(t in line for t in ['int ', 'char ', 'float ', 'double '])]),
-            'function_calls': code.count('(') - code.count('main('),
-            'return_statements': code.count('return '),
-            'semicolon_count': code.count(';'),
-            'brace_balance': abs(code.count('{') - code.count('}')),
-            'if_statements': code.count('if ') + code.count('else if'),
-            'loop_statements': code.count('for ') + code.count('while ') + code.count('do '),
-            'switch_statements': code.count('switch '),
-            'pointer_operations': code.count('*') + code.count('&'),
-            'memory_functions': code.count('malloc') + code.count('free') + code.count('calloc') + code.count('realloc'),
-            'array_operations': code.count('[') + code.count(']'),
-            'include_statements': code.count('#include'),
-            'stdio_usage': 1 if '#include <stdio.h>' in code else 0,
-            'printf_calls': code.count('printf('),
-            'scanf_calls': code.count('scanf('),
-            'comment_lines': code.count('//') + code.count('/*'),
-            'logical_operators': code.count('&&') + code.count('||'),
-            'comparison_operators': code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>='),
-            'arithmetic_operators': code.count('+') + code.count('-') + code.count('*') + code.count('/') + code.count('%'),
-            'null_checks': code.count('NULL') + code.count('null'),
+            'variable_declarations': variable_declarations,
+            'function_calls': function_calls,
+            'return_statements': return_statements,
+            'semicolon_count': semicolon_count,
+            'brace_balance': brace_balance,
+            'if_statements': if_statements,
+            'loop_statements': loop_statements,
+            'switch_statements': switch_statements,
+            'pointer_operations': pointer_operations,
+            'memory_functions': memory_functions,
+            'array_operations': array_operations,
+            'include_statements': include_statements,
+            'stdio_usage': stdio_usage,
+            'printf_calls': printf_calls,
+            'scanf_calls': scanf_calls,
+            'comment_lines': comment_lines,
+            'logical_operators': logical_operators,
+            'comparison_operators': comparison_operators,
+            'arithmetic_operators': arithmetic_operators,
+            'null_checks': null_checks,
+            'decision_points': decision_points,
+            'operators': operators,
+            'operands': operands,
+            'cyclomatic_complexity': decision_points + 1,
+            'avg_line_length': avg_line_length,
         }
         
         # Calculate derived features
-        features['total_control_flow'] = features['if_statements'] + features['loop_statements'] + features['switch_statements']
-        features['nested_loops'] = max(0, features['loop_statements'] - 1)
-        features['function_complexity'] = features['total_control_flow'] / max(1, features['function_calls'])
-        features['avg_line_length'] = np.mean([len(line) for line in code_lines]) if code_lines else 0
+        features['total_control_flow'] = if_statements + loop_statements + switch_statements
+        features['nested_loops'] = max(0, loop_statements - 1)
+        features['function_complexity'] = features['total_control_flow'] / max(1, function_calls)
         
         return features
 
     def analyze_c_code_correctness(self, code):
-        """Analyze C code correctness based on specific criteria."""
+        """Analyze C code correctness with enhanced criteria."""
         score = 50  # Base score
 
+        lines = code.split('\n')
+        total_lines = len([line for line in lines if line.strip()])
+
         # Variable Declaration and Usage
-        var_declarations = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+        var_declarations = len([line for line in lines if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
         score += 15 if var_declarations > 0 else -10
 
         # Function Structure
@@ -270,37 +309,60 @@ class CodeGrader:
         score += 10 if return_count > 0 else -5
 
         # Semicolon Usage
-        lines = code.split('\n')
-        total_lines = len([line for line in lines if line.strip()])
         semicolon_lines = len([line for line in lines if line.strip().endswith(';')])
         if total_lines > 0:
             score += int((semicolon_lines / total_lines) * 15)
 
-        # Code Organization
+        # Code Organization (indentation)
         indented_lines = len([line for line in lines if line.startswith('    ') or line.startswith('\t')])
         if total_lines > 0:
             score += int((indented_lines / total_lines) * 15)
 
-        # Memory Management
+        # Memory Management (pointers and malloc/free)
         pointer_usage = code.count('*') + code.count('&') + code.count('malloc') + code.count('free')
         score += 10 if pointer_usage > 0 else 0
+
+        # Check for balanced braces
+        if code.count('{') != code.count('}'):
+            score -= 10
+
+        # Check for presence of main function
+        if 'int main(' not in code:
+            score -= 10
+
+        # Check for presence of return 0 in main
+        if 'int main(' in code and 'return 0;' not in code:
+            score -= 5
 
         return min(100, max(0, score))
 
     def analyze_c_code_logic(self, code):
-        """Analyze C code logic complexity and flow."""
-        score = 50  # Base score
+        """Analyze C code logic complexity and flow with improved criteria."""
+        score = 60  # Base score increased for better baseline
 
         # Control Flow Complexity
         if_count = code.count('if ') + code.count('else if')
         loop_count = code.count('for ') + code.count('while ') + code.count('do ')
         switch_count = code.count('switch ')
         total_control = if_count + loop_count + switch_count
-        
+
         if total_control > 0:
-            score += 20 if total_control <= 5 else 15 if total_control <= 10 else 5
+            # More generous scoring for control flow complexity
+            if total_control <= 3:
+                score += 25
+            elif total_control <= 7:
+                score += 20
+            elif total_control <= 12:
+                score += 15
+            else:
+                score += 10
         else:
-            score -= 10
+            # Reduce penalty for no control flow if code is short/simple
+            lines = [line.strip() for line in code.split('\n') if line.strip()]
+            if len(lines) <= 5:
+                score += 10  # Small program, no penalty
+            else:
+                score -= 5  # Larger program missing control flow
 
         # Algorithm Indicators
         algorithm_indicators = 0
@@ -313,24 +375,44 @@ class CodeGrader:
         if '&&' in code or '||' in code:
             algorithm_indicators += 1
 
-        score += min(20, algorithm_indicators * 5)
+        score += min(20, algorithm_indicators * 6)  # Slightly higher weight
 
         # Data Processing
         array_usage = code.count('[') + code.count(']')
-        score += 10 if array_usage > 0 else 0
+        score += 15 if array_usage > 0 else 0  # Increased weight for arrays
 
-        # Error Handling
+        # Error Handling (basic check for NULL and conditional usage)
         error_patterns = code.count('NULL') + code.count('if (') + code.count('else')
-        score += 10 if error_patterns > 0 else 0
+        score += 15 if error_patterns > 0 else 0  # Increased weight
 
-        # Code Efficiency
-        nested_loops = code.count('for (') + code.count('while (') - 1
-        if nested_loops <= 0:
-            score += 15
+        # Code Efficiency (nested loops)
+        nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
+        if nested_loops == 0:
+            score += 20
         elif nested_loops <= 2:
-            score += 10
+            score += 15
         else:
-            score += 5
+            score += 10
+
+        # Check for use of break/continue for loop control
+        if 'break;' in code or 'continue;' in code:
+            score += 10  # Increased weight
+
+        # Additional logic checks for better variation
+        # Check for proper loop initialization
+        loop_init_patterns = code.count('for (int ') + code.count('for (i =') + code.count('while (')
+        score += min(15, loop_init_patterns * 3)  # Increased weight
+
+        # Check for function calls within logic
+        func_in_logic = code.count('if (') + code.count('while (') + code.count('for (')
+        if func_in_logic > 0:
+            score += min(15, func_in_logic * 2)  # Increased weight
+
+        # Penalize for missing logic in simple programs
+        lines = code.split('\n')
+        code_lines = [line.strip() for line in lines if line.strip()]
+        if len(code_lines) > 5 and total_control == 0:
+            score -= 10  # Reduced penalty
 
         return min(100, max(0, score))
 
@@ -344,7 +426,7 @@ class CodeGrader:
         
         if code_length < 10:
             feedback_parts.append("Code is quite short - consider adding more functionality")
-        elif code_length > 50:
+        elif code_length > 70:
             feedback_parts.append("Code is lengthy - consider breaking into functions")
         else:
             feedback_parts.append("Code length is appropriate")
@@ -493,7 +575,7 @@ class CodeGrader:
         return max(0, score), ' '.join(feedback_parts)
 
     def check_similarity(self, activity_id, code, student_id):
-        """Check similarity with other submissions using cosine similarity."""
+        """Check similarity with other submissions using token-based similarity."""
         try:
             cur = mysql.connection.cursor()
             cur.execute("""
@@ -507,42 +589,36 @@ class CodeGrader:
             if len(submissions) == 0:
                 return 100, "Insufficient submissions for similarity check."
 
-            # Use all other submissions for comparison
             other_codes = [row[0] for row in submissions]
 
             if not other_codes:
                 return 100, "No similar submissions found."
 
-            # Add current code for comparison
-            all_codes = other_codes + [code]
+            # Tokenize codes by splitting on non-alphanumeric characters
+            def tokenize(text):
+                return set(re.findall(r'\b\w+\b', text))
 
-            # Vectorize using TF-IDF
-            vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 3), min_df=2)
-            try:
-                tfidf_matrix = vectorizer.fit_transform(all_codes)
+            code_tokens = tokenize(code)
+            max_similarity = 0
 
-                # Calculate similarities
-                similarities = cosine_similarity(tfidf_matrix[-1:], tfidf_matrix[:-1])[0]
+            for other_code in other_codes:
+                other_tokens = tokenize(other_code)
+                intersection = code_tokens.intersection(other_tokens)
+                union = code_tokens.union(other_tokens)
+                similarity = len(intersection) / len(union) if union else 0
+                if similarity > max_similarity:
+                    max_similarity = similarity
 
-                if len(similarities) > 0:
-                    max_sim = np.max(similarities) * 100
-                    score = max(0, 100 - max_sim)
+            max_sim_percent = max_similarity * 100
+            score = max(0, 100 - max_sim_percent)
 
-                    # Determine similarity level
-                    if max_sim > 80: similarity_level = "very high"
-                    elif max_sim > 60: similarity_level = "high"
-                    elif max_sim > 40: similarity_level = "moderate"
-                    elif max_sim > 20: similarity_level = "low"
-                    else: similarity_level = "very low"
+            if max_sim_percent > 80: similarity_level = "very high"
+            elif max_sim_percent > 60: similarity_level = "high"
+            elif max_sim_percent > 40: similarity_level = "moderate"
+            elif max_sim_percent > 20: similarity_level = "low"
+            else: similarity_level = "very low"
 
-                    feedback = f"Similarity with other submissions: {similarity_level} ({max_sim:.1f}%)."
-                else:
-                    score = 100
-                    feedback = "No similar submissions found."
-
-            except ValueError:
-                score = 100
-                feedback = "No similar submissions found."
+            feedback = f"Similarity with other submissions: {similarity_level} ({max_sim_percent:.1f}%)."
 
             return score, feedback
 

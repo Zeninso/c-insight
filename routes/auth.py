@@ -195,12 +195,6 @@ def google_authorized():
     return redirect(url_for("auth.google_login"))
 
 
-# MySQL setup
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '_Zac@110502'
-app.config['MYSQL_DB'] = 'c_insight_db'
-mysql = MySQL(app)
 
 # Google OAuth
 app.config["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # remove in production
@@ -255,7 +249,6 @@ def google_callback():
             return redirect(url_for("student.studentDashboard"))
 
     else:
-      
         session["google_temp"] = {
             "email": email,
             "first_name": first_name,
@@ -266,7 +259,7 @@ def google_callback():
         flash("Please complete registration to continue.", "info")
         return redirect(url_for("auth.google_register"))
 
-# --- Registration after Google Login ---
+# --- Registration for Google  ---
 @auth_bp.route("/google/register", methods=["GET", "POST"])
 def google_register():
     if "google_temp" not in session:

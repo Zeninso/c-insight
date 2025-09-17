@@ -122,16 +122,6 @@
                     </div>
                     <p class="progress-text">{{ progress_percentage|round(1) }}% Complete</p>
                 </div>
-
-                <!-- Quick Actions Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-                        <i class="fas fa-plus-circle"></i>
-                    </div>
-                    <a href="{{ url_for('student.join_class') }}" class="btn btn-gradient" style="margin-bottom: 10px;">Join New Class</a>
-                    <a href="{{ url_for('student.studentActivities') }}" class="btn btn-gradient">View Activities</a>
-                </div>
             </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

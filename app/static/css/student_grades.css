@@ -140,6 +140,7 @@
 
 .btn-info:hover {
     background: linear-gradient(135deg, rgba(72, 40, 133, 0.2) 25%, rgba(214, 51, 132, 0.2) 100%);
+    color: #495057;
 }
 
 .btn-sm {

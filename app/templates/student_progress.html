@@ -79,7 +79,7 @@
             {% endif %}
 
             <!-- Activities Progress -->
-            <div class="content-section">
+            <div class="content-section" style="margin-top: 30px;">
                 <h2>Activity Progress</h2>
                 {% if activities_progress %}
                 <div class="activities-progress-section">
@@ -144,6 +144,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         const progressCircle = document.getElementById('progress-circle');
         const progressPercentage = parseFloat(progressCircle.getAttribute('data-percentage'));
+
+        // Set width for class progress fills based on data-width
+        document.querySelectorAll('.class-progress-fill').forEach(fill => {
+            const width = fill.getAttribute('data-width');
+            fill.style.width = width + '%';
+        });
     });
 
     function confirmLogout() {
