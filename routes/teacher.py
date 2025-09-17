@@ -125,30 +125,64 @@ def teacherGrades():
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()['id']
 
+    # Get activity filter
+    activity_id = request.args.get('activity_id')
+    if activity_id:
+        try:
+            activity_id = int(activity_id)
+        except ValueError:
+            activity_id = None
+
+    # Get all activities for filter dropdown
+    cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
+    activities = cur.fetchall()
+
     # Query submissions with grades and code for teacher's activities
-    cur.execute("""
-        SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
-               a.title as activity_title, a.class_id, c.name as class_name,
-               s.code, s.submitted_at,
-               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
-               ((s.correctness_score * a.correctness_weight / 100) +
-                (s.syntax_score * a.syntax_weight / 100) +
-                (s.logic_score * a.logic_weight / 100) +
-                (s.similarity_score * a.similarity_weight / 100)) as total_score,
-               s.feedback
-        FROM submissions s
-        JOIN users u ON s.student_id = u.id
-        JOIN activities a ON s.activity_id = a.id
-        JOIN classes c ON a.class_id = c.id
-        WHERE a.teacher_id = %s
-        ORDER BY s.submitted_at DESC
-    """, (teacher_id,))
+    if activity_id:
+        query = """
+            SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
+                   a.title as activity_title, a.class_id, c.name as class_name,
+                   s.code, s.submitted_at,
+                   s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+                   a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
+                   ((s.correctness_score * a.correctness_weight / 100) +
+                    (s.syntax_score * a.syntax_weight / 100) +
+                    (s.logic_score * a.logic_weight / 100) +
+                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
+                   s.feedback
+            FROM submissions s
+            JOIN users u ON s.student_id = u.id
+            JOIN activities a ON s.activity_id = a.id
+            JOIN classes c ON a.class_id = c.id
+            WHERE a.teacher_id = %s AND a.id = %s
+            ORDER BY s.submitted_at DESC
+        """
+        cur.execute(query, (teacher_id, activity_id))
+    else:
+        query = """
+            SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
+                   a.title as activity_title, a.class_id, c.name as class_name,
+                   s.code, s.submitted_at,
+                   s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+                   a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
+                   ((s.correctness_score * a.correctness_weight / 100) +
+                    (s.syntax_score * a.syntax_weight / 100) +
+                    (s.logic_score * a.logic_weight / 100) +
+                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
+                   s.feedback
+            FROM submissions s
+            JOIN users u ON s.student_id = u.id
+            JOIN activities a ON s.activity_id = a.id
+            JOIN classes c ON a.class_id = c.id
+            WHERE a.teacher_id = %s
+            ORDER BY s.submitted_at DESC
+        """
+        cur.execute(query, (teacher_id,))
 
     submissions = cur.fetchall()
     cur.close()
 
-    return render_template('teacher_grades.html', submissions=submissions, first_name=session['first_name'])
+    return render_template('teacher_grades.html', submissions=submissions, activities=activities, first_name=session['first_name'])
 
 
 

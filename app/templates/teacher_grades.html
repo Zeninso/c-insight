@@ -7,6 +7,18 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_grades.css') }}" />
+    <style>
+        .filter-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .grades-container {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -48,6 +60,19 @@
             </div>
 
             <div class="content-section">
+                <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="activityFilter" style="font-weight: bold; color: #495057; margin: 0;">Filter by Activity:</label>
+                        <select id="activityFilter" name="activity_id" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; background-color: #fff; font-size: 14px; min-width: 200px;">
+                            <option value="">All Activities</option>
+                            {% set selected_activity_id = request.args.get('activity_id') %}
+                            {% for activity in activities %}
+                                <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <noscript><input type="submit" value="Filter" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"></noscript>
+                    </form>
+                </div>
                 {% if submissions %}
                 <div class="grades-container">
                     {% for submission in submissions %}
@@ -56,7 +81,7 @@
                             <div class="grade-title">
                                 <h3>{{ submission.activity_title }}</h3>
                                 <span class="grade-class">{{ submission.class_name }}</span>
-                            </div>
+                            </div> 
                             <div class="grade-date">
                                 <i class="fas fa-calendar-alt"></i>
                                 {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
@@ -101,21 +126,24 @@
                         </div>
                         {% endif %}
 
-                        <div class="code-section">
-                            <h4>Submitted Code</h4>
-                            <div class="code-container">
-                                <pre><code>{{ submission.code }}</code></pre>
-                            </div>
-                        </div>
-
-                        {% if submission.feedback %}
-                        <div class="grade-feedback">
+                        <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
+                                <i class="fas fa-code"></i> View Code
+                            </button>
+                            {% if submission.feedback %}
                             <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
                                 <i class="fas fa-comment"></i> View Feedback
                             </button>
-                            <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
-                                <div class="feedback-text">{{ submission.feedback }}</div>
-                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                            <pre><code>{{ submission.code }}</code></pre>
+                        </div>
+
+                        {% if submission.feedback %}
+                        <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
+                            <div class="feedback-text">{{ submission.feedback }}</div>
                         </div>
                         {% endif %}
                     </div>
@@ -151,6 +179,15 @@
         }
 
         function toggleFeedback(id) {
+            const elem = document.getElementById(id);
+            if (elem.style.display === 'none') {
+                elem.style.display = 'block';
+            } else {
+                elem.style.display = 'none';
+            }
+        }
+
+        function toggleCode(id) {
             const elem = document.getElementById(id);
             if (elem.style.display === 'none') {
                 elem.style.display = 'block';
