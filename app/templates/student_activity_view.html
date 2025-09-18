@@ -129,30 +129,36 @@
                     {% if activity.correctness_score is not none %}
                     <div class="grading-results">
                         <h3><i class="fas fa-chart-bar"></i> Grading Results</h3>
-                        <div class="scores-grid">
-                            <div class="score-item">
+                        <div class="scores-cards">
+                            <div class="score-card">
+                                <div class="score-icon"><i class="fas fa-check-circle"></i></div>
                                 <div class="score-label">Correctness</div>
                                 <div class="score-value">{{ "%.1f"|format(activity.correctness_score * activity.correctness_weight / 100) }}/{{ "%.0f"|format(activity.correctness_weight) }}</div>
                                 <div class="score-percentage">{{ "%.1f"|format(activity.correctness_score) }}%</div>
                             </div>
-                            <div class="score-item">
+                            <div class="score-card">
+                                <div class="score-icon"><i class="fas fa-code"></i></div>
                                 <div class="score-label">Syntax</div>
                                 <div class="score-value">{{ "%.1f"|format(activity.syntax_score * activity.syntax_weight / 100) }}/{{ "%.0f"|format(activity.syntax_weight) }}</div>
                                 <div class="score-percentage">{{ "%.1f"|format(activity.syntax_score) }}%</div>
                             </div>
-                            <div class="score-item">
+                            <div class="score-card">
+                                <div class="score-icon"><i class="fas fa-brain"></i></div>
                                 <div class="score-label">Logic</div>
                                 <div class="score-value">{{ "%.1f"|format(activity.logic_score * activity.logic_weight / 100) }}/{{ "%.0f"|format(activity.logic_weight) }}</div>
                                 <div class="score-percentage">{{ "%.1f"|format(activity.logic_score) }}%</div>
                             </div>
-                            <div class="score-item">
+                            <div class="score-card">
+                                <div class="score-icon"><i class="fas fa-copy"></i></div>
                                 <div class="score-label">Similarity</div>
                                 <div class="score-value">{{ "%.1f"|format(activity.similarity_score * activity.similarity_weight / 100) }}/{{ "%.0f"|format(activity.similarity_weight) }}</div>
                                 <div class="score-percentage">{{ "%.1f"|format(activity.similarity_score) }}%</div>
                             </div>
                         </div>
-                        <div class="total-score">
-                            <strong>Total Score: {{ "%.1f"|format((activity.correctness_score * activity.correctness_weight + activity.syntax_score * activity.syntax_weight + activity.logic_score * activity.logic_weight + activity.similarity_score * activity.similarity_weight) / 100) }}%</strong>
+                        <div class="total-score-card">
+                            <div class="score-icon"><i class="fas fa-trophy"></i></div>
+                            <div class="score-label">Total Score</div>
+                            <div class="score-value">{{ "%.1f"|format((activity.correctness_score * activity.correctness_weight + activity.syntax_score * activity.syntax_weight + activity.logic_score * activity.logic_weight + activity.similarity_score * activity.similarity_weight) / 100) }}%</div>
                         </div>
                         {% if activity.feedback %}
                         <div class="feedback-section">

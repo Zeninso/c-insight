@@ -41,7 +41,7 @@ class CodeGrader:
             cur = mysql.connection.cursor()
             cur.execute("""
                 SELECT title, description, instructions, starter_code, 
-                       correctness_weight, syntax_weight, logic_weight, similarity_weight
+                        correctness_weight, syntax_weight, logic_weight, similarity_weight
                 FROM activities WHERE id = %s
             """, (activity_id,))
             activity = cur.fetchone()
@@ -119,13 +119,13 @@ class CodeGrader:
             os.unlink(temp_file)
 
             if result.returncode == 0:
-                return 100, "Syntax is correct."
+                return 100, "Syntax is correct"
             else:
                 errors = result.stderr.strip()
                 error_count = len(re.findall(r'error:', errors))
                 
                 if error_count == 0:
-                    return 90, "Minor syntax issues found."
+                    return 90, "Minor syntax issues found"
                 elif error_count == 1:
                     return 70, f"One syntax error found: {errors[:200]}..."
                 elif error_count <= 3:

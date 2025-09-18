@@ -115,30 +115,54 @@
             gap: 0.5rem;
         }
 
-        .scores-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        .scores-cards {
+            display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
+            justify-content: center;
             margin-bottom: 1.5rem;
         }
 
-        .score-item {
+        .score-card {
             background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
             text-align: center;
+            flex: 1 1 200px;
+            max-width: 220px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+            animation: fadeInCard 0.8s ease-in-out forwards;
+            opacity: 0;
+        }
+
+        .score-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+        }
+
+        .score-card:nth-child(1) { animation-delay: 0.1s; }
+        .score-card:nth-child(2) { animation-delay: 0.2s; }
+        .score-card:nth-child(3) { animation-delay: 0.3s; }
+        .score-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .score-icon {
+            font-size: 2.5rem;
+            color: #28a745;
+            margin-bottom: 0.75rem;
         }
 
         .score-label {
-            font-weight: 600;
+            font-weight: 700;
             color: #495057;
+            font-size: 1.1rem;
             margin-bottom: 0.5rem;
         }
 
         .score-value {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 800;
             color: #28a745;
             margin-bottom: 0.25rem;
         }
@@ -149,15 +173,25 @@
             margin-top: 0.25rem;
         }
 
-        .total-score {
-            text-align: center;
-            font-size: 1.2rem;
-            color: #28a745;
+        .total-score-card {
             background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            text-align: center;
+            flex: 1 1 200px;
+            max-width: 220px;
+            margin: 0 auto 1.5rem auto;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+            animation: fadeInCard 0.8s ease-in-out forwards;
+            animation-delay: 0.5s;
+            opacity: 0;
+        }
+
+        .total-score-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
         }
 
         .feedback-section {
@@ -197,3 +231,14 @@
         .feedback-content p:last-child {
             margin-bottom: 0;
         }
+
+@keyframes fadeInCard {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
