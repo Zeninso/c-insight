@@ -186,6 +186,14 @@
             padding: 1rem;
             border-radius: 5px;
             border-left: 4px solid #28a745;
-            white-space: pre-wrap;
             line-height: 1.6;
+        }
+
+        .feedback-content p {
+            margin-bottom: 1em;
+            margin-top: 0;
+        }
+
+        .feedback-content p:last-child {
+            margin-bottom: 0;
         }

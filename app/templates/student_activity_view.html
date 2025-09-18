@@ -158,7 +158,10 @@
                         <div class="feedback-section">
                             <h4>Feedback from C-INSIGHT:</h4>
                             <div class="feedback-content">
-                                {{ activity.feedback }}
+                                {% for sentence in activity.feedback.split('. ') %}
+                                    {% set parts = sentence.split(': ', 1) %}
+                                    <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endif %}

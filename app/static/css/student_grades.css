@@ -166,6 +166,15 @@
     font-size: 0.875rem;
 }
 
+.feedback-text p {
+    margin-bottom: 1em;
+    margin-top: 0;
+}
+
+.feedback-text p:last-child {
+    margin-bottom: 0;
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 20px;

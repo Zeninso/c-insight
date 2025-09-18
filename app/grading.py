@@ -96,7 +96,7 @@ class CodeGrader:
                 'similarity_score': int(similarity_score),
                 'requirement_score': int(requirement_score),
                 'total_score': int(total_score),
-                'feedback': ' '.join(feedback_parts)
+                'feedback': '. '.join(feedback_parts)
             }
 
         except Exception as e:

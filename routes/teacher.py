@@ -102,6 +102,11 @@ def teacherAnalytics():
             }
         })
 
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id_for_count = cur.fetchone()['id']
+    unread_notifications_count = get_unread_notifications_count(teacher_id_for_count)
+
     cur.close()
 
     import json
@@ -111,7 +116,7 @@ def teacherAnalytics():
     except (TypeError, ValueError):
         student_progress_json = '[]'
 
-    return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'])
+    return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'], unread_notifications_count=unread_notifications_count)
 
 @teacher_bp.route('/grades')
 def teacherGrades():
@@ -180,14 +185,16 @@ def teacherGrades():
         cur.execute(query, (teacher_id,))
 
     submissions = cur.fetchall()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id_for_count = cur.fetchone()['id']
+    unread_notifications_count = get_unread_notifications_count(teacher_id_for_count)
+
     cur.close()
 
-    return render_template('teacher_grades.html', submissions=submissions, activities=activities, first_name=session['first_name'])
+    return render_template('teacher_grades.html', submissions=submissions, activities=activities, first_name=session['first_name'], unread_notifications_count=unread_notifications_count)
 
-
-
-
-###################TEACHER ROUTES##########################################
 
 @teacher_bp.route('/teacherDashboard')
 def teacherDashboard():
@@ -977,15 +984,18 @@ def teacherSettings():
     if 'username' not in session or session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
-    
-    cur = mysql.connection.cursor()
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
-    cur.close()
 
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_row = cur.fetchone()
+    if not teacher_row:
+        flash('User not found', 'error')
+        return redirect(url_for('auth.login'))
+    teacher_id = teacher_row['id']
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
+
     cur.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
     user = cur.fetchone()
 
@@ -1006,8 +1016,8 @@ def teacherSettings():
         # Validate required profile fields
         if not username or not first_name or not last_name:
             flash('Username, First name, and Last name, are required.', 'error')
-            return render_template('teacher_settings.html', user=user)
-        
+            return render_template('teacher_settings.html', user=user, unread_notifications_count=unread_notifications_count)
+
         # Check if the new username is already taken by another user
         cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
         existing_user = cur.fetchone()
@@ -1019,23 +1029,23 @@ def teacherSettings():
                 errors['username'] = 'The username is already taken. Please choose a different one.'
             # Then, if errors exist, render template with errors and user data
             if errors:
-                return render_template('teacher_settings.html', user=user, errors=errors)
+                return render_template('teacher_settings.html', user=user, errors=errors, unread_notifications_count=unread_notifications_count)
 
 
         # Password change validation
         if new_password or confirm_password:
             if not current_password:
                 flash('Current password is required to change password.', 'error')
-                return render_template('teacher_settings.html', user=user)
+                return render_template('teacher_settings.html', user=user, unread_notifications_count=unread_notifications_count)
             if not check_password_hash(user['password'], current_password):
                 flash('Current password is incorrect.', 'error')
-                return render_template('teacher_settings.html', user=user)
+                return render_template('teacher_settings.html', user=user, unread_notifications_count=unread_notifications_count)
             if new_password != confirm_password:
                 flash('New password and confirmation do not match.', 'error')
-                return render_template('teacher_settings.html', user=user)
+                return render_template('teacher_settings.html', user=user, unread_notifications_count=unread_notifications_count)
             if len(new_password) < 6:
                 flash('New password must be at least 6 characters.', 'error')
-                return render_template('teacher_settings.html', user=user)
+                return render_template('teacher_settings.html', user=user, unread_notifications_count=unread_notifications_count)
             hashed_password = generate_password_hash(new_password)
         else:
             hashed_password = user['password']
@@ -1056,8 +1066,10 @@ def teacherSettings():
                 flash('No changes detected.', 'info')
                 return redirect(url_for('teacher.teacherSettings'))
 
+        # Use a separate cursor for the update to avoid cursor state issues
+        update_cur = mysql.connection.cursor()
         try:
-            cur.execute("""
+            update_cur.execute("""
                 UPDATE users
                 SET username=%s, first_name=%s, last_name=%s, email=%s, password=%s
                 WHERE username=%s
@@ -1080,11 +1092,12 @@ def teacherSettings():
         except Exception as e:
             mysql.connection.rollback()
             flash(f'Failed to update settings: {str(e)}', 'error')
+        finally:
+            update_cur.close()
 
     cur.close()
     return render_template('teacher_settings.html', user=user,
                             unread_notifications_count=unread_notifications_count)
-
 
 def get_unread_notifications_count(user_id):
     cur = mysql.connection.cursor()
