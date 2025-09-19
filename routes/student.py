@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import mysql
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask
 from flask_mysqldb import MySQL
 from flask_dance.contrib.google import make_google_blueprint
@@ -31,6 +31,9 @@ def studentDashboard():
     if session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
+    
+    # Notify students about upcoming or passed deadlines
+    notify_students_activity_deadline()
 
     cur = mysql.connection.cursor()
 
@@ -971,6 +974,55 @@ def notifications():
 
     return render_template('student_notifications.html', notifications=notifications, username=session['username'])
 
+
+def notify_students_activity_deadline():
+    cur = mysql.connection.cursor()
+
+    # Define threshold for "near deadline" (e.g., 24 hours)
+    now = datetime.now()
+    near_deadline = now + timedelta(hours=24)
+
+    # Find activities with due_date within next 24 hours or past due, and not notified yet
+    cur.execute("""
+        SELECT a.id, a.title, a.due_date, a.class_id
+        FROM activities a
+        WHERE a.notified_deadline = FALSE
+        AND a.due_date <= %s
+        AND a.due_date >= %s
+    """, (near_deadline, now))
+
+    activities = cur.fetchall()
+
+    for activity_id, title, due_date, class_id in activities:
+        # Get students enrolled in the class
+        cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
+        students = cur.fetchall()
+
+        for (student_id,) in students:
+            # Compose notification message
+            if due_date < now:
+                message = f"Deadline passed for activity '{title}'. Please submit as soon as possible."
+            else:
+                message = f"Activity '{title}' is due soon on {due_date.strftime('%Y-%m-%d %H:%M')}."
+
+            link = url_for('student.viewActivity', activity_id=activity_id)
+
+            # Insert notification if not already exists (optional: avoid duplicates)
+            cur.execute("""
+                SELECT 1 FROM notifications
+                WHERE user_id = %s AND role = 'student' AND type = 'deadline_reminder' AND link = %s
+            """, (student_id, link))
+            if not cur.fetchone():
+                cur.execute("""
+                    INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+                    VALUES (%s, 'student', 'deadline_reminder', %s, %s, FALSE, NOW())
+                """, (student_id, message, link))
+
+        # Mark activity as notified for deadline
+        cur.execute("UPDATE activities SET notified_deadline = TRUE WHERE id = %s", (activity_id,))
+
+    mysql.connection.commit()
+    cur.close()
 
 
 

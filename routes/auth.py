@@ -10,6 +10,8 @@ from flask_dance.contrib.google import google
 from flask import current_app as app
 import MySQLdb
 import random, string
+from .admin import add_admin_notification
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("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", "dev")
@@ -100,6 +102,12 @@ def register():
                 (username, hashed_password, first_name, last_name, role)
             )
             mysql.connection.commit()
+
+            # Notify admins about new user registration
+            
+            message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
+            add_admin_notification(message, notif_type='user_registered')
+
             flash('Registration successful. Please login.', 'success')
             return redirect(url_for('auth.login'))
         except Exception as e:
@@ -292,6 +300,8 @@ def google_register():
         
             cursor.execute("SELECT * FROM users WHERE email=%s", (data["email"],))
             user = cursor.fetchone()
+
+            
         except Exception as e:
             mysql.connection.rollback()
             flash(f"Registration failed: {str(e)}", "error")
@@ -311,6 +321,10 @@ def google_register():
         session["first_name"] = user.get("first_name", "")
         session["last_name"] = user.get("last_name", "")
 
+        # Notify admins about new user registration
+        message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
+        add_admin_notification(message, notif_type='user_registered')
+
         print("Registration successful, redirecting now...")
         flash("Registration complete. Logged in successfully!", "success")
         session.pop("google_temp")
@@ -325,3 +339,4 @@ def google_register():
         'theme': session.get('theme', 'light')
     }
     return render_template('google_register.html', data=data, user=user)
+

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notifications</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_profile.css') }}">
 </head>
@@ -13,17 +14,14 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-user-graduate"></i>
+                <i class="fas fa-cog"></i>
                 <h2>C-INSIGHT</h2>
             </div>
             <ul class="sidebar-nav">
-                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
-                <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
-                <li><a href="{{ url_for('teacher.teacherGrades') }}"><i class="fas fa-award"></i> Grades</a></li>
-                <li><a href="{{ url_for('teacher.teacherAnalytics') }}"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-                <li><a href="{{ url_for('teacher.teacherSettings') }}" class="active"><i class="fas fa-cog"></i> Settings</a></li>
-            </ul>
+                <li><a href="{{ url_for('admin.adminDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="{{ url_for('admin.adminSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
         </div>
 
         <!-- Main Content -->

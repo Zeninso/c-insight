@@ -22,8 +22,15 @@ def adminDashboard():
     cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
     student_count = cur.fetchone()[0]
 
+    # Get admin id
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    admin_id = user[0]
+
 
     cur.close()
+
+    unread_notifications_count = get_admin_unread_notifications_count(admin_id)
 
     stats = {
         'teachers': teacher_count,
@@ -31,7 +38,8 @@ def adminDashboard():
 
     }
 
-    return render_template('admin_dashboard.html', stats=stats, first_name=session['first_name'])
+    return render_template('admin_dashboard.html', stats=stats, first_name=session['first_name'],
+                           unread_notifications_count=unread_notifications_count)
 
 @admin_bp.route('/users')
 def adminUsers():
@@ -42,9 +50,20 @@ def adminUsers():
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("SELECT id, username, first_name, last_name, email, role FROM users WHERE role != 'admin' ORDER BY role, first_name")
     users = cur.fetchall()
+
     cur.close()
 
-    return render_template('admin_users.html', users=users, first_name=session['first_name'])
+    cur = mysql.connection.cursor()
+    # Get admin id
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    admin_id = user[0]
+    cur.close()
+
+    unread_notifications_count = get_admin_unread_notifications_count(admin_id)
+
+    return render_template('admin_users.html', users=users, first_name=session['first_name'],
+                           unread_notifications_count=unread_notifications_count)
 
 
 
@@ -97,6 +116,12 @@ def deleteUser(user_id):
     cur = mysql.connection.cursor()
 
     try:
+        # Get user info before deletion for notification
+        cur.execute("SELECT username, first_name, last_name, role FROM users WHERE id=%s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({'success': False, 'error': 'User  not found'}), 404
+        
         cur.execute("DELETE FROM notifications WHERE user_id=%s", (user_id,))
         cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
         cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
@@ -104,6 +129,11 @@ def deleteUser(user_id):
         cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
+
+        # Notify admins about user deletion
+        message = f"User  deleted: {user[1]} {user[2]} ({user[0]}), Role: {user[3]}."
+        add_admin_notification(message, notif_type='user_deleted')
+
         return jsonify({'success': True})
     except Exception as e:
         mysql.connection.rollback()
@@ -122,6 +152,15 @@ def adminSettings():
     settings = cur.fetchone()
     cur.close()
 
+    cur = mysql.connection.cursor()
+    # Get admin id
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    admin_id = user[0]
+    cur.close()
+
+    unread_notifications_count = get_admin_unread_notifications_count(admin_id)
+
     if not settings:
         settings = {'site_name': 'C-Insight', 'admin_email': 'admin@cinsight.com'}
 
@@ -138,7 +177,8 @@ def adminSettings():
         'students': student_count
     }
 
-    return render_template('admin_settings.html', settings=settings, stats=stats, first_name=session['first_name'])
+    return render_template('admin_settings.html', settings=settings, stats=stats, first_name=session['first_name'],
+                           unread_notifications_count=unread_notifications_count)
 
 @admin_bp.route('/update-settings', methods=['POST'])
 def updateSettings():
@@ -159,3 +199,62 @@ def updateSettings():
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cur.close()
+
+def add_admin_notification(message, notif_type='info', link=None):
+    cur = mysql.connection.cursor()
+    # Assuming admin user(s) have role='admin', you can notify all admins or a specific admin
+    # Here, notify all admins
+    cur.execute("SELECT id FROM users WHERE role='admin'")
+    admins = cur.fetchall()
+    for (admin_id,) in admins:
+        cur.execute("""
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
+        """, (admin_id, notif_type, message, link))
+    mysql.connection.commit()
+    cur.close()
+def get_admin_unread_notifications_count(admin_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT COUNT(*) FROM notifications
+        WHERE user_id = %s AND role = 'admin' AND is_read = FALSE
+    """, (admin_id,))
+    count = cur.fetchone()[0]
+    cur.close()
+    return count
+
+
+@admin_bp.route('/notifications')
+def admin_notifications():
+    if 'username' not in session or session.get('role') != 'admin':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get admin user id
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    if not user:
+        flash('User  not found', 'error')
+        return redirect(url_for('auth.login'))
+    admin_id = user['id']
+
+    # Fetch notifications for admin
+    cur.execute("""
+        SELECT id, type, message, link, is_read, created_at
+        FROM notifications
+        WHERE user_id = %s AND role = 'admin'
+        ORDER BY created_at DESC
+    """, (admin_id,))
+    notifications = cur.fetchall()
+
+    # Mark all unread notifications as read
+    cur.execute("""
+        UPDATE notifications SET is_read = TRUE
+        WHERE user_id = %s AND role = 'admin' AND is_read = FALSE
+    """, (admin_id,))
+    mysql.connection.commit()
+    cur.close()
+
+    return render_template('admin_notifications.html', notifications=notifications, username=session['username'])

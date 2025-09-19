@@ -204,6 +204,9 @@ def teacherDashboard():
     if session.get('role') != 'teacher':
         flash('Unauthorized access', 'error')
         return redirect(url_for('home.home'))
+    
+    # Notify teacher about finished activities
+    notify_finished_activities()
 
     cur = mysql.connection.cursor()
 
@@ -1140,19 +1143,21 @@ def notify_teacher_activity_finished(teacher_id, activity_title, class_name, tot
 def notify_finished_activities():
     cur = mysql.connection.cursor()
 
-    # Find activities where deadline passed or all students submitted but not notified yet
-    # You may want to add a 'notified_finished' boolean column in activities or notifications to avoid duplicates
-
-    # For simplicity, find activities with deadline passed and not notified
+    # Find activities where:
+    # - due date passed OR all students submitted
+    # - AND notified_finished = FALSE (not notified yet)
     cur.execute("""
         SELECT a.id, a.title, a.class_id, c.teacher_id, c.name
         FROM activities a
         JOIN classes c ON a.class_id = c.id
-        WHERE a.due_date < NOW()
-        AND NOT EXISTS (
-            SELECT 1 FROM notifications n
-            WHERE n.type = 'activity_finished' AND n.link LIKE CONCAT('%', a.id, '%')
-            AND n.user_id = c.teacher_id AND n.role = 'teacher'
+        WHERE a.notified_finished = FALSE
+        AND (
+            a.due_date < NOW()
+            OR (
+                SELECT COUNT(*) FROM enrollments e WHERE e.class_id = a.class_id
+            ) = (
+                SELECT COUNT(DISTINCT s.student_id) FROM submissions s WHERE s.activity_id = a.id
+            )
         )
     """)
     activities = cur.fetchall()
@@ -1163,12 +1168,17 @@ def notify_finished_activities():
         total_students = cur.fetchone()[0]
 
         # Count total submissions for activity
-        cur.execute("SELECT COUNT(*) FROM submissions WHERE activity_id = %s", (activity_id,))
+        cur.execute("SELECT COUNT(DISTINCT student_id) FROM submissions WHERE activity_id = %s", (activity_id,))
         total_submissions = cur.fetchone()[0]
 
         notify_teacher_activity_finished(teacher_id, title, class_name, total_submissions, total_students)
 
+        # Mark activity as notified
+        cur.execute("UPDATE activities SET notified_finished = TRUE WHERE id = %s", (activity_id,))
+
+    mysql.connection.commit()
     cur.close()
+
 
 
 @teacher_bp.route('/notifications')
