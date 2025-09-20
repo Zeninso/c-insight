@@ -34,6 +34,43 @@
             overflow-y: auto !important;
             flex: 1;
         }
+        .similarity-warning {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #721c24;
+            padding: 8px;
+            background-color: #f8d7da;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: 1px solid #f5c6cb;
+        }
+        .grade-card.high-similarity {
+            border-left: 4px solid #dc3545;
+            background-color: #fff5f5;
+        }
+        .similarity-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #d1ecf1;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        /* Style for the apply button */
+        .apply-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .apply-btn:hover {
+            background-color: #0069d9;
+        }
     </style>
 </head>
 <body>
@@ -76,23 +113,55 @@
             </div>
 
             <div class="content-section">
+                <!-- Filter section with similarity filter -->
                 <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" style="display: flex; align-items: center; gap: 10px;">
+                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" id="filterForm" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <label for="activityFilter" style="font-weight: bold; color: #495057; margin: 0;">Filter by Activity:</label>
-                        <select id="activityFilter" name="activity_id" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; background-color: #fff; font-size: 14px; min-width: 200px;">
+                        <select id="activityFilter" name="activity_id" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; background-color: #fff; font-size: 14px; min-width: 200px;">
                             <option value="">All Activities</option>
                             {% set selected_activity_id = request.args.get('activity_id') %}
                             {% for activity in activities %}
                                 <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
                             {% endfor %}
                         </select>
-                        <noscript><input type="submit" value="Filter" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"></noscript>
+                        
+                        <!-- Similar submissions filter -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" {% if show_similar %}checked{% endif %} style="width: auto;">
+                            <label for="showSimilar" style="margin: 0; font-weight: normal;">Show potentially copied submissions</label>
+                        </div>
+                        
+                        <!-- Always show the apply button but hide it with JS if we want auto-submit -->
+                        <button type="submit" class="apply-btn" id="applyFilterBtn">Apply Filters</button>
                     </form>
+                    
+                    {% if show_similar and submissions %}
+                    <div class="similarity-info">
+                        <i class="fas fa-info-circle"></i>
+                        Showing {{ submissions|length }} submissions with high similarity (low similarity scores). 
+                        Lower scores indicate higher similarity to other submissions.
+                    </div>
+                    {% elif show_similar and not submissions %}
+                    <div class="similarity-info">
+                        <i class="fas fa-info-circle"></i>
+                        No submissions with high similarity found for this activity.
+                    </div>
+                    {% endif %}
                 </div>
+                
                 {% if submissions %}
                 <div class="grades-container">
                     {% for submission in submissions %}
-                    <div class="grade-card">
+                    <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}high-similarity{% endif %}" 
+                         {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}style="border-left: 4px solid #dc3545;"{% endif %}>
+                        <!-- Add similarity warning if applicable -->
+                        {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}
+                        <div class="similarity-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
+                        </div>
+                        {% endif %}
+                        
                         <div class="grade-header">
                             <div class="grade-title">
                                 <h3>{{ submission.activity_title }}</h3>
@@ -126,6 +195,9 @@
                                 <div class="score-item">
                                     <div class="score-label">Similarity</div>
                                     <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                    <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                        (Raw: {{ submission.similarity_score }}%)
+                                    </div>
                                 </div>
                             </div>
 
@@ -216,8 +288,33 @@
                 elem.style.display = 'none';
             }
         }
+
+        // Add event listeners for form auto-submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const activityFilter = document.getElementById('activityFilter');
+            const showSimilar = document.getElementById('showSimilar');
+            const filterForm = document.getElementById('filterForm');
+            const applyBtn = document.getElementById('applyFilterBtn');
+            
+            // Auto-submit when activity filter changes
+            if (activityFilter) {
+                activityFilter.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+            }
+            
+            // Auto-submit when similarity checkbox changes
+            if (showSimilar) {
+                showSimilar.addEventListener('change', function() {
+                    filterForm.submit();
+                });
+            }
+            
+            // Hide the apply button since we're auto-submitting
+            if (applyBtn) {
+                applyBtn.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
-
-

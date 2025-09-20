@@ -137,6 +137,9 @@ def teacherGrades():
             activity_id = int(activity_id)
         except ValueError:
             activity_id = None
+            
+    # Get similarity filter
+    show_similar = request.args.get('show_similar') == 'true'
 
     # Get all activities for filter dropdown
     cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
@@ -185,7 +188,17 @@ def teacherGrades():
         cur.execute(query, (teacher_id,))
 
     submissions = cur.fetchall()
-
+    
+    # If similarity filter is enabled, identify similar submissions
+    similar_submissions = []
+    if show_similar and activity_id and submissions:
+        # Find submissions with low similarity scores (indicating high similarity/copying)
+        low_similarity_threshold = 30  # Adjust this threshold as needed
+        
+        for submission in submissions:
+            if submission['similarity_score'] is not None and submission['similarity_score'] <= low_similarity_threshold:
+                similar_submissions.append(submission)
+    
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id_for_count = cur.fetchone()['id']
@@ -193,8 +206,44 @@ def teacherGrades():
 
     cur.close()
 
-    return render_template('teacher_grades.html', submissions=submissions, activities=activities, first_name=session['first_name'], unread_notifications_count=unread_notifications_count)
+    # Use similar submissions if filter is enabled, otherwise use all submissions
+    display_submissions = similar_submissions if show_similar and similar_submissions else submissions
 
+    return render_template('teacher_grades.html', 
+                         submissions=display_submissions, 
+                         activities=activities, 
+                         first_name=session['first_name'], 
+                         unread_notifications_count=unread_notifications_count,
+                         show_similar=show_similar,
+                         activity_id=activity_id)
+
+
+def calculate_code_similarity(code1, code2):
+    """Calculate similarity between two code snippets"""
+    if not code1 or not code2:
+        return 0
+        
+    # Remove comments and whitespace for better comparison
+    import re
+    
+    def normalize_code(code):
+        # Remove single-line comments
+        code = re.sub(r'//.*', '', code)
+        # Remove multi-line comments
+        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+        # Remove extra whitespace
+        code = re.sub(r'\s+', ' ', code)
+        return code.strip()
+    
+    norm1 = normalize_code(code1)
+    norm2 = normalize_code(code2)
+    
+    if not norm1 or not norm2:
+        return 0
+        
+    # Use sequence matching for similarity calculation
+    from difflib import SequenceMatcher
+    return int(SequenceMatcher(None, norm1, norm2).ratio() * 100)
 
 @teacher_bp.route('/teacherDashboard')
 def teacherDashboard():
