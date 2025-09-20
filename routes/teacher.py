@@ -890,13 +890,13 @@ def delete_enrolled_students(class_id):
 
         # Insert notifications for each removed student
         notification_query = """
-            INSERT INTO notifications (user_id, message, link, is_read, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
         for student_id in student_ids:
             message = f'You have been removed from class {class_name} by your teacher.'
             link = url_for('student.studentClasses')  # or any relevant link
-            cur.execute(notification_query, (student_id, message, link, False))
+            cur.execute(notification_query, (student_id, 'student', 'removed_from_class', message, link, False))
 
         mysql.connection.commit()
         flash(f'Successfully deleted {len(student_ids)} student(s) from the class.', 'success')

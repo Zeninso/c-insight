@@ -322,7 +322,7 @@ def google_register():
         session["last_name"] = user.get("last_name", "")
 
         # Notify admins about new user registration
-        message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
+        message = f"New user registered: {data['first_name']} {data['last_name']} ({data['username']}), Role: {role}."
         add_admin_notification(message, notif_type='user_registered')
 
         print("Registration successful, redirecting now...")
