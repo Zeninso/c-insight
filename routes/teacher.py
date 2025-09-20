@@ -1260,7 +1260,3 @@ def notifications():
     cur.close()
 
     return render_template('teacher_notifications.html', notifications=notifications, username=session['username'])
-
-
-
-
