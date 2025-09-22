@@ -58,7 +58,7 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
-          .similarity-group {
+        .similarity-group {
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -247,8 +247,99 @@
             color: #495057;
         }
         
+        /* Filter section improvements */
+        .filter-form {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-label {
+            font-weight: bold;
+            color: #495057;
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        
+        .filter-checkbox {
+            width: auto;
+            margin: 0;
+        }
+        
+        .filter-submit {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .filter-submit:hover {
+            background-color: #0069d9;
+        }
+        
+        .js-hidden {
+            display: none;
+        }
+        
+        /* Empty state styles */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #dee2e6;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .empty-state p {
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .no-similarity-state {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        .no-similarity-state i {
+            color: #adb5bd;
+        }
         
         @media (max-width: 768px) {
+            .filter-form {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
             .group-members-container {
                 grid-template-columns: 1fr;
             }
@@ -307,26 +398,25 @@
             <div class="content-section">
                 <!-- Filter section with similarity filter -->
                 <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <label for="activityFilter" style="font-weight: bold; color: #495057; margin: 0;">Filter by Activity:</label>
-                        <select id="activityFilter" name="activity_id" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; background-color: #fff; font-size: 14px; min-width: 200px;">
-                            <option value="">All Activities</option>
-                            {% set selected_activity_id = request.args.get('activity_id') %}
-                            {% for activity in activities %}
-                                <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
-                            {% endfor %}
-                        </select>
-                        
-                        <!-- Similar submissions filter -->
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" {% if show_similar %}checked{% endif %} 
-                                   onchange="this.form.submit()" style="width: auto;">
-                            <label for="showSimilar" style="margin: 0; font-weight: normal;">Show potentially copied submissions</label>
+                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" class="filter-form">
+                        <div class="filter-group">
+                            <label for="activityFilter" class="filter-label">Filter by Activity:</label>
+                            <select id="activityFilter" name="activity_id" class="filter-select">
+                                <option value="">All Activities</option>
+                                {% set selected_activity_id = request.args.get('activity_id') %}
+                                {% for activity in activities %}
+                                    <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         
-                        <noscript>
-                            <input type="submit" value="Apply Filters" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        </noscript>
+                        <!-- Similar submissions filter -->
+                        <div class="filter-group">
+                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" class="filter-checkbox" {% if show_similar %}checked{% endif %}>
+                            <label for="showSimilar">Show potentially copied submissions</label>
+                        </div>
+                        
+                        <button type="submit" class="filter-submit js-hidden">Apply Filters</button>
                     </form>
                     
                     {% if show_similar and submissions %}
@@ -594,11 +684,22 @@
                     {% endif %}
                 </div>
                 {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-award"></i>
-                    <h3>No Submissions Yet</h3>
-                    <p>No student submissions have been received yet. Submissions will appear here once students submit their work.</p>
-                </div>
+                    <!-- Show different empty states based on context -->
+                    {% if show_similar %}
+                    <!-- Empty state for when filtering for similar submissions but none found -->
+                    <div class="empty-state no-similarity-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>NO ACTIVITY SUBMISSION IS POTENTIALLY COPIED</h3>
+                        <p>Great news! No submissions for this activity show signs of potential copying.</p>
+                    </div>
+                    {% else %}
+                    <!-- Default empty state for no submissions at all -->
+                    <div class="empty-state">
+                        <i class="fas fa-award"></i>
+                        <h3>No Submissions Yet</h3>
+                        <p>No student submissions have been received yet. Submissions will appear here once students submit their work.</p>
+                    </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -665,9 +766,30 @@
             });
         }
 
-        // Call highlight function when page loads
+        // Auto-submit form when activity selection changes
         document.addEventListener('DOMContentLoaded', function() {
             highlightDifferences();
+            
+            // Hide the submit button since we'll auto-submit
+            document.querySelectorAll('.filter-submit').forEach(btn => {
+                btn.classList.add('js-hidden');
+            });
+            
+            // Auto-submit when activity selection changes
+            const activityFilter = document.getElementById('activityFilter');
+            if (activityFilter) {
+                activityFilter.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            }
+            
+            // Auto-submit when checkbox changes (replacing the inline onchange)
+            const showSimilar = document.getElementById('showSimilar');
+            if (showSimilar) {
+                showSimilar.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            }
         });
     </script>
 </body>
