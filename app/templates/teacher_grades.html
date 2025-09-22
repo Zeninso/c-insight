@@ -58,19 +58,6 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
-        /* Style for the apply button */
-        .apply-btn {
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .apply-btn:hover {
-            background-color: #0069d9;
-        }
     </style>
 </head>
 <body>
@@ -115,7 +102,7 @@
             <div class="content-section">
                 <!-- Filter section with similarity filter -->
                 <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" id="filterForm" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <label for="activityFilter" style="font-weight: bold; color: #495057; margin: 0;">Filter by Activity:</label>
                         <select id="activityFilter" name="activity_id" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; background-color: #fff; font-size: 14px; min-width: 200px;">
                             <option value="">All Activities</option>
@@ -127,12 +114,14 @@
                         
                         <!-- Similar submissions filter -->
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" {% if show_similar %}checked{% endif %} style="width: auto;">
+                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" {% if show_similar %}checked{% endif %} 
+                                   onchange="this.form.submit()" style="width: auto;">
                             <label for="showSimilar" style="margin: 0; font-weight: normal;">Show potentially copied submissions</label>
                         </div>
                         
-                        <!-- Always show the apply button but hide it with JS if we want auto-submit -->
-                        <button type="submit" class="apply-btn" id="applyFilterBtn">Apply Filters</button>
+                        <noscript>
+                            <input type="submit" value="Apply Filters" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        </noscript>
                     </form>
                     
                     {% if show_similar and submissions %}
@@ -152,10 +141,10 @@
                 {% if submissions %}
                 <div class="grades-container">
                     {% for submission in submissions %}
-                    <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}high-similarity{% endif %}" 
-                         {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}style="border-left: 4px solid #dc3545;"{% endif %}>
+                    <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
+                         {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
                         <!-- Add similarity warning if applicable -->
-                        {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 30 %}
+                        {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
                         <div class="similarity-warning">
                             <i class="fas fa-exclamation-triangle"></i>
                             Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
@@ -288,33 +277,6 @@
                 elem.style.display = 'none';
             }
         }
-
-        // Add event listeners for form auto-submission
-        document.addEventListener('DOMContentLoaded', function() {
-            const activityFilter = document.getElementById('activityFilter');
-            const showSimilar = document.getElementById('showSimilar');
-            const filterForm = document.getElementById('filterForm');
-            const applyBtn = document.getElementById('applyFilterBtn');
-            
-            // Auto-submit when activity filter changes
-            if (activityFilter) {
-                activityFilter.addEventListener('change', function() {
-                    filterForm.submit();
-                });
-            }
-            
-            // Auto-submit when similarity checkbox changes
-            if (showSimilar) {
-                showSimilar.addEventListener('change', function() {
-                    filterForm.submit();
-                });
-            }
-            
-            // Hide the apply button since we're auto-submitting
-            if (applyBtn) {
-                applyBtn.style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
