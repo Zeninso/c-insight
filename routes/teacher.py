@@ -9,13 +9,86 @@ import os
 from flask_dance.contrib.google import google
 from flask import current_app as app
 import MySQLdb
-import random, string
+from io import BytesIO
+from flask import send_file
+import pandas as pd
+
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("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", "dev")
 
 
 teacher_bp = Blueprint('teacher', __name__)
+
+
+
+@teacher_bp.route('/teacherDashboard')
+def teacherDashboard():
+    if 'username' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('auth.login'))
+    if session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('home.home'))
+    
+    # Notify teacher about finished activities
+    notify_finished_activities()
+
+    cur = mysql.connection.cursor()
+
+    # Get unread notifications count
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
+
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()[0]
+
+    # Get total classes
+    cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
+    total_classes = cur.fetchone()[0]
+
+    # Get total students (across all classes)
+    cur.execute("""
+        SELECT COUNT(DISTINCT e.student_id)
+        FROM enrollments e
+        JOIN classes c ON e.class_id = c.id
+        WHERE c.teacher_id = %s
+    """, (teacher_id,))
+    total_students = cur.fetchone()[0]
+
+    # Get recent activities (last 5)
+    cur.execute("""
+        SELECT a.title, a.created_at, c.name as class_name
+        FROM activities a
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.teacher_id = %s
+        ORDER BY a.created_at DESC
+        LIMIT 5
+    """, (teacher_id,))
+    recent_activities = cur.fetchall()
+
+    # Get pending submissions (submissions that have not been graded yet)
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM submissions s
+        JOIN activities a ON s.activity_id = a.id
+        WHERE a.teacher_id = %s AND s.correctness_score IS NULL
+    """, (teacher_id,))
+    pending_submissions = cur.fetchone()[0]
+
+    cur.close()
+
+    return render_template('teacher_Dashboard.html',
+                          first_name=session['first_name'],
+                          total_classes=total_classes,
+                          total_students=total_students,
+                          recent_activities=recent_activities,
+                          pending_submissions=pending_submissions,
+                          unread_notifications_count=unread_notifications_count)
+        
 
 @teacher_bp.route('/analytics')
 def teacherAnalytics():
@@ -298,72 +371,76 @@ def calculate_code_similarity(code1, code2):
     from difflib import SequenceMatcher
     return int(SequenceMatcher(None, norm1, norm2).ratio() * 100)
 
-@teacher_bp.route('/teacherDashboard')
-def teacherDashboard():
-    if 'username' not in session:
-        flash('Please login first', 'error')
-        return redirect(url_for('auth.login'))
-    if session.get('role') != 'teacher':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('home.home'))
-    
-    # Notify teacher about finished activities
-    notify_finished_activities()
 
-    cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
+@teacher_bp.route('/generate_grade_report', methods=['POST'])
+def generate_grade_report():
+    if 'username' not in session or session.get('role') != 'teacher':
+        return jsonify({'error': 'Unauthorized access'}), 401
 
-    # Get teacher ID
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-
-    # Get total classes
-    cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
-    total_classes = cur.fetchone()[0]
-
-    # Get total students (across all classes)
-    cur.execute("""
-        SELECT COUNT(DISTINCT e.student_id)
-        FROM enrollments e
-        JOIN classes c ON e.class_id = c.id
-        WHERE c.teacher_id = %s
-    """, (teacher_id,))
-    total_students = cur.fetchone()[0]
-
-    # Get recent activities (last 5)
-    cur.execute("""
-        SELECT a.title, a.created_at, c.name as class_name
-        FROM activities a
-        JOIN classes c ON a.class_id = c.id
-        WHERE a.teacher_id = %s
-        ORDER BY a.created_at DESC
-        LIMIT 5
-    """, (teacher_id,))
-    recent_activities = cur.fetchall()
-
-    # Get pending submissions (submissions that have not been graded yet)
-    cur.execute("""
-        SELECT COUNT(*)
-        FROM submissions s
-        JOIN activities a ON s.activity_id = a.id
-        WHERE a.teacher_id = %s AND s.correctness_score IS NULL
-    """, (teacher_id,))
-    pending_submissions = cur.fetchone()[0]
-
-    cur.close()
-
-    return render_template('teacher_Dashboard.html',
-                          first_name=session['first_name'],
-                          total_classes=total_classes,
-                          total_students=total_students,
-                          recent_activities=recent_activities,
-                          pending_submissions=pending_submissions,
-                          unread_notifications_count=unread_notifications_count)
+    try:
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
+        # Get teacher ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_id = cur.fetchone()['id']
+        
+        # Get all submissions for teacher's activities with student info
+        query = """
+            SELECT 
+                a.title as activity_title,
+                c.name as class_name,
+                u.first_name,
+                u.last_name,
+                u.username,
+                ROUND(((s.correctness_score * a.correctness_weight / 100) +
+                 (s.syntax_score * a.syntax_weight / 100) +
+                 (s.logic_score * a.logic_weight / 100) +
+                 (s.similarity_score * a.similarity_weight / 100)), 2) as total_score,
+                s.submitted_at
+            FROM submissions s
+            JOIN activities a ON s.activity_id = a.id
+            JOIN classes c ON a.class_id = c.id
+            JOIN users u ON s.student_id = u.id
+            WHERE a.teacher_id = %s
+            ORDER BY a.title, c.name, u.last_name, u.first_name
+        """
+        cur.execute(query, (teacher_id,))
+        submissions = cur.fetchall()
+        
+        cur.close()
+        
+        # Create DataFrame
+        df = pd.DataFrame(submissions)
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name='Grade Report', index=False)
+            
+            # Auto-adjust columns' width
+            workbook = writer.book
+            worksheet = writer.sheets['Grade Report']
+            
+            for idx, col in enumerate(df.columns):
+                max_len = max(
+                    df[col].astype(str).map(len).max(),
+                    len(col)
+                ) + 2
+                worksheet.set_column(idx, idx, max_len)
+        
+        output.seek(0)
+        
+        # Create response with Excel file
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'grade_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])
 def teacherActivities():
