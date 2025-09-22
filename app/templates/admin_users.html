@@ -32,6 +32,25 @@
             overflow-y: auto !important;
             flex: 1;
         }
+        
+        /* Empty state styles */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #dee2e6;
+        }
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -78,6 +97,8 @@
                 <div class="card-header">
                     <h3><i class="fas fa-users"></i> All Users</h3>
                 </div>
+                
+                {% if users and users|length > 0 %}
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
                         <tr style="background-color: #f8f9fa;">
@@ -107,6 +128,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% else %}
+                <!-- Empty state -->
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>No Users Found</h3>
+                    <p>There are no users in the system yet. Users will appear here once they register.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -136,4 +165,3 @@ function confirmLogout() {
     });
 }
 </script>
-
