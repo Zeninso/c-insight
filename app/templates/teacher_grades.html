@@ -58,6 +58,234 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
+          .similarity-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+            border: 2px solid #dc3545;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+        }
+        
+        .similarity-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #dc3545;
+            margin-bottom: 20px;
+        }
+        
+        .similarity-group-header h4 {
+            color: #dc3545;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+        }
+        
+        .similarity-group-header p {
+            margin: 5px 0 0 0;
+            color: #721c24;
+            font-size: 14px;
+            font-style: italic;
+        }
+        
+        .similarity-percentage {
+            background-color: #dc3545;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .group-members-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .group-member-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .group-member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .member-name {
+            font-weight: bold;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        .member-username {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .similarity-score-badge {
+            background: #dc3545;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .code-preview {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            max-height: 150px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .code-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, #f8f9fa);
+        }
+        
+        .code-preview pre {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #495057;
+        }
+        
+        .view-code-btn {
+            width: 100%;
+            padding: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        
+        .view-code-btn:hover {
+            background: #c82333;
+        }
+        
+        .code-comparison-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #dc3545;
+        }
+        
+        .comparison-header {
+            text-align: center;
+            color: #dc3545;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .code-comparison-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .code-comparison {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+        
+        .code-comparison-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .code-comparison-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .code-comparison-content pre {
+            margin: 0;
+            padding: 15px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #495057;
+        }
+        
+        .highlight-differences {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .highlight-btn {
+            background: #ffc107;
+            color: #856404;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+        
+        .highlight-btn:hover {
+            background: #e0a800;
+        }
+        
+        @media (max-width: 768px) {
+            .group-members-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .code-comparison-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .similarity-group-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -127,8 +355,8 @@
                     {% if show_similar and submissions %}
                     <div class="similarity-info">
                         <i class="fas fa-info-circle"></i>
-                        Showing {{ submissions|length }} submissions with high similarity (low similarity scores). 
-                        Lower scores indicate higher similarity to other submissions.
+                        Showing {{ submissions|length }} submissions. 
+                        Lower scores indicate higher similarity to the other submissions.
                     </div>
                     {% elif show_similar and not submissions %}
                     <div class="similarity-info">
@@ -140,96 +368,253 @@
                 
                 {% if submissions %}
                 <div class="grades-container">
-                    {% for submission in submissions %}
-                    <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
-                         {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
-                        <!-- Add similarity warning if applicable -->
-                        {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
-                        <div class="similarity-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
-                        </div>
-                        {% endif %}
-                        
-                        <div class="grade-header">
-                            <div class="grade-title">
-                                <h3>{{ submission.activity_title }}</h3>
-                                <span class="grade-class">{{ submission.class_name }}</span>
-                            </div> 
-                            <div class="grade-date">
-                                <i class="fas fa-calendar-alt"></i>
-                                {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                    {% set grouped = show_similar and grouped_submissions %}
+                    
+                    {% if grouped %}
+                        {% for group in grouped_submissions %}
+                            {% if group|length > 1 %}
+                            <!-- Similar submissions group -->
+                            <div class="similarity-group">
+                                <div class="similarity-group-header">
+                                    <h4>
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Potential Code Copying Detected
+                                        <span class="similarity-percentage">{{ group|length }} students</span>
+                                    </h4>
+                                    <p style="margin: 5px 0 0 0; color: #721c24; font-size: 14px;">
+                                        These submissions show high similarity to each other
+                                    </p>
+                                </div>
+                                
+                                {% for submission in group %}
+                                <div class="group-member">
+                                    <div class="grade-card high-similarity">
+                                        <!-- Student info and grades -->
+                                        <div class="student-info">
+                                            <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
+                                        </div>
+                                        
+                                        {% if submission.correctness_score is not none %}
+                                        <div class="grade-scores">
+                                            <div class="score-grid">
+                                                <div class="score-item">
+                                                    <div class="score-label">Similarity</div>
+                                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                                    <div class="score-explanation" style="font-size: 12px; color: #dc3545;">
+                                                        (Raw: {{ submission.similarity_score }}%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Code comparison button -->
+                                        <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                            <button class="btn btn-danger btn-sm" onclick="toggleGroupCode('group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}')">
+                                                <i class="fas fa-code"></i> View Code
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Individual code container -->
+                                        <div id="group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                                            <pre><code>{{ submission.code }}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                <!-- Side-by-side code comparison -->
+                                <div class="code-comparison-container">
+                                    {% for i in range(group|length) %}
+                                        {% set submission = group[i] %}
+                                    <div class="code-comparison">
+                                        <div class="code-comparison-header">
+                                            {{ submission.first_name }} {{ submission.last_name }}
+                                        </div>
+                                        <div class="code-comparison-content">
+                                            <pre><code>{{ submission.code }}</code></pre>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                        </div>
+                            {% else %}
+                            <!-- Single submission (not grouped) -->
+                            {% set submission = group[0] %}
+                            <div class="grade-card">
+                                <div class="grade-header">
+                                    <div class="grade-title">
+                                        <h3>{{ submission.activity_title }}</h3>
+                                        <span class="grade-class">{{ submission.class_name }}</span>
+                                    </div> 
+                                    <div class="grade-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                    </div>
+                                </div>
 
-                        <div class="student-info">
-                            <h4>Student: {{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
-                        </div>
+                                <div class="student-info">
+                                    <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
+                                </div>
 
-                        {% if submission.correctness_score is not none %}
-                        <div class="grade-scores">
-                            <div class="score-grid">
-                                <div class="score-item">
-                                    <div class="score-label">Correctness</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
+                                {% if submission.correctness_score is not none %}
+                                <div class="grade-scores">
+                                    <div class="score-grid">
+                                        <div class="score-item">
+                                            <div class="score-label">Correctness</div>
+                                            <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
+                                        </div>
+                                        <div class="score-item">
+                                            <div class="score-label">Syntax</div>
+                                            <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
+                                        </div>
+                                        <div class="score-item">
+                                            <div class="score-label">Logic</div>
+                                            <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
+                                        </div>
+                                        <div class="score-item">
+                                            <div class="score-label">Similarity</div>
+                                            <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                            <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                                (Raw: {{ submission.similarity_score }}%)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="total-score">
+                                        <div class="total-label">Total Score</div>
+                                        <div class="total-value">
+                                            {% if submission.total_score is not none %}
+                                                {{ "%.1f"|format(submission.total_score) }}%
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="score-item">
-                                    <div class="score-label">Syntax</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
+                                {% endif %}
+
+                                <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                    <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
+                                        <i class="fas fa-code"></i> View Code
+                                    </button>
+                                    {% if submission.feedback %}
+                                    <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
+                                        <i class="fas fa-comment"></i> View Feedback
+                                    </button>
+                                    {% endif %}
                                 </div>
-                                <div class="score-item">
-                                    <div class="score-label">Logic</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
+
+                                <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                                    <pre><code>{{ submission.code }}</code></pre>
                                 </div>
-                                <div class="score-item">
-                                    <div class="score-label">Similarity</div>
-                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                    <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                        (Raw: {{ submission.similarity_score }}%)
+
+                                {% if submission.feedback %}
+                                <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
+                                    <div class="feedback-text">
+                                        {% for sentence in submission.feedback.split('. ') %}
+                                            {% set parts = sentence.split(': ', 1) %}
+                                            <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <!-- Original individual display when not showing similar -->
+                        {% for submission in submissions %}
+                        <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
+                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
+                            <!-- Add similarity warning if applicable -->
+                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
+                            <div class="similarity-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
+                            </div>
+                            {% endif %}
+                            
+                            <div class="grade-header">
+                                <div class="grade-title">
+                                    <h3>{{ submission.activity_title }}</h3>
+                                    <span class="grade-class">{{ submission.class_name }}</span>
+                                </div> 
+                                <div class="grade-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                </div>
+                            </div>
+
+                            <div class="student-info">
+                                <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
+                            </div>
+
+                            {% if submission.correctness_score is not none %}
+                            <div class="grade-scores">
+                                <div class="score-grid">
+                                    <div class="score-item">
+                                        <div class="score-label">Correctness</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Syntax</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Logic</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Similarity</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Raw: {{ submission.similarity_score }}%)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="total-score">
+                                    <div class="total-label">Total Score</div>
+                                    <div class="total-value">
+                                        {% if submission.total_score is not none %}
+                                            {{ "%.1f"|format(submission.total_score) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
 
-                            <div class="total-score">
-                                <div class="total-label">Total Score</div>
-                                <div class="total-value">
-                                    {% if submission.total_score is not none %}
-                                        {{ "%.1f"|format(submission.total_score) }}%
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
+                            <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
+                                    <i class="fas fa-code"></i> View Code
+                                </button>
+                                {% if submission.feedback %}
+                                <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
+                                    <i class="fas fa-comment"></i> View Feedback
+                                </button>
+                                {% endif %}
+                            </div>
+
+                            <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                                <pre><code>{{ submission.code }}</code></pre>
+                            </div>
+
+                            {% if submission.feedback %}
+                            <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
+                                <div class="feedback-text">
+                                    {% for sentence in submission.feedback.split('. ') %}
+                                        {% set parts = sentence.split(': ', 1) %}
+                                        <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
+                                    {% endfor %}
                                 </div>
                             </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
-                                <i class="fas fa-code"></i> View Code
-                            </button>
-                            {% if submission.feedback %}
-                            <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
-                                <i class="fas fa-comment"></i> View Feedback
-                            </button>
                             {% endif %}
                         </div>
-
-                        <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
-                            <pre><code>{{ submission.code }}</code></pre>
-                        </div>
-
-                        {% if submission.feedback %}
-                        <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
-                            <div class="feedback-text">
-                                {% for sentence in submission.feedback.split('. ') %}
-                                    {% set parts = sentence.split(': ', 1) %}
-                                    <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="empty-state">
@@ -277,6 +662,36 @@
                 elem.style.display = 'none';
             }
         }
+
+        function toggleGroupCode(id) {
+            const elem = document.getElementById(id);
+            if (elem.style.display === 'none') {
+                elem.style.display = 'block';
+            } else {
+                elem.style.display = 'none';
+            }
+        }
+
+        // Add function to highlight differences in code comparison
+        function highlightDifferences() {
+            // This could be enhanced with a diff library like jsdiff
+            // For now, we'll just ensure both code blocks are visible
+            const comparisonContainers = document.querySelectorAll('.code-comparison-container');
+            comparisonContainers.forEach(container => {
+                // Add visual indicators for comparison
+                const headers = container.querySelectorAll('.code-comparison-header');
+                headers.forEach((header, index) => {
+                    if (index > 0) {
+                        header.style.borderLeft = '2px solid #dc3545';
+                    }
+                });
+            });
+        }
+
+        // Call highlight function when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            highlightDifferences();
+        });
     </script>
 </body>
 </html>

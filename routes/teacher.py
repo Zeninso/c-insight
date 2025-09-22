@@ -191,10 +191,28 @@ def teacherGrades():
     
     # If similarity filter is enabled, identify similar submissions
     similar_submissions = []
+    grouped_submissions = []
+    display_submissions = submissions
+    
+    # Define threshold for low similarity (high copying)
+    low_similarity_threshold = 30
+    
     if show_similar and activity_id and submissions:
-        # Find submissions with low similarity scores (indicating high similarity/copying)
-        low_similarity_threshold = 30  # Adjust this threshold as needed
-        
+        # Group submissions with high similarity
+        grouped_submissions = group_similar_submissions(submissions, similarity_threshold=70)
+
+        # Flatten for display - each group will be displayed as a side-by-side comparison
+        display_submissions = []
+        for group in grouped_submissions:
+            if len(group) > 1:
+                # Mark as similar group
+                for submission in group:
+                    submission['is_similar_group'] = True
+                    submission['group_members'] = len(group)
+                    submission['group_submissions'] = group
+            display_submissions.extend(group)
+    else:
+        # Original logic for finding similar submissions based on low similarity score
         for submission in submissions:
             if submission['similarity_score'] is not None and submission['similarity_score'] <= low_similarity_threshold:
                 similar_submissions.append(submission)
@@ -207,7 +225,8 @@ def teacherGrades():
     cur.close()
 
     # Use similar submissions if filter is enabled, otherwise use all submissions
-    display_submissions = similar_submissions if show_similar and similar_submissions else submissions
+    if show_similar and similar_submissions and not grouped_submissions:
+        display_submissions = similar_submissions
 
     return render_template('teacher_grades.html', 
                          submissions=display_submissions, 
@@ -215,7 +234,41 @@ def teacherGrades():
                          first_name=session['first_name'], 
                          unread_notifications_count=unread_notifications_count,
                          show_similar=show_similar,
-                         activity_id=activity_id)
+                         activity_id=activity_id,
+                         grouped_submissions=grouped_submissions if show_similar else None)
+
+def group_similar_submissions(submissions, similarity_threshold=70):
+    """Group submissions that have high similarity to each other"""
+    if not submissions:
+        return []
+    
+    groups = []
+    processed_ids = set()
+    
+    for i, submission1 in enumerate(submissions):
+        if submission1['submission_id'] in processed_ids:
+            continue
+            
+        current_group = [submission1]
+        processed_ids.add(submission1['submission_id'])
+        
+        for j, submission2 in enumerate(submissions):
+            if (submission2['submission_id'] not in processed_ids and 
+                i != j and 
+                calculate_code_similarity(submission1['code'], submission2['code']) >= similarity_threshold):
+                
+                current_group.append(submission2)
+                processed_ids.add(submission2['submission_id'])
+        
+        if len(current_group) > 1:  # Only add groups with multiple submissions
+            groups.append(current_group)
+    
+    # Add single submissions that weren't grouped
+    for submission in submissions:
+        if submission['submission_id'] not in processed_ids:
+            groups.append([submission])
+    
+    return groups
 
 
 def calculate_code_similarity(code1, code2):
