@@ -60,9 +60,10 @@
             <div class="header">
                 <div class="header-left">
                     <h1>Notifications</h1>
-                    <button onclick="window.history.back()" class="btn btn-gradient" style="padding: 8px 12px; margin-top: 10px;">
+                    <button onclick="window.location.href = document.referrer;" class="btn btn-gradient" style="padding: 8px 12px; margin-top: 10px;">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
+
                 </div>
                 <div class="user-profile">
                     <a href="#" onclick="confirmLogout()" class="btn btn-gradient" style="padding: 8px 12px;">
@@ -79,11 +80,11 @@
                 {% if notifications %}
                     <ul class="notifications-list" style="list-style: none; padding-left: 0; margin: 0;">
                         {% for notification in notifications %}
-                            <li class="{% if not notification.is_read %}unread{% endif %}" style="position: relative; padding: 0.75rem 1rem; border-bottom: 1px solid #eee; display: block; width: 100%; box-sizing: border-box;">
-                                <a href="{{ notification.link or '#' }}" class="notification-message" style="display: block; width: 100%; color: inherit; text-decoration: none;">
+                            <li class="{% if not notification.is_read %}unread{% endif %}" style="position: relative; padding: 0.75rem 1rem; border-bottom: 1px solid #eee; display: block; width: 100%; box-sizing: border-box; min-height: 60px; line-height: 1.4;">
+                                <a href="{{ notification.link or '#' }}" class="notification-message" style="display: block; width: 100%; color: inherit; text-decoration: none; padding-right: 150px; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.4;">
                                     {{ notification.message }}
                                 </a>
-                                <span class="notification-date" style="position: absolute; top: 50%; right: 1rem; transform: translateY(-50%); font-size: 0.85rem; color: #666; white-space: nowrap;">
+                                <span class="notification-date" style="position: absolute; top: 0; right: 1rem; transform: translateY(0); font-size: 0.85rem; color: #666; white-space: nowrap; box-sizing: border-box; line-height: 1.4;">
                                     {{ notification.created_at.strftime('%b %d, %Y %H:%M') }}
                                 </span>
                             </li>

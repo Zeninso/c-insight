@@ -1406,9 +1406,10 @@ def delete_submission(submission_id):
             return jsonify({'error': 'Teacher not found'}), 404
         teacher_id = teacher_row[0]
 
-        # Fetch submission to verify existence and ownership
+        # Fetch submission details to verify existence, ownership, and get student_id/activity_title
         cur.execute("""
-            SELECT s.id, a.id as activity_id, a.teacher_id, c.id as class_id, c.teacher_id as class_teacher_id
+            SELECT s.id, s.student_id, a.id as activity_id, a.title as activity_title,
+                   a.teacher_id, c.id as class_id, c.teacher_id as class_teacher_id
             FROM submissions s
             JOIN activities a ON s.activity_id = a.id
             JOIN classes c ON a.class_id = c.id
@@ -1419,12 +1420,25 @@ def delete_submission(submission_id):
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
 
+        student_id = submission[1]
+        activity_id = submission[2]
+        activity_title = submission[3]
+
         # Verify teacher owns the activity (direct via activities.teacher_id) or class (via classes.teacher_id)
-        if submission[2] != teacher_id and submission[4] != teacher_id:
+        if submission[4] != teacher_id and submission[6] != teacher_id:
             return jsonify({'error': 'Not authorized to delete this submission'}), 403
 
         # Delete the submission
         cur.execute("DELETE FROM submissions WHERE id = %s", (submission_id,))
+        
+        # Send notification to the student
+        message = f"Your submission for '{activity_title}' has been deleted by your teacher. You can now resubmit it."
+        link = url_for('student.viewActivity', activity_id=activity_id, _external=True)  # Full URL for link
+        cur.execute("""
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        """, (student_id, 'student', 'submission_deleted', message, link, False))
+        
         mysql.connection.commit()
 
         return jsonify({'message': 'Submission deleted successfully. The activity is now available for resubmission.'})
@@ -1434,3 +1448,4 @@ def delete_submission(submission_id):
         return jsonify({'error': str(e)}), 500
     finally:
         cur.close()
+
