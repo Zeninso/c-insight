@@ -137,7 +137,14 @@
                                             <button class="btn btn-danger btn-sm" onclick="toggleGroupCode('group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}')">
                                                 <i class="fas fa-code"></i> View Code
                                             </button>
+                                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
+                                                <i class="fas fa-trash"></i> Delete Submission
+                                            </button>
                                         </div>
+
+                                        <!-- Hidden delete form (for POST action reference in JS) -->
+                                        <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
+                                        </form>
                                         
                                         <!-- Individual code container -->
                                         <div id="group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}" class="code-container" style="display:none;">
@@ -227,7 +234,14 @@
                                         <i class="fas fa-comment"></i> View Feedback
                                     </button>
                                     {% endif %}
+                                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
+                                        <i class="fas fa-trash"></i> Delete Submission
+                                    </button>
                                 </div>
+
+                                <!-- Hidden delete form (for POST action reference in JS) -->
+                                <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
+                                </form>
 
                                 <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
                                     <pre><code>{{ submission.code }}</code></pre>
@@ -320,7 +334,14 @@
                                     <i class="fas fa-comment"></i> View Feedback
                                 </button>
                                 {% endif %}
+                                <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
+                                    <i class="fas fa-trash"></i> Delete Submission
+                                </button>
                             </div>
+
+                            <!-- Hidden delete form (for POST action reference in JS) -->
+                            <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
+                            </form>
 
                             <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
                                 <pre><code>{{ submission.code }}</code></pre>
@@ -500,6 +521,66 @@
                 });
             });
         });
+        // New: Confirm and delete submission
+function confirmDeleteSubmission(submissionId) {
+    Swal.fire({
+        title: 'Delete Submission?',
+        text: 'This will remove the submission and grades for this student. The activity will become available for resubmission. This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.getElementById(`delete-form-${submissionId}`);
+            if (form) {
+                // Show loading
+                Swal.fire({
+                    title: 'Deleting...',
+                    text: 'Please wait.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Submit via fetch for AJAX
+                fetch(form.action, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();  // Assume backend returns JSON with success message
+                    }
+                    throw new Error('Deletion failed');
+                })
+                .then(data => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: data.message || 'Submission deleted successfully.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Reload page to update the list
+                        window.location.reload();
+                    });
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to delete submission: ' + error.message
+                    });
+                });
+            }
+        }
+    });
+}
+
     </script>
 </body>
 </html>
