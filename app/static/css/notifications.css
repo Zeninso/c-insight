@@ -44,12 +44,16 @@ a:hover {
     text-decoration: underline;
 }
 
-.notifications-list {
-    list-style: none;
-    padding-left: 0;
-    margin: 0;
-    width: 100%;
-}
+.notifications-list li {
+      position: relative;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #eee;
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 60px;
+      line-height: 1.4;
+  }
 
 .notifications-list li {
     background: white;
@@ -76,17 +80,27 @@ a:hover {
 }
 
 .notification-message {
-    flex: 1;
-    font-size: 1rem;
-    color: var(--dark);
-}
+      display: block;
+      width: 100%;
+      color: inherit;
+      text-decoration: none;
+      padding-right: 150px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.4;
+  }
 
 .notification-date {
-    font-size: 0.85rem;
-    color: #666;
-    margin-left: 1rem;
-    white-space: nowrap;
-}
+      position: absolute;
+      top: 0;
+      right: 1rem;
+      transform: translateY(0);
+      font-size: 0.85rem;
+      color: #666;
+      white-space: nowrap;
+      box-sizing: border-box;
+      line-height: 1.4;
+  }
 
 .back-link {
     display: inline-block;
