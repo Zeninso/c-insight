@@ -58,7 +58,18 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="header">
-                <h1>{{ activity.title }}</h1>
+                <div class="header-left">
+                    <h1>{{ activity.title }}</h1>
+                    {% if activity.submitted %}
+                    <a href="{{ url_for('student.studentActivities') }}" class="btn btn-gradient" style="padding: 8px 12px; margin-top: 10px; text-decoration: none; display: inline-block;">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                    {% else %}
+                    <button onclick="window.history.back()" class="btn btn-gradient" style="padding: 8px 12px; margin-top: 10px;">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    {% endif %}
+                </div>
                 <div class="user-profile">
                     <a href="{{ url_for('auth.user_profile') }}">
                         <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />

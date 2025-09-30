@@ -1390,3 +1390,47 @@ def notifications():
     cur.close()
 
     return render_template('teacher_notifications.html', notifications=notifications, username=session['username'])
+
+@teacher_bp.route('/delete_submission/<int:submission_id>', methods=['POST'])
+def delete_submission(submission_id):
+    if 'username' not in session or session.get('role') != 'teacher':
+        return jsonify({'error': 'Unauthorized access'}), 401
+
+    cur = mysql.connection.cursor()
+
+    try:
+        # Get teacher ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_row = cur.fetchone()
+        if not teacher_row:
+            return jsonify({'error': 'Teacher not found'}), 404
+        teacher_id = teacher_row[0]
+
+        # Fetch submission to verify existence and ownership
+        cur.execute("""
+            SELECT s.id, a.id as activity_id, a.teacher_id, c.id as class_id, c.teacher_id as class_teacher_id
+            FROM submissions s
+            JOIN activities a ON s.activity_id = a.id
+            JOIN classes c ON a.class_id = c.id
+            WHERE s.id = %s
+        """, (submission_id,))
+        submission = cur.fetchone()
+
+        if not submission:
+            return jsonify({'error': 'Submission not found'}), 404
+
+        # Verify teacher owns the activity (direct via activities.teacher_id) or class (via classes.teacher_id)
+        if submission[2] != teacher_id and submission[4] != teacher_id:
+            return jsonify({'error': 'Not authorized to delete this submission'}), 403
+
+        # Delete the submission
+        cur.execute("DELETE FROM submissions WHERE id = %s", (submission_id,))
+        mysql.connection.commit()
+
+        return jsonify({'message': 'Submission deleted successfully. The activity is now available for resubmission.'})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
