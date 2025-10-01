@@ -58,15 +58,18 @@ class CodeGrader:
 
             # Check if code meets specific activity requirements
             requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
-            
+
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
-            
+
             # Correctness and Logic analysis
             correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
                 code, requirements, requirement_score
             )
-            
+
+            # Apply requirement penalty to correctness score
+            correctness_score = correctness_score * (requirement_score / 100)
+
             # Similarity check - only if syntax is correct
             if syntax_score >= 50:
                 similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
@@ -79,7 +82,7 @@ class CodeGrader:
                 (syntax_score * syntax_w / 100) +
                 (logic_score * logic_w / 100) +
                 (similarity_score * similarity_w / 100)
-            ) * (requirement_score / 100)
+            )
 
             # Compile feedback
             feedback_parts = [
@@ -139,21 +142,16 @@ class CodeGrader:
             return 0, f"Syntax check failed: {str(e)}"
 
     def check_ast_with_requirements(self, code, requirements, requirement_score):
-        """Check correctness and logic using analysis, adjusted for requirements."""
+        """Check correctness and logic using analysis."""
         correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code)
 
+        # Code analysis scores are based on code quality, not requirements
         feedback_parts = [
             "Advanced C Code Analysis",
             f"Code Correctness: {correctness_score:.1f}%",
-            f"Logic Quality: {logic_score:.1f}%"
+            f"Logic Quality: {logic_score:.1f}%",
+            f"Syntax Quality: {syntax_score:.1f}%"
         ]
-
-        # Adjust scores based on requirements
-        if requirement_score < 70:
-            if requirements['if_else'] and (code.count('if ') + code.count('else if') + code.count('else')) == 0:
-                correctness_score = max(0, correctness_score * 0.7)
-                logic_score = max(0, logic_score * 0.7)
-                feedback_parts.append("Penalty: Missing required if-else logic.")
 
         feedback_parts.append(enhanced_feedback)
 
@@ -174,7 +172,7 @@ class CodeGrader:
         # Combine scores
         if analysis_type == "ML-enhanced analysis":
             final_correctness = 0.7 * ml_correctness + 0.3 * rule_correctness
-            final_logic = 0.7 * ml_logic + 0.3 * rule_logic
+            final_logic = rule_logic  # Use rule-based logic score for better accuracy
             final_syntax = 0.6 * ml_syntax + 0.4 * rule_syntax
         else:
             final_correctness = rule_correctness
@@ -338,7 +336,7 @@ class CodeGrader:
 
     def analyze_c_code_logic(self, code):
         """Analyze C code logic complexity and flow with improved criteria."""
-        score = 60  # Base score increased for better baseline
+        score = 30  # Base score increased for better baseline
 
         # Control Flow Complexity
         if_count = code.count('if ') + code.count('else if')
@@ -460,108 +458,276 @@ class CodeGrader:
             'pointers': False, 'switch': False, 'input_output': False, 'variables': False,
             'comments': False, 'return_statement': False, 'main_function': False,
             'include_stdio': False, 'arithmetic': False, 'comparison': False,
-            'logical_operators': False
+            'logical_operators': False, 'specific_content': []
         }
 
-        # Check for if-else requirements (more specific to avoid false positives)
-        if any(keyword in activity_text for keyword in ['if-else', 'conditional', 'condition']):
-            requirements['if_else'] = True
-        elif 'if ' in activity_text and 'if-else' not in activity_text:
+        # Common programming keywords to exclude from specific content
+        programming_keywords = {
+            'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue',
+            'int', 'char', 'float', 'double', 'void', 'return', 'main', 'include',
+            'stdio', 'printf', 'scanf', 'function', 'variable', 'array', 'loop',
+            'conditional', 'condition', 'input', 'output', 'print', 'read', 'arithmetic',
+            'math', 'calculation', 'compare', 'comparison', 'greater', 'less', 'equal',
+            'logical', 'operator', 'boolean', 'pointer', 'memory', 'malloc', 'free',
+            'comment', 'header', 'library', 'data', 'type', 'declare', 'iteration',
+            'define', 'create', 'list', 'matrix', 'and', 'or', 'not'
+        }
+
+        # Extract specific content keywords (words not in programming_keywords)
+        words = re.findall(r'\b\w+\b', activity_text)
+        specific_content = [word for word in words if word not in programming_keywords and len(word) > 2]
+        requirements['specific_content'] = list(set(specific_content))  # Remove duplicates
+
+        # More precise requirement detection - only set to True if explicitly required
+        if any(phrase in activity_text for phrase in ['use if-else', 'implement if-else', 'write if-else', 'if-else statement', 'conditional statements', 'decision making']):
             requirements['if_else'] = True
 
-        # Check for other requirements
-        if any(keyword in activity_text for keyword in ['for ', 'while ', 'do ', 'loop', 'iteration']):
+        if any(phrase in activity_text for phrase in ['use loops', 'implement loops', 'write loops', 'for loop', 'while loop', 'do-while loop', 'iteration']):
             requirements['loops'] = True
-        if any(keyword in activity_text for keyword in ['function', 'define a function', 'create a function']):
+
+        if any(phrase in activity_text for phrase in ['define a function', 'create a function', 'implement a function', 'write a function', 'user-defined function']):
             requirements['functions'] = True
-        if any(keyword in activity_text for keyword in ['array', 'list', 'matrix']):
+
+        if any(phrase in activity_text for phrase in ['use arrays', 'implement arrays', 'work with arrays', 'array operations']):
             requirements['arrays'] = True
-        if any(keyword in activity_text for keyword in ['input', 'output', 'print', 'read', 'scanf', 'printf']):
+
+        if any(phrase in activity_text for phrase in ['use pointers', 'implement pointers', 'work with pointers', 'pointer operations']):
+            requirements['pointers'] = True
+
+        if any(phrase in activity_text for phrase in ['use switch', 'implement switch', 'switch statement', 'switch-case']):
+            requirements['switch'] = True
+
+        if any(phrase in activity_text for phrase in ['input and output', 'read and write', 'scanf and printf', 'user input', 'display output']):
             requirements['input_output'] = True
-        if any(keyword in activity_text for keyword in ['variable', 'declare', 'data type']):
+
+        if any(phrase in activity_text for phrase in ['declare variables', 'use variables', 'variable declaration']):
             requirements['variables'] = True
-        if 'return' in activity_text:
+
+        if any(phrase in activity_text for phrase in ['add comments', 'include comments', 'write comments', 'comment your code']):
+            requirements['comments'] = True
+
+        if any(phrase in activity_text for phrase in ['return statement', 'return value', 'return from function']):
             requirements['return_statement'] = True
-        if 'main' in activity_text:
+
+        if any(phrase in activity_text for phrase in ['main function', 'int main', 'write main function']):
             requirements['main_function'] = True
-        if any(keyword in activity_text for keyword in ['include', 'header', 'library']):
+
+        if any(phrase in activity_text for phrase in ['include stdio.h', 'include header', 'standard library']):
             requirements['include_stdio'] = True
-        if any(keyword in activity_text for keyword in ['arithmetic', 'math', 'calculation']):
+
+        if any(phrase in activity_text for phrase in ['arithmetic operators', 'mathematical operations', 'calculations']):
             requirements['arithmetic'] = True
-        if any(keyword in activity_text for keyword in ['compare', 'comparison', 'greater', 'less', 'equal']):
+
+        if any(phrase in activity_text for phrase in ['comparison operators', 'relational operators', 'compare values']):
             requirements['comparison'] = True
-            
-        # Only flag logical operators if explicitly mentioned
-        if any(keyword in activity_text for keyword in ['logical operator', 'boolean operator', '&&', '||', '!']):
+
+        if any(phrase in activity_text for phrase in ['logical operators', 'boolean operators', '&& || !']):
             requirements['logical_operators'] = True
 
         return requirements
 
     def check_activity_requirements(self, code, requirements):
         """Check if the submitted code meets the specific activity requirements."""
-        score = 100
+        met_points = 0
+        total_required_points = 0
         missing_requirements = []
         met_requirements = []
 
-        # Define essential requirements for this activity
-        essential_reqs = ['if_else', 'input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
-        
-        # Check each requirement
+        # Define points for each requirement
+        points_map = {
+            'if_else': 15,
+            'input_output': 10,
+            'variables': 10,
+            'main_function': 10,
+            'include_stdio': 5,
+            'return_statement': 8,
+            'logical_operators': 0,
+            'loops': 10,
+            'functions': 10,
+            'arrays': 10,
+            'pointers': 10,
+            'switch': 10,
+            'comments': 5,
+            'arithmetic': 5,
+            'comparison': 5,
+            'specific_content': 0
+        }
+
+        # First, check explicitly required elements from activity description
         for req_name, req_value in requirements.items():
             if not req_value:
                 continue
-                
+
+            total_required_points += points_map[req_name]
+
             if req_name == 'if_else':
                 if_count = code.count('if ') + code.count('else if') + code.count('else')
-                if if_count == 0 and req_name in essential_reqs:
-                    score -= 15
-                    missing_requirements.append("if-else statements")
-                elif if_count > 0:
+                if if_count > 0:
                     met_requirements.append(f"if-else statements ({if_count} found)")
-                    
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("if-else statements")
+
             elif req_name == 'input_output':
                 io_count = code.count('printf(') + code.count('scanf(')
-                if io_count == 0 and req_name in essential_reqs:
-                    score -= 10
-                    missing_requirements.append("input/output operations")
-                elif io_count > 0:
+                if io_count > 0:
                     met_requirements.append(f"input/output operations ({io_count} found)")
-                    
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("input/output operations")
+
             elif req_name == 'variables':
                 var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
-                if var_count == 0 and req_name in essential_reqs:
-                    score -= 10
-                    missing_requirements.append("variable declarations")
-                elif var_count > 0:
+                if var_count > 0:
                     met_requirements.append(f"variable declarations ({var_count} found)")
-                    
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("variable declarations")
+
             elif req_name == 'main_function':
-                if 'int main(' not in code and req_name in essential_reqs:
-                    score -= 10
-                    missing_requirements.append("main function")
-                else:
+                if 'int main(' in code:
                     met_requirements.append("main function")
-                    
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("main function")
+
             elif req_name == 'include_stdio':
-                if '#include <stdio.h>' not in code and req_name in essential_reqs:
-                    score -= 5
-                    missing_requirements.append("stdio.h include")
-                else:
+                if '#include <stdio.h>' in code:
                     met_requirements.append("stdio.h include")
-                    
-            elif req_name == 'return_statement':
-                if 'return ' not in code and req_name in essential_reqs:
-                    score -= 8
-                    missing_requirements.append("return statement")
+                    met_points += points_map[req_name]
                 else:
+                    missing_requirements.append("stdio.h include")
+
+            elif req_name == 'return_statement':
+                if 'return ' in code:
                     met_requirements.append("return statement")
-                    
-            # For non-essential requirements like logical_operators, don't penalize
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("return statement")
+
             elif req_name == 'logical_operators':
                 logic_count = code.count('&&') + code.count('||') + code.count('!')
                 if logic_count > 0:
                     met_requirements.append(f"logical operators ({logic_count} found)")
-                # No penalty if missing since it's not essential
+                    met_points += points_map[req_name]
+
+            elif req_name == 'loops':
+                loop_count = code.count('for ') + code.count('while ') + code.count('do ')
+                if loop_count > 0:
+                    met_requirements.append(f"loops ({loop_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("loops")
+
+            elif req_name == 'functions':
+                func_count = code.count('(') - code.count('main(') - code.count('printf(') - code.count('scanf(')
+                if func_count > 0:
+                    met_requirements.append(f"functions ({func_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("functions")
+
+            elif req_name == 'arrays':
+                array_count = code.count('[') + code.count(']')
+                if array_count > 0:
+                    met_requirements.append(f"arrays ({array_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("arrays")
+
+            elif req_name == 'pointers':
+                pointer_count = code.count('*') + code.count('&')
+                if pointer_count > 0:
+                    met_requirements.append(f"pointers ({pointer_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("pointers")
+
+            elif req_name == 'switch':
+                switch_count = code.count('switch ')
+                if switch_count > 0:
+                    met_requirements.append(f"switch statements ({switch_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("switch statements")
+
+            elif req_name == 'comments':
+                comment_count = code.count('//') + code.count('/*')
+                if comment_count > 0:
+                    met_requirements.append(f"comments ({comment_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("comments")
+
+            elif req_name == 'arithmetic':
+                arith_count = code.count('+') + code.count('-') + code.count('*') + code.count('/') + code.count('%')
+                if arith_count > 0:
+                    met_requirements.append(f"arithmetic operators ({arith_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("arithmetic operators")
+
+            elif req_name == 'comparison':
+                comp_count = code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>=')
+                if comp_count > 0:
+                    met_requirements.append(f"comparison operators ({comp_count} found)")
+                    met_points += points_map[req_name]
+                else:
+                    missing_requirements.append("comparison operators")
+
+            elif req_name == 'specific_content' and req_value:
+                code_lower = code.lower()
+                found_keywords = [kw for kw in req_value if kw in code_lower]
+                if found_keywords:
+                    met_requirements.append(f"specific content keywords: {', '.join(found_keywords)}")
+
+        # Additionally, check for basic programming elements that are typically expected
+        # If the code uses certain features, consider them as requirements
+        basic_requirements = ['input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
+
+        for req_name in basic_requirements:
+            if req_name in requirements and requirements[req_name]:
+                continue  # Already checked above
+
+            # Check if code has this element
+            has_element = False
+            if req_name == 'input_output':
+                has_element = code.count('printf(') + code.count('scanf(') > 0
+            elif req_name == 'variables':
+                has_element = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])]) > 0
+            elif req_name == 'main_function':
+                has_element = 'int main(' in code
+            elif req_name == 'include_stdio':
+                has_element = '#include <stdio.h>' in code
+            elif req_name == 'return_statement':
+                has_element = 'return ' in code
+
+            if has_element:
+                # If code has this element, consider it required and met
+                total_required_points += points_map[req_name]
+                met_points += points_map[req_name]
+                if req_name == 'input_output':
+                    io_count = code.count('printf(') + code.count('scanf(')
+                    met_requirements.append(f"input/output operations ({io_count} found)")
+                elif req_name == 'variables':
+                    var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+                    met_requirements.append(f"variable declarations ({var_count} found)")
+                elif req_name == 'main_function':
+                    met_requirements.append("main function")
+                elif req_name == 'include_stdio':
+                    met_requirements.append("stdio.h include")
+                elif req_name == 'return_statement':
+                    met_requirements.append("return statement")
+
+        # Calculate requirement score as percentage of met requirements
+        if total_required_points > 0:
+            requirement_score = (met_points / total_required_points) * 100
+        else:
+            requirement_score = 100  # No requirements detected, no penalty
+
+        # If any required elements are missing, set requirement score to 0
+        if missing_requirements:
+            requirement_score = 0
 
         # Generate feedback
         feedback_parts = []
@@ -572,7 +738,7 @@ class CodeGrader:
         if not missing_requirements and not met_requirements:
             feedback_parts.append("No specific requirements detected in activity description.")
 
-        return max(0, score), ' '.join(feedback_parts)
+        return max(0, requirement_score), ' '.join(feedback_parts)
 
     def check_similarity(self, activity_id, code, student_id):
         """Check similarity with other submissions using token-based similarity."""
@@ -597,7 +763,7 @@ class CodeGrader:
             # Tokenize codes by splitting on non-alphanumeric characters
             def tokenize(text):
                 return set(re.findall(r'\b\w+\b', text))
-
+      
             code_tokens = tokenize(code)
             max_similarity = 0
 
@@ -609,6 +775,7 @@ class CodeGrader:
                 if similarity > max_similarity:
                     max_similarity = similarity
 
+            
             max_sim_percent = max_similarity * 100
             score = max(0, 100 - max_sim_percent)
 
