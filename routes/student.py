@@ -187,7 +187,7 @@ def join_class():
         cur.close()
         
         flash(f'Successfully joined {class_name}!', 'success')
-        return redirect(url_for('student.studentDashboard'))
+        return redirect(url_for('student.studentClasses'))
     
     return render_template('student_join_class.html', username=session['username'],
                             unread_notifications_count=unread_notifications_count)

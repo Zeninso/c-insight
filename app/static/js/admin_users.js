@@ -11,8 +11,13 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire('Deleted!', 'User has been deleted.', 'success')
-                                .then(() => location.reload());
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: 'User has been deleted.',
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => location.reload());
                         } else {
                             Swal.fire('Error!', data.error, 'error');
                         }
@@ -72,8 +77,13 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                Swal.fire('Updated!', 'User has been updated.', 'success')
-                    .then(() => location.reload());
+                Swal.fire({
+                    title: 'Updated!',
+                    text: 'User has been updated.',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => location.reload());
             } else {
                 Swal.fire('Error!', data.error, 'error');
             }

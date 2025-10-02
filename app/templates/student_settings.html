@@ -133,10 +133,13 @@
             if (data && data.error) {
                 Swal.fire('Error', data.error, 'error');
             } else if (data && data.success) {
-                Swal.fire('Success', 'Settings updated successfully', 'success')
-                    .then(() => {
-                        location.reload();
-                    });
+                Swal.fire({
+                    title: 'Updated!',
+                    text: 'Settings Updated!.',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+        }).then(() => location.reload());
             } else if (data && data.info) {
                 Swal.fire('Info', data.info, 'info');
             }

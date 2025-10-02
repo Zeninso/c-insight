@@ -35,7 +35,8 @@ function confirmLogout() {
                             Your class code is: <strong>${result.class_code}</strong><br>
                             This code will expire on ${result.expires}`,
                     icon: 'success',
-                    confirmButtonText: 'OK'
+                    showConfirmButton: false,
+                    timer: 1500
                 }).then(() => {
                     window.location.reload();
                 });
@@ -91,7 +92,8 @@ function confirmLogout() {
                                         Your new class code is: <strong>${result.class_code}</strong><br>
                                         This code will expire on ${result.expires}`,
                                 icon: 'success',
-                                confirmButtonText: 'OK'
+                                showConfirmButton: false,
+                                timer: 1500
                             }).then(() => {
                                 window.location.reload();
                             });
@@ -133,7 +135,8 @@ function confirmLogout() {
                                 title: 'Deleted!',
                                 text: 'The class and all associated activities have been deleted.',
                                 icon: 'success',
-                                confirmButtonText: 'OK'
+                                showConfirmButton: false,
+                                timer: 1500
                             }).then(() => {
                                 window.location.reload();
                             });

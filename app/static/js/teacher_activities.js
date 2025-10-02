@@ -197,8 +197,13 @@ function deleteActivity(activityId) {
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Deleted!', 'Activity has been deleted.', 'success')
-                            .then(() => location.reload());
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Activity has been deleted.',
+                            icon: 'success',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => location.reload());
                     } else {
                         Swal.fire('Error!', data.error, 'error');
                     }
@@ -279,11 +284,16 @@ document.getElementById('createActivityForm').addEventListener('submit', functio
         if (data && data.error) {
             Swal.fire('Error', data.error, 'error');
         } else {
-            Swal.fire('Success', 'Activity created successfully', 'success')
-                .then(() => {
-                    hideCreateActivityModal();
-                    location.reload();
-                });
+            Swal.fire({
+                title: 'Success',
+                text: 'Activity created successfully',
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                hideCreateActivityModal();
+                location.reload();
+            });
         }
     })
     .catch(error => {
@@ -318,11 +328,16 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
         if (data.error) {
             Swal.fire('Error', data.error, 'error');
         } else {
-            Swal.fire('Success', 'Activity updated successfully', 'success')
-                .then(() => {
-                    hideEditActivityModal();
-                    location.reload();
-                });
+            Swal.fire({
+                title: 'Success',
+                text: 'Activity updated successfully',
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                hideEditActivityModal();
+                location.reload();
+            });
         }
     })
     .catch(error => {
