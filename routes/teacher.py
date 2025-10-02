@@ -203,6 +203,14 @@ def teacherGrades():
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()['id']
 
+    # Get class filter
+    class_id = request.args.get('class_id')
+    if class_id:
+        try:
+            class_id = int(class_id)
+        except ValueError:
+            class_id = None
+
     # Get activity filter
     activity_id = request.args.get('activity_id')
     if activity_id:
@@ -214,51 +222,47 @@ def teacherGrades():
     # Get similarity filter
     show_similar = request.args.get('show_similar') == 'true'
 
-    # Get all activities for filter dropdown
-    cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
+    # Get all classes for dropdown
+    cur.execute("SELECT id, name FROM classes WHERE teacher_id = %s ORDER BY name", (teacher_id,))
+    classes = cur.fetchall()
+
+    # Get activities for filter dropdown (filtered by class if selected)
+    if class_id:
+        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s AND class_id = %s ORDER BY title", (teacher_id, class_id))
+    else:
+        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
     activities = cur.fetchall()
 
     # Query submissions with grades and code for teacher's activities
+    base_query = """
+        SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
+               a.title as activity_title, a.class_id, c.name as class_name,
+               s.code, s.submitted_at,
+               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
+               ((s.correctness_score * a.correctness_weight / 100) +
+                (s.syntax_score * a.syntax_weight / 100) +
+                (s.logic_score * a.logic_weight / 100) +
+                (s.similarity_score * a.similarity_weight / 100)) as total_score,
+               s.feedback
+        FROM submissions s
+        JOIN users u ON s.student_id = u.id
+        JOIN activities a ON s.activity_id = a.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.teacher_id = %s
+    """
+    params = [teacher_id]
+
+    if class_id:
+        base_query += " AND a.class_id = %s"
+        params.append(class_id)
+
     if activity_id:
-        query = """
-            SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
-                   a.title as activity_title, a.class_id, c.name as class_name,
-                   s.code, s.submitted_at,
-                   s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-                   a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
-                   ((s.correctness_score * a.correctness_weight / 100) +
-                    (s.syntax_score * a.syntax_weight / 100) +
-                    (s.logic_score * a.logic_weight / 100) +
-                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
-                   s.feedback
-            FROM submissions s
-            JOIN users u ON s.student_id = u.id
-            JOIN activities a ON s.activity_id = a.id
-            JOIN classes c ON a.class_id = c.id
-            WHERE a.teacher_id = %s AND a.id = %s
-            ORDER BY s.submitted_at DESC
-        """
-        cur.execute(query, (teacher_id, activity_id))
-    else:
-        query = """
-            SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
-                   a.title as activity_title, a.class_id, c.name as class_name,
-                   s.code, s.submitted_at,
-                   s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-                   a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
-                   ((s.correctness_score * a.correctness_weight / 100) +
-                    (s.syntax_score * a.syntax_weight / 100) +
-                    (s.logic_score * a.logic_weight / 100) +
-                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
-                   s.feedback
-            FROM submissions s
-            JOIN users u ON s.student_id = u.id
-            JOIN activities a ON s.activity_id = a.id
-            JOIN classes c ON a.class_id = c.id
-            WHERE a.teacher_id = %s
-            ORDER BY s.submitted_at DESC
-        """
-        cur.execute(query, (teacher_id,))
+        base_query += " AND a.id = %s"
+        params.append(activity_id)
+
+    base_query += " ORDER BY s.submitted_at DESC"
+    cur.execute(base_query, params)
 
     submissions = cur.fetchall()
     
@@ -301,13 +305,15 @@ def teacherGrades():
     if show_similar and similar_submissions and not grouped_submissions:
         display_submissions = similar_submissions
 
-    return render_template('teacher_grades.html', 
-                         submissions=display_submissions, 
-                         activities=activities, 
-                         first_name=session['first_name'], 
+    return render_template('teacher_grades.html',
+                         submissions=display_submissions,
+                         activities=activities,
+                         classes=classes,
+                         first_name=session['first_name'],
                          unread_notifications_count=unread_notifications_count,
                          show_similar=show_similar,
                          activity_id=activity_id,
+                         class_id=class_id,
                          grouped_submissions=grouped_submissions if show_similar else None)
 
 def group_similar_submissions(submissions, similarity_threshold=70):

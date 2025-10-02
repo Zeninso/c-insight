@@ -115,7 +115,7 @@
         }
 
         .card {
-            background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
+            background: linear-gradient(135deg, rgba(176, 153, 218, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
             border: 1px solid #e9ecef;
             border-radius: 12px;
             padding: 1.5rem;
@@ -293,3 +293,4 @@
             color: white;
         }
 
+        

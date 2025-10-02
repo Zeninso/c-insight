@@ -7,6 +7,38 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_grades.css') }}" />
+    <style>
+        /* Toggle switch styles */
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: rgba(164, 126, 168, 0.3);
+            border-radius: 12px;
+            position: relative;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+        .toggle-switch .toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: rgb(255, 255, 255);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle-switch.checked {
+            background: #d4a2ee;
+        }
+        .toggle-switch.checked .toggle-slider {
+            transform: translateX(26px);
+        }
+        /* Hide the native checkbox */
+        .filter-checkbox {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -48,33 +80,56 @@
             </div>
 
             <div class="content-section">
-                <!-- Filter section with similarity filter -->
-                <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <form method="get" action="{{ url_for('teacher.teacherGrades') }}" class="filter-form">
-                        <div class="filter-group">
-                            <label for="activityFilter" class="filter-label">Filter by Activity:</label>
-                            <select id="activityFilter" name="activity_id" class="filter-select">
-                                <option value="">All Activities</option>
-                                {% set selected_activity_id = request.args.get('activity_id') %}
-                                {% for activity in activities %}
-                                    <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <!-- Similar submissions filter -->
-                        <div class="filter-group">
-                            <input type="checkbox" id="showSimilar" name="show_similar" value="true" class="filter-checkbox" {% if show_similar %}checked{% endif %}>
-                            <label for="showSimilar">Show potentially copied submissions</label>
-                        </div>
-                        <button type="submit" class="filter-submit js-hidden">Apply Filters</button>
-                    </form>
+                <!-- Modernized Filter section with similarity filter -->
+                <div class="filter-section" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); color: rgb(27, 27, 27);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;">
+                        <form method="get" action="{{ url_for('teacher.teacherGrades') }}" class="filter-form" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; flex: 1;">
+                            <div class="filter-group" style="display: flex; flex-direction: column; min-width: 200px;">
+                                <label for="classFilter" class="filter-label" style="font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-users"></i> Filter by Class:
+                                </label>
+                                <select id="classFilter" name="class_id" class="filter-select" style="padding: 10px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: #000000; font-size: 14px; min-width: 180px;">
+                                    <option value="">All Classes</option>
+                                    {% set selected_class_id = request.args.get('class_id') %}
+                                    {% for class in classes %}
+                                        <option value="{{ class.id }}" {% if selected_class_id and selected_class_id|int == class.id %}selected{% endif %}>{{ class.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="filter-group" style="display: flex; flex-direction: column; min-width: 200px;">
+                                <label for="activityFilter" class="filter-label" style="font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-tasks"></i> Filter by Activity:
+                                </label>
+                                <select id="activityFilter" name="activity_id" class="filter-select" style="padding: 10px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: #333; font-size: 14px; min-width: 180px;">
+                                    <option value="">All Activities</option>
+                                    {% set selected_activity_id = request.args.get('activity_id') %}
+                                    {% for activity in activities %}
+                                        <option value="{{ activity.id }}" {% if selected_activity_id and selected_activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
-                    <form id="generateReportForm" method="post" action="{{ url_for('teacher.generate_grade_report') }}" style="margin-top:16px;">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-file-excel"></i> Generate Grade Report
-                        </button>
-                    </form>
+                            <!-- Modernized Similar submissions filter -->
+                            <div class="filter-group" style="display: flex; align-items: center; gap: 10px; min-width: 250px;">
+                            <label for="showSimilar" style="font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                                <div style="position: relative;">
+                                    <input type="checkbox" id="showSimilar" name="show_similar" value="true" class="filter-checkbox" {% if show_similar %}checked{% endif %}>
+                                    <div class="toggle-switch {% if show_similar %}checked{% endif %}" >
+                                        <div class="toggle-slider"></div>
+                                    </div>
+                                </div>
+                                <span><i class="fas fa-copy"></i> Show potentially copied submissions</span>
+                            </label>
+                            </div>
+                            <button type="submit" class="filter-submit js-hidden">Apply Filters</button>
+                        </form>
+
+                        <form id="generateReportForm" method="post" action="{{ url_for('teacher.generate_grade_report') }}">
+                            <button type="submit" class="btn btn-success" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; padding: 12px 20px; border-radius: 8px; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: transform 0.2s;">
+                                <i class="fas fa-file-excel"></i> Generate Grade Report
+                            </button>
+                        </form>
+                    </div>
                     
                     {% if show_similar and submissions %}
                     <div class="similarity-info">
@@ -471,6 +526,14 @@
                 btn.classList.add('js-hidden');
             });
             
+            // Auto-submit when class selection changes
+            const classFilter = document.getElementById('classFilter');
+            if (classFilter) {
+                classFilter.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            }
+
             // Auto-submit when activity selection changes
             const activityFilter = document.getElementById('activityFilter');
             if (activityFilter) {
