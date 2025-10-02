@@ -538,6 +538,71 @@ class CodeGrader:
 
         return requirements
 
+    def check_if_else(self, code):
+        if_count = code.count('if ') + code.count('else if') + code.count('else')
+        return if_count > 0, if_count, f"if-else statements ({if_count} found)"
+
+    def check_input_output(self, code):
+        io_count = code.count('printf(') + code.count('scanf(')
+        return io_count > 0, io_count, f"input/output operations ({io_count} found)"
+
+    def check_variables(self, code):
+        var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+        return var_count > 0, var_count, f"variable declarations ({var_count} found)"
+
+    def check_main_function(self, code):
+        has_main = 'int main(' in code
+        return has_main, 1 if has_main else 0, "main function"
+
+    def check_include_stdio(self, code):
+        has_stdio = '#include <stdio.h>' in code
+        return has_stdio, 1 if has_stdio else 0, "stdio.h include"
+
+    def check_return_statement(self, code):
+        has_return = 'return ' in code
+        return has_return, 1 if has_return else 0, "return statement"
+
+    def check_logical_operators(self, code):
+        logic_count = code.count('&&') + code.count('||') + code.count('!')
+        return logic_count > 0, logic_count, f"logical operators ({logic_count} found)"
+
+    def check_loops(self, code):
+        loop_count = code.count('for ') + code.count('while ') + code.count('do ')
+        return loop_count > 0, loop_count, f"loops ({loop_count} found)"
+
+    def check_functions(self, code):
+        func_count = code.count('(') - code.count('main(') - code.count('printf(') - code.count('scanf(')
+        return func_count > 0, func_count, f"functions ({func_count} found)"
+
+    def check_arrays(self, code):
+        array_count = code.count('[') + code.count(']')
+        return array_count > 0, array_count, f"arrays ({array_count} found)"
+
+    def check_pointers(self, code):
+        pointer_count = code.count('*') + code.count('&')
+        return pointer_count > 0, pointer_count, f"pointers ({pointer_count} found)"
+
+    def check_switch(self, code):
+        switch_count = code.count('switch ')
+        return switch_count > 0, switch_count, f"switch statements ({switch_count} found)"
+
+    def check_comments(self, code):
+        comment_count = code.count('//') + code.count('/*')
+        return comment_count > 0, comment_count, f"comments ({comment_count} found)"
+
+    def check_arithmetic(self, code):
+        arith_count = code.count('+') + code.count('-') + code.count('*') + code.count('/') + code.count('%')
+        return arith_count > 0, arith_count, f"arithmetic operators ({arith_count} found)"
+
+    def check_comparison(self, code):
+        comp_count = code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>=')
+        return comp_count > 0, comp_count, f"comparison operators ({comp_count} found)"
+
+    def check_specific_content(self, code, keywords):
+        code_lower = code.lower()
+        found_keywords = [kw for kw in keywords if kw in code_lower]
+        return len(found_keywords) > 0, len(found_keywords), f"specific content keywords: {', '.join(found_keywords)}"
+
     def check_activity_requirements(self, code, requirements):
         """Check if the submitted code meets the specific activity requirements."""
         met_points = 0
@@ -553,7 +618,7 @@ class CodeGrader:
             'main_function': 10,
             'include_stdio': 5,
             'return_statement': 8,
-            'logical_operators': 0,
+            'logical_operators': 5,  # Adjusted to give points for logical operators
             'loops': 10,
             'functions': 10,
             'arrays': 10,
@@ -562,7 +627,27 @@ class CodeGrader:
             'comments': 5,
             'arithmetic': 5,
             'comparison': 5,
-            'specific_content': 0
+            'specific_content': 5  # Adjusted to give points for specific content
+        }
+
+        # Define checkers for each requirement
+        checkers = {
+            'if_else': self.check_if_else,
+            'input_output': self.check_input_output,
+            'variables': self.check_variables,
+            'main_function': self.check_main_function,
+            'include_stdio': self.check_include_stdio,
+            'return_statement': self.check_return_statement,
+            'logical_operators': self.check_logical_operators,
+            'loops': self.check_loops,
+            'functions': self.check_functions,
+            'arrays': self.check_arrays,
+            'pointers': self.check_pointers,
+            'switch': self.check_switch,
+            'comments': self.check_comments,
+            'arithmetic': self.check_arithmetic,
+            'comparison': self.check_comparison,
+            'specific_content': lambda code: self.check_specific_content(code, requirements['specific_content'])
         }
 
         # First, check explicitly required elements from activity description
@@ -572,126 +657,16 @@ class CodeGrader:
 
             total_required_points += points_map[req_name]
 
-            if req_name == 'if_else':
-                if_count = code.count('if ') + code.count('else if') + code.count('else')
-                if if_count > 0:
-                    met_requirements.append(f"if-else statements ({if_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("if-else statements")
+            if req_name == 'specific_content':
+                met, count, feedback_str = checkers[req_name](code)
+            else:
+                met, count, feedback_str = checkers[req_name](code)
 
-            elif req_name == 'input_output':
-                io_count = code.count('printf(') + code.count('scanf(')
-                if io_count > 0:
-                    met_requirements.append(f"input/output operations ({io_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("input/output operations")
-
-            elif req_name == 'variables':
-                var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
-                if var_count > 0:
-                    met_requirements.append(f"variable declarations ({var_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("variable declarations")
-
-            elif req_name == 'main_function':
-                if 'int main(' in code:
-                    met_requirements.append("main function")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("main function")
-
-            elif req_name == 'include_stdio':
-                if '#include <stdio.h>' in code:
-                    met_requirements.append("stdio.h include")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("stdio.h include")
-
-            elif req_name == 'return_statement':
-                if 'return ' in code:
-                    met_requirements.append("return statement")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("return statement")
-
-            elif req_name == 'logical_operators':
-                logic_count = code.count('&&') + code.count('||') + code.count('!')
-                if logic_count > 0:
-                    met_requirements.append(f"logical operators ({logic_count} found)")
-                    met_points += points_map[req_name]
-
-            elif req_name == 'loops':
-                loop_count = code.count('for ') + code.count('while ') + code.count('do ')
-                if loop_count > 0:
-                    met_requirements.append(f"loops ({loop_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("loops")
-
-            elif req_name == 'functions':
-                func_count = code.count('(') - code.count('main(') - code.count('printf(') - code.count('scanf(')
-                if func_count > 0:
-                    met_requirements.append(f"functions ({func_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("functions")
-
-            elif req_name == 'arrays':
-                array_count = code.count('[') + code.count(']')
-                if array_count > 0:
-                    met_requirements.append(f"arrays ({array_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("arrays")
-
-            elif req_name == 'pointers':
-                pointer_count = code.count('*') + code.count('&')
-                if pointer_count > 0:
-                    met_requirements.append(f"pointers ({pointer_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("pointers")
-
-            elif req_name == 'switch':
-                switch_count = code.count('switch ')
-                if switch_count > 0:
-                    met_requirements.append(f"switch statements ({switch_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("switch statements")
-
-            elif req_name == 'comments':
-                comment_count = code.count('//') + code.count('/*')
-                if comment_count > 0:
-                    met_requirements.append(f"comments ({comment_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("comments")
-
-            elif req_name == 'arithmetic':
-                arith_count = code.count('+') + code.count('-') + code.count('*') + code.count('/') + code.count('%')
-                if arith_count > 0:
-                    met_requirements.append(f"arithmetic operators ({arith_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("arithmetic operators")
-
-            elif req_name == 'comparison':
-                comp_count = code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>=')
-                if comp_count > 0:
-                    met_requirements.append(f"comparison operators ({comp_count} found)")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append("comparison operators")
-
-            elif req_name == 'specific_content' and req_value:
-                code_lower = code.lower()
-                found_keywords = [kw for kw in req_value if kw in code_lower]
-                if found_keywords:
-                    met_requirements.append(f"specific content keywords: {', '.join(found_keywords)}")
+            if met:
+                met_requirements.append(feedback_str)
+                met_points += points_map[req_name]
+            else:
+                missing_requirements.append(req_name.replace('_', ' '))
 
         # Additionally, check for basic programming elements that are typically expected
         # If the code uses certain features, consider them as requirements
@@ -702,44 +677,18 @@ class CodeGrader:
                 continue  # Already checked above
 
             # Check if code has this element
-            has_element = False
-            if req_name == 'input_output':
-                has_element = code.count('printf(') + code.count('scanf(') > 0
-            elif req_name == 'variables':
-                has_element = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])]) > 0
-            elif req_name == 'main_function':
-                has_element = 'int main(' in code
-            elif req_name == 'include_stdio':
-                has_element = '#include <stdio.h>' in code
-            elif req_name == 'return_statement':
-                has_element = 'return ' in code
-
-            if has_element:
+            met, count, feedback_str = checkers[req_name](code)
+            if met:
                 # If code has this element, consider it required and met
                 total_required_points += points_map[req_name]
                 met_points += points_map[req_name]
-                if req_name == 'input_output':
-                    io_count = code.count('printf(') + code.count('scanf(')
-                    met_requirements.append(f"input/output operations ({io_count} found)")
-                elif req_name == 'variables':
-                    var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
-                    met_requirements.append(f"variable declarations ({var_count} found)")
-                elif req_name == 'main_function':
-                    met_requirements.append("main function")
-                elif req_name == 'include_stdio':
-                    met_requirements.append("stdio.h include")
-                elif req_name == 'return_statement':
-                    met_requirements.append("return statement")
+                met_requirements.append(feedback_str)
 
         # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
             requirement_score = (met_points / total_required_points) * 100
         else:
             requirement_score = 100  # No requirements detected, no penalty
-
-        # If any required elements are missing, set requirement score to 0
-        if missing_requirements:
-            requirement_score = 0
 
         # Generate feedback
         feedback_parts = []
@@ -750,7 +699,9 @@ class CodeGrader:
         if not missing_requirements and not met_requirements:
             feedback_parts.append("No specific requirements detected in activity description.")
 
-        return max(0, requirement_score), ' '.join(feedback_parts)
+        # Remove trailing dots from each feedback part to avoid double dots when joining
+        cleaned_feedback_parts = [part.rstrip('. ') for part in feedback_parts]
+        return max(0, requirement_score), '. '.join(cleaned_feedback_parts)
 
     def check_similarity(self, activity_id, code, student_id):
         """Check similarity with other submissions using token-based similarity."""
@@ -775,7 +726,6 @@ class CodeGrader:
             # Tokenize codes by splitting on non-alphanumeric characters
             def tokenize(text):
                 return set(re.findall(r'\b\w+\b', text))
-      
             code_tokens = tokenize(code)
             max_similarity = 0
 

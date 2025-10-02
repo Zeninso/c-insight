@@ -33,6 +33,100 @@
             overflow-y: auto !important;
             flex: 1;
         }
+        /* Modern Loader Styles */
+        .submit-section {
+            position: relative;
+        }
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .loader-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 400px;
+            width: 90%;
+            box-sizing: border-box;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .loader-spinner::before,
+        .loader-spinner::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .loader-spinner::before {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #6a63a3, #6f42c1);
+            animation-delay: 0s;
+        }
+        .loader-spinner::after {
+            width: 70%;
+            height: 70%;
+            background: rgba(255, 255, 255, 0.8);
+            top: 15%;
+            left: 15%;
+            animation-delay: 0.3s;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+        }
+        .loader-text {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin: 0;
+            animation: fadeInText 0.5s ease-in;
+        }
+        @keyframes fadeInText {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader-subtext {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin: 10px 0 0 0;
+            animation: fadeInText 0.5s ease-in 0.2s both;
+        }
     </style>
     
 </head>
@@ -154,15 +248,27 @@
                                 </tr>
                             </tbody>
                         </table>
+                        
                     </div>
+                        <div id="loader" class="loader-overlay" style="display: none;">
+                            <div class="loader-container">
+                                <div class="loader-spinner"></div>
+                                <p class="loader-text">Automating Your Grade</p>
+                                <p class="loader-subtext">Please wait while we process your submission</p>
+                            </div>
+                        </div>
 
                     {% if activity.submitted %}
+                    <button type="button" id="toggleSubmissionBtn" class="btn btn-gradient" style="margin-bottom: 3px; margin-top: 18px;">Show Submission Info</button>
+                    <div id="submissionDetails" style="display: none;">
                     <div class="submission-info">
                         <h3><i class="fas fa-check-circle"></i> Submission Details</h3>
                         <p><strong>Submitted on:</strong> {{ activity.submitted_at.strftime('%b %d, %Y at %I:%M %p') }}</p>
                         <p><strong>Status:</strong> Submitted</p>
                         <h4>Your Submitted Code:</h4>
                         <pre><code>{{ activity.code }}</code></pre>
+                    </div>
+
                     </div>
 
                     {% if activity.correctness_score is not none %}
@@ -215,14 +321,16 @@
                     {% else %}
                     <div class="submit-section">
                         <h3>Submit Your Solution</h3>
-                        <form id="submitForm" method="POST" action="{{ url_for('student.submit_activity', activity_id=activity.id) }}">
-                            <div class="code-editor">
-                                <textarea id="codeEditor" name="code" rows="20">{{ activity.starter_code or '' }}</textarea>
-                            </div>
-                            <button type="submit" class="btn-submit">
-                                <i class="fas fa-paper-plane"></i> Submit Activity
-                            </button>
-                        </form>
+                        <div id="submitFormContainer">
+                            <form id="submitForm" method="POST" action="{{ url_for('student.submit_activity', activity_id=activity.id) }}">
+                                <div class="code-editor">
+                                    <textarea id="codeEditor" name="code" rows="20">{{ activity.starter_code or '' }}</textarea>
+                                </div>
+                                <button type="submit" class="btn-submit">
+                                    <i class="fas fa-paper-plane"></i> Submit Activity
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
@@ -230,19 +338,24 @@
         </div>
     </div>
 
+
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Initialize CodeMirror
-        var editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
-            lineNumbers: true,
-            mode: 'python',
-            theme: 'monokai',
-            indentUnit: 4,
-            smartIndent: true,
-            autoCloseBrackets: true
-        });
+        var editor;
+        if (document.getElementById('codeEditor')) {
+            editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+                lineNumbers: true,
+                mode: 'python',
+                theme: 'monokai',
+                indentUnit: 4,
+                smartIndent: true,
+                autoCloseBrackets: true
+            });
+        }
 
         function confirmLogout() {
             Swal.fire({
@@ -260,9 +373,62 @@
             });
         }
 
-        // Update textarea value before form submission
-        document.getElementById('submitForm').addEventListener('submit', function() {
+        // Toggle submission info visibility
+        document.addEventListener('DOMContentLoaded', function() {
+            var toggleBtn = document.getElementById('toggleSubmissionBtn');
+            var submissionDetails = document.getElementById('submissionDetails');
+            if (toggleBtn && submissionDetails) {
+                toggleBtn.addEventListener('click', function() {
+                    if (submissionDetails.style.display === 'none') {
+                        submissionDetails.style.display = 'block';
+                        toggleBtn.textContent = 'Hide Submission Info';
+                    } else {
+                        submissionDetails.style.display = 'none';
+                        toggleBtn.textContent = 'Show Submission Info';
+                    }
+                });
+            }
+        });
+
+        // Handle form submission asynchronously to avoid page reload
+        document.getElementById('submitForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
             document.getElementById('codeEditor').value = editor.getValue();
+            document.getElementById('submitFormContainer').style.display = 'none';
+            document.getElementById('loader').style.display = 'flex';
+
+            const form = event.target;
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: form.method,
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // Assuming server returns JSON response
+            })
+            .then(data => {
+                // Handle success response
+                // Reload the page to show updated state
+                window.location.reload();
+            })
+            .catch(error => {
+                // Handle error response
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Submission Failed',
+                    text: error.message || 'There was an error submitting your activity.'
+                });
+                // Show the form again and hide loader
+                document.getElementById('submitFormContainer').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+            });
         });
     </script>
 </body>

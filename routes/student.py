@@ -10,6 +10,7 @@ from flask_dance.contrib.google import google
 from flask import current_app as app
 import MySQLdb
 import random, string
+import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("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", "dev")
@@ -647,6 +648,9 @@ def submit_activity(activity_id):
 
         mysql.connection.commit()
 
+        # Simulate grading delay
+        time.sleep(3)
+
         # Grade the submission
         grading_result = grade_submission(activity_id, student_id, code)
 
@@ -665,17 +669,21 @@ def submit_activity(activity_id):
                 submission_id
             ))
             mysql.connection.commit()
-            flash('Activity submitted and graded successfully!', 'success')
+            message = 'Activity submitted and graded successfully!'
         else:
-            flash(f"Activity submitted but grading failed: {grading_result['error']}", 'warning')
+            message = f"Activity submitted but grading failed: {grading_result['error']}"
 
     except Exception as e:
         mysql.connection.rollback()
-        flash(f'Failed to submit activity: {str(e)}', 'error')
+        message = f'Failed to submit activity: {str(e)}'
     finally:
         cur.close()
 
-    return redirect(url_for('student.viewActivity', activity_id=activity_id))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'message': message})
+    else:
+        flash(message, 'success' if 'successfully' in message else 'error')
+        return redirect(url_for('student.viewActivity', activity_id=activity_id))
 
 
 @student_bp.route('/un_enroll/<int:class_id>', methods=['POST'])
