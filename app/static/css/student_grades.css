@@ -17,6 +17,7 @@
     padding: 24px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: 1px solid #e9ecef;
+    position: relative;
 }
 
 .grade-card:hover {
@@ -31,6 +32,12 @@
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid #f8f9fa;
+}
+
+.grade-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .grade-title h3 {
@@ -598,3 +605,21 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
         }
+
+.grade-label {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: white;
+    user-select: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.grade-label.passed {
+    background-color: rgb(119, 197, 137); /* green with more opacity */
+}
+
+.grade-label.failed {
+    background-color: rgba(220, 53, 69); /* red with more opacity */
+}

@@ -177,10 +177,19 @@
                                     <div class="grade-title">
                                         <h3>{{ submission.activity_title }}</h3>
                                         <span class="grade-class">{{ submission.class_name }}</span>
-                                    </div> 
-                                    <div class="grade-date">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                    </div>
+                                    <div class="grade-right">
+                                        <div class="grade-date">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                        </div>
+                                        {% if submission.total_score is not none %}
+                                            {% if submission.total_score > 74 %}
+                                                <div class="grade-label passed">Passed</div>
+                                            {% else %}
+                                                <div class="grade-label failed">Failed</div>
+                                            {% endif %}
+                                        {% endif %}
                                     </div>
                                 </div>
 
@@ -263,7 +272,7 @@
                     {% else %}
                         <!-- Original individual display when not showing similar -->
                         {% for submission in submissions %}
-                        <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
+                            <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
                             {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
                             <!-- Add similarity warning if applicable -->
                             {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
@@ -272,15 +281,24 @@
                                 Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
                             </div>
                             {% endif %}
-                            
+
                             <div class="grade-header">
                                 <div class="grade-title">
                                     <h3>{{ submission.activity_title }}</h3>
                                     <span class="grade-class">{{ submission.class_name }}</span>
-                                </div> 
-                                <div class="grade-date">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                </div>
+                                <div class="grade-right">
+                                    <div class="grade-date">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                    </div>
+                                    {% if submission.total_score is not none %}
+                                        {% if submission.total_score > 74 %}
+                                            <div class="grade-label passed">Passed</div>
+                                        {% else %}
+                                            <div class="grade-label failed">Failed</div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                             </div>
 
