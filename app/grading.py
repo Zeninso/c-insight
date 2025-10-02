@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 import re
+import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.ensemble import RandomForestRegressor
@@ -40,7 +41,7 @@ class CodeGrader:
             # Get activity details
             cur = mysql.connection.cursor()
             cur.execute("""
-                SELECT title, description, instructions, starter_code, 
+                SELECT title, description, instructions, starter_code, due_date,
                         correctness_weight, syntax_weight, logic_weight, similarity_weight
                 FROM activities WHERE id = %s
             """, (activity_id,))
@@ -50,7 +51,14 @@ class CodeGrader:
             if not activity:
                 return {'error': 'Activity not found'}
 
-            title, description, instructions, starter_code, correctness_w, syntax_w, logic_w, similarity_w = activity
+            title, description, instructions, starter_code, due_date, correctness_w, syntax_w, logic_w, similarity_w = activity
+
+            # Convert due_date if it's a string
+            if due_date and isinstance(due_date, str):
+                try:
+                    due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    due_date = None
 
             # Extract requirements from activity content
             activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
@@ -76,6 +84,18 @@ class CodeGrader:
             else:
                 similarity_score, sim_feedback = 100, "Skipped similarity check due to syntax errors"
 
+            # Check for overdue penalty
+            overdue_penalty = 0
+            if due_date and datetime.datetime.now() > due_date:
+                overdue_penalty = 25
+                penalty_per = overdue_penalty / 3
+                correctness_score = max(0, correctness_score - penalty_per)
+                syntax_score = max(0, syntax_score - penalty_per)
+                logic_score = max(0, logic_score - penalty_per)
+
+            # Update feedback with final scores after penalty
+            ast_feedback = f"Correctness: {correctness_score:.1f}%, Logic: {logic_score:.1f}%, Syntax: {syntax_score:.1f}%. {ast_feedback}"
+
             # Calculate weighted scores
             total_score = (
                 (correctness_score * correctness_w / 100) +
@@ -91,6 +111,8 @@ class CodeGrader:
                 f"Code Analysis: {ast_feedback}",
                 f"Similarity Check: {sim_feedback}"
             ]
+            if overdue_penalty > 0:
+                feedback_parts.append(f"Overdue Penalty: -{overdue_penalty} points distributed across correctness, syntax, and logic")
 
             return {
                 'correctness_score': int(correctness_score),
@@ -128,13 +150,13 @@ class CodeGrader:
                 error_count = len(re.findall(r'error:', errors))
                 
                 if error_count == 0:
-                    return 90, "Minor syntax issues found"
+                    return 80, "Minor syntax issues found"
                 elif error_count == 1:
-                    return 70, f"One syntax error found: {errors[:200]}..."
+                    return 60, f"One syntax error found: {errors[:200]}..."
                 elif error_count <= 3:
-                    return 50, f"Few syntax errors found: {errors[:200]}..."
+                    return 40, f"Few syntax errors found: {errors[:200]}..."
                 else:
-                    return 20, f"Multiple syntax errors: {errors[:200]}..."
+                    return 15, f"Multiple syntax errors: {errors[:200]}..."
 
         except subprocess.TimeoutExpired:
             return 0, "Syntax check timed out."
@@ -145,17 +167,7 @@ class CodeGrader:
         """Check correctness and logic using analysis."""
         correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code)
 
-        # Code analysis scores are based on code quality, not requirements
-        feedback_parts = [
-            "Advanced C Code Analysis",
-            f"Code Correctness: {correctness_score:.1f}%",
-            f"Logic Quality: {logic_score:.1f}%",
-            f"Syntax Quality: {syntax_score:.1f}%"
-        ]
-
-        feedback_parts.append(enhanced_feedback)
-
-        return correctness_score, logic_score, '. '.join(feedback_parts)
+        return correctness_score, logic_score, enhanced_feedback
 
     def enhanced_ml_grading(self, code):
         """Enhanced grading function combining ML predictions with rule-based analysis."""
@@ -336,7 +348,7 @@ class CodeGrader:
 
     def analyze_c_code_logic(self, code):
         """Analyze C code logic complexity and flow with improved criteria."""
-        score = 30  # Base score increased for better baseline
+        score = 40  # Base score increased for better baseline
 
         # Control Flow Complexity
         if_count = code.count('if ') + code.count('else if')

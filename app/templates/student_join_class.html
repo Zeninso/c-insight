@@ -7,34 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_join_class.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}">
-    <style>
-        .filter-section {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .content-section {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        /* Fix for sidebar scrolling issue */
-        .dashboard {
-            display: flex !important;
-            min-height: 100vh;
-        }
-        .sidebar {
-            position: sticky !important;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-        .main-content {
-            overflow-y: auto !important;
-            flex: 1;
-        }
-    </style>
+
 </head>
 <body>
     <div class="dashboard">

@@ -7,34 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_profile.css') }}">
-    <style>
-        .filter-section {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .main-content {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        /* Fix for sidebar scrolling issue */
-        .dashboard {
-            display: flex !important;
-            min-height: 100vh;
-        }
-        .sidebar {
-            position: sticky !important;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-        .main-content {
-            overflow-y: auto !important;
-            flex: 1;
-        }
-    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -78,13 +50,13 @@
                     <i class="fas fa-bell"></i>
                 </div>
                 {% if notifications %}
-                    <ul class="notifications-list" style="list-style: none; padding-left: 0; margin: 0;">
+                    <ul class="notifications-list">
                         {% for notification in notifications %}
-                            <li class="{% if not notification.is_read %}unread{% endif %}" style="position: relative; padding: 0.75rem 1rem; border-bottom: 1px solid #eee; display: block; width: 100%; box-sizing: border-box; min-height: 60px; line-height: 1.4;">
-                                <a href="{{ notification.link or '#' }}" class="notification-message" style="display: block; width: 100%; color: inherit; text-decoration: none; padding-right: 150px; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.4;">
+                            <li class="{% if not notification.is_read %}unread{% endif %}">
+                                <a href="{{ notification.link or '#' }}" class="notification-message">
                                     {{ notification.message }}
                                 </a>
-                                <span class="notification-date" style="position: absolute; top: 0; right: 1rem; transform: translateY(0); font-size: 0.85rem; color: #666; white-space: nowrap; box-sizing: border-box; line-height: 1.4;">
+                                <span class="notification-date">
                                     {{ notification.created_at.strftime('%b %d, %Y %H:%M') }}
                                 </span>
                             </li>
@@ -92,7 +64,7 @@
                         {% endfor %}
                     </ul>
                 {% else %}
-                    <p style="padding: 1rem 0;">No notifications.</p>
+                    <p>No notifications.</p>
                 {% endif %}
             </div>
         </div>

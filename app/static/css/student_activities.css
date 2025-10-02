@@ -290,3 +290,30 @@
         font-size: 3rem;
         margin-bottom: 1rem;
     }
+
+    .filter-section {
+            animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .main-content {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    /* Fix for sidebar scrolling issue */
+    .dashboard {
+        display: flex !important;
+        min-height: 100vh;
+    }
+    .sidebar {
+        position: sticky !important;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+    .main-content {
+        overflow-y: auto !important;
+        flex: 1;
+    }
