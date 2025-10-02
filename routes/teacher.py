@@ -59,9 +59,11 @@ def teacherDashboard():
     """, (teacher_id,))
     total_students = cur.fetchone()[0]
 
-    # Get recent activities (last 5)
+    # Get recent activities (last 5) with submission progress
     cur.execute("""
-        SELECT a.title, a.created_at, c.name as class_name
+        SELECT a.title, a.created_at, c.name as class_name,
+               (SELECT COUNT(*) FROM enrollments WHERE class_id = a.class_id) as total_students,
+               (SELECT COUNT(DISTINCT s.student_id) FROM submissions s WHERE s.activity_id = a.id) as submitted_count
         FROM activities a
         JOIN classes c ON a.class_id = c.id
         WHERE a.teacher_id = %s

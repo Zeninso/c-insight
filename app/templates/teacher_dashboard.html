@@ -33,6 +33,9 @@
             overflow-y: auto !important;
             flex: 1;
         }
+        .progress-fill {
+            width: var(--progress-width, 0%);
+        }
     </style>
     
     
@@ -102,12 +105,28 @@
                 </div>
 
                 <!-- Pending Submissions Card -->
-                <div class="card">
+                <div class="card" style="grid-column: 1 / 2; grid-row: 2 / 3;">
                     <div class="card-header">
                         <h3><i class="fas fa-clipboard-list"></i> Pending Submissions</h3>
                         <i class="fas fa-paper-plane"></i>
                     </div>
-                    <p>You have <strong>{{ pending_submissions }}</strong> submission{{ 's' if pending_submissions != 1 else '' }} to review.</p>
+                    <p>Submission Progress per Activity:</p>
+                    {% if recent_activities %}
+                        {% for activity in recent_activities %}
+                            {% set total_students = activity[3] if activity|length > 3 else 0 %}
+                            {% set submitted = activity[4] if activity|length > 4 else 0 %}
+                            {% set progress_percent = (submitted / total_students * 100) if total_students > 0 else 0 %}
+                            <div class="progress-activity">
+                                <h4>{{ activity[0] }}</h4>
+                                <div class="progress-container">
+                                    <div class="progress-fill" style="--progress-width: {{ progress_percent }}%;"></div>
+                                </div>
+                                <div class="progress-text">{{ progress_percent|round(2) }}% ({{ submitted }} / {{ total_students }}) students submitted</div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No recent activities.</p>
+                    {% endif %}
                     <a href="{{ url_for('teacher.teacherGrades') }}" class="btn btn-gradient">View Submissions</a>
                 </div>
 
@@ -141,23 +160,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: ' #6f42c1',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+    </script>
 </body>
 </html>
-
-<script>
-function confirmLogout() {
-    Swal.fire({
-        title: 'Logout?',
-        text: "Are you sure you want to logout?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: ' #6f42c1',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, logout!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = "{{ url_for('auth.logout') }}";
-        }
-    });
-}
-</script>
