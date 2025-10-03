@@ -607,19 +607,17 @@
         }
 
 .grade-label {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: 0.875rem;
-    color: white;
-    user-select: none;
-    box-shadow: 0 2px 6px rgba(3, 3, 3, 0.15);
-}
-
-.grade-label.passed {
-    background-color: rgb(86, 202, 113); /* green with more opacity */
-}
-
-.grade-label.failed {
-    background-color: rgba(220, 53, 69); /* red with more opacity */
-}
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .grade-label.passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .grade-label.failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }

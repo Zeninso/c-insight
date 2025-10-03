@@ -7,6 +7,28 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_activities.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_grades.css') }}" />
+    <style>
+        
+        /* Hide the native checkbox */
+        .filter-checkbox {
+            display: none;
+        }
+        .grade-label {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .grade-label.passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .grade-label.failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 
 </head>
 <body>
@@ -53,6 +75,27 @@
             </div>
 
             <div class="content-section">
+                <!-- Modernized Filter section -->
+                <div class="filter-section" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); color: rgb(27, 27, 27);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;">
+                        <form method="get" action="{{ url_for('student.studentGrades') }}" class="filter-form" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; flex: 1;">
+                            <div class="filter-group" style="display: flex; flex-direction: column; min-width: 200px;">
+                                <label for="classFilter" class="filter-label" style="font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-users"></i> Filter by Class:
+                                </label>
+                                <select id="classFilter" name="class_id" class="filter-select" onchange="this.form.submit()" style="padding: 10px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: #000000; font-size: 14px; min-width: 180px;">
+                                    <option value="">All Classes</option>
+                                    {% set selected_class_id = request.args.get('class_id') %}
+                                    {% for class in classes %}
+                                        <option value="{{ class.id }}" {% if selected_class_id and selected_class_id|int == class.id %}selected{% endif %}>{{ class.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="filter-submit js-hidden">Apply Filters</button>
+                        </form>
+                    </div>
+                </div>
+
                 {% if grades %}
                 <div class="grades-container">
                     {% for grade in grades %}
@@ -62,12 +105,22 @@
                                 <h3>{{ grade.activity_title }}</h3>
                                 <span class="grade-class">{{ grade.class_name }}</span>
                             </div>
-                            <div class="grade-date">
-                                <i class="fas fa-calendar-alt"></i>
-                                {{ grade.submitted_at.strftime('%b %d, %Y at %I:%M %p') if grade.submitted_at else 'N/A' }}
+                            <div class="grade-right">
+                                <div class="grade-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    {{ grade.submitted_at.strftime('%b %d, %Y at %I:%M %p') if grade.submitted_at else 'N/A' }}
+                                </div>
+                                {% if grade.total_score is not none %}
+                                    {% if grade.total_score > 74 %}
+                                        <div class="grade-label passed">Passed</div>
+                                    {% else %}
+                                        <div class="grade-label failed">Failed</div>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
 
+                        {% if grade.correctness_score is not none %}
                         <div class="grade-scores">
                             <div class="score-grid">
                                 <div class="score-item">
@@ -85,6 +138,9 @@
                                 <div class="score-item">
                                     <div class="score-label">Similarity</div>
                                     <div class="score-value">{{ "%.1f"|format(grade.similarity_score * grade.similarity_weight / 100) }}</div>
+                                    <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                        (Raw: {{ grade.similarity_score }}%)
+                                    </div>
                                 </div>
                             </div>
 
@@ -99,19 +155,34 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
 
-                        {% if grade.feedback %}
-                        <div class="grade-feedback">
+                        <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            {% if grade.code %}
+                            <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ grade.id }}')">
+                                <i class="fas fa-code"></i> View Code
+                            </button>
+                            {% endif %}
+                            {% if grade.feedback %}
                             <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ grade.id }}')">
                                 <i class="fas fa-comment"></i> View Feedback
                             </button>
-                            <div id="feedback-{{ grade.id }}" class="feedback-content" style="display:none;">
-                                <div class="feedback-text">
-                                    {% for sentence in grade.feedback.split('. ') %}
-                                        {% set parts = sentence.split(': ', 1) %}
-                                        <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                    {% endfor %}
-                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if grade.code %}
+                        <div id="code-{{ grade.id }}" class="code-container" style="display:none;">
+                            <pre><code>{{ grade.code }}</code></pre>
+                        </div>
+                        {% endif %}
+
+                        {% if grade.feedback %}
+                        <div id="feedback-{{ grade.id }}" class="feedback-content" style="display:none;">
+                            <div class="feedback-text">
+                                {% for sentence in grade.feedback.split('. ') %}
+                                    {% set parts = sentence.split(': ', 1) %}
+                                    <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endif %}
@@ -148,6 +219,15 @@
         }
 
         function toggleFeedback(id) {
+            const elem = document.getElementById(id);
+            if (elem.style.display === 'none') {
+                elem.style.display = 'block';
+            } else {
+                elem.style.display = 'none';
+            }
+        }
+
+        function toggleCode(id) {
             const elem = document.getElementById(id);
             if (elem.style.display === 'none') {
                 elem.style.display = 'block';

@@ -904,19 +904,40 @@ def studentGrades():
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
 
-    # Get all submissions with grading results
+    # Get classes for filter
     cur.execute("""
-        SELECT s.id, a.title, c.name as class_name, s.submitted_at,
+        SELECT c.id, c.name
+        FROM classes c
+        JOIN enrollments e ON c.id = e.class_id
+        WHERE e.student_id = %s
+        ORDER BY c.name
+    """, (student_id,))
+    classes_data = cur.fetchall()
+    classes = [{'id': c[0], 'name': c[1]} for c in classes_data]
+
+    # Get filter parameters
+    class_id_filter = request.args.get('class_id')
+
+    # Build query with optional filter
+    query = """
+        SELECT s.id, a.title, c.name as class_name, c.id as class_id, s.submitted_at,
                s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
                a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
-               s.feedback
+               s.feedback, s.code
         FROM submissions s
         JOIN activities a ON s.activity_id = a.id
         JOIN classes c ON a.class_id = c.id
         WHERE s.student_id = %s AND s.correctness_score IS NOT NULL
-        ORDER BY s.submitted_at DESC
-    """, (student_id,))
+    """
+    params = [student_id]
 
+    if class_id_filter:
+        query += " AND c.id = %s"
+        params.append(class_id_filter)
+
+    query += " ORDER BY s.submitted_at DESC"
+
+    cur.execute(query, params)
     submissions = cur.fetchall()
     cur.close()
 
@@ -924,30 +945,32 @@ def studentGrades():
     grades_list = []
     for submission in submissions:
         total_score = (
-            (submission[4] * submission[8] / 100) +  # correctness
-            (submission[5] * submission[9] / 100) +  # syntax
-            (submission[6] * submission[10] / 100) + # logic
-            (submission[7] * submission[11] / 100)   # similarity
-        ) if submission[4] is not None else None
+            (submission[5] * submission[9] / 100) +  # correctness
+            (submission[6] * submission[10] / 100) +  # syntax
+            (submission[7] * submission[11] / 100) + # logic
+            (submission[8] * submission[12] / 100)   # similarity
+        ) if submission[5] is not None else None
 
         grades_list.append({
             'id': submission[0],
             'activity_title': submission[1],
             'class_name': submission[2],
-            'submitted_at': submission[3],
-            'correctness_score': submission[4],
-            'syntax_score': submission[5],
-            'logic_score': submission[6],
-            'similarity_score': submission[7],
-            'correctness_weight': submission[8],
-            'syntax_weight': submission[9],
-            'logic_weight': submission[10],
-            'similarity_weight': submission[11],
+            'class_id': submission[3],
+            'submitted_at': submission[4],
+            'correctness_score': submission[5],
+            'syntax_score': submission[6],
+            'logic_score': submission[7],
+            'similarity_score': submission[8],
+            'correctness_weight': submission[9],
+            'syntax_weight': submission[10],
+            'logic_weight': submission[11],
+            'similarity_weight': submission[12],
             'total_score': total_score,
-            'feedback': submission[12]
+            'feedback': submission[13],
+            'code': submission[14]
         })
 
-    return render_template('student_grades.html', grades=grades_list,
+    return render_template('student_grades.html', grades=grades_list, classes=classes,
                           unread_notifications_count=unread_notifications_count)
 
 
