@@ -226,3 +226,11 @@ body {
         padding-right: 0;
     }
 }
+/* Hide scrollbar */
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    scrollbar-width: none;
+}

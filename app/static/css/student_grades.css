@@ -617,7 +617,16 @@
             background-color: #d4edda;
             color: #155724;
         }
-        .grade-label.failed {
+.grade-label.failed {
             background-color: #f8d7da;
             color: #721c24;
         }
+
+/* Hide scrollbar */
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    scrollbar-width: none;
+}

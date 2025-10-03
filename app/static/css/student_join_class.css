@@ -163,3 +163,13 @@ body {
     overflow-y: auto !important;
     flex: 1;
 }
+
+/* Hide scrollbar */
+::-webkit-scrollbar {
+display: none;
+}
+
+body {
+    scrollbar-width: none;
+}
+

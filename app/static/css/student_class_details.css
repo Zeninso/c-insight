@@ -29,3 +29,11 @@
             align-self: flex-start;
             margin-top: 1rem;
         }
+              /* Hide scrollbar */
+        ::-webkit-scrollbar {
+        display: none;
+        }
+
+        body {
+            scrollbar-width: none;
+        }

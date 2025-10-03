@@ -27,7 +27,7 @@
             position: sticky !important;
             top: 0;
             height: 100vh;
-            overflow-y: auto;
+            overflow-y: hidden;
             flex-shrink: 0;
         }
         .main-content {
@@ -76,11 +76,29 @@
                 </div>
             </div>
 
+            <!-- Modernized Filter section -->
+            <div class="filter-section" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); color: rgb(27, 27, 27);">
+                <form method="get" action="{{ url_for('teacher.teacherAnalytics') }}" class="filter-form" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+                    <div class="filter-group" style="display: flex; flex-direction: column; min-width: 200px;">
+                        <label for="classFilter" class="filter-label" style="font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-users"></i> Filter by Class:
+                        </label>
+                        <select id="classFilter" name="class_id" class="filter-select" style="padding: 10px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: #000000; font-size: 14px; min-width: 180px;">
+                            <option value="">All Classes</option>
+                            {% set selected_class_id = request.args.get('class_id') %}
+                            {% for class in classes %}
+                                <option value="{{ class.id }}" {% if selected_class_id and selected_class_id|int == class.id %}selected{% endif %}>{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+
             <!-- Analytics Content -->
             <div class="analytics-container">
                 {% if student_progress %}
                     {% for student_data in student_progress %}
-                        <div class="student-analytics-card">
+                        <div class="student-analytics-card" data-student-id="{{ student_data.student.id }}">
                             <div class="card-header">
                                 <h3><i class="fas fa-user-graduate"></i> {{ student_data.student.first_name }} {{ student_data.student.last_name }}</h3>
                                 <span class="username">@{{ student_data.student.username }}</span>
@@ -207,6 +225,22 @@
                         }
                     });
                 }
+            }
+        });
+
+        // Auto-submit form when class selection changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide the submit button since we'll auto-submit
+            document.querySelectorAll('.filter-submit').forEach(btn => {
+                btn.classList.add('js-hidden');
+            });
+
+            // Auto-submit when class selection changes
+            const classFilter = document.getElementById('classFilter');
+            if (classFilter) {
+                classFilter.addEventListener('change', function() {
+                    this.form.submit();
+                });
             }
         });
     </script>

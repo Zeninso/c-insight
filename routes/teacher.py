@@ -112,15 +112,39 @@ def teacherAnalytics():
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()['id']
 
-    # Get students in teacher's classes
-    cur.execute("""
-        SELECT DISTINCT u.id, u.first_name, u.last_name, u.username
-        FROM users u
-        JOIN enrollments e ON u.id = e.student_id
-        JOIN classes c ON e.class_id = c.id
-        WHERE c.teacher_id = %s
-        ORDER BY u.first_name, u.last_name
-    """, (teacher_id,))
+    # Get class filter
+    class_id = request.args.get('class_id')
+    if class_id:
+        try:
+            class_id = int(class_id)
+        except ValueError:
+            class_id = None
+
+    # Get all classes for the teacher
+    cur.execute("SELECT id, name FROM classes WHERE teacher_id = %s ORDER BY name", (teacher_id,))
+    classes = cur.fetchall()
+
+    # Get students in teacher's classes (filtered by class if specified)
+    if class_id:
+        # Get students only from the specified class
+        cur.execute("""
+            SELECT DISTINCT u.id, u.first_name, u.last_name, u.username
+            FROM users u
+            JOIN enrollments e ON u.id = e.student_id
+            JOIN classes c ON e.class_id = c.id
+            WHERE c.teacher_id = %s AND c.id = %s
+            ORDER BY u.first_name, u.last_name
+        """, (teacher_id, class_id))
+    else:
+        # Get students from all teacher's classes
+        cur.execute("""
+            SELECT DISTINCT u.id, u.first_name, u.last_name, u.username
+            FROM users u
+            JOIN enrollments e ON u.id = e.student_id
+            JOIN classes c ON e.class_id = c.id
+            WHERE c.teacher_id = %s
+            ORDER BY u.first_name, u.last_name
+        """, (teacher_id,))
     students = cur.fetchall()
 
     # For each student, get submission scores over time
@@ -172,6 +196,16 @@ def teacherAnalytics():
         avg_logic = logic_sum / num_submissions if num_submissions > 0 else 0
         avg_similarity = similarity_sum / num_submissions if num_submissions > 0 else 0
 
+        # Get classes for this student
+        cur.execute("""
+            SELECT c.id, c.name
+            FROM classes c
+            JOIN enrollments e ON c.id = e.class_id
+            WHERE e.student_id = %s AND c.teacher_id = %s
+            ORDER BY c.name
+        """, (student['id'], teacher_id))
+        student_classes = cur.fetchall()
+
         student_progress.append({
             'student': student,
             'progress': progress_data,
@@ -182,7 +216,8 @@ def teacherAnalytics():
                 'avg_syntax': round(avg_syntax, 1),
                 'avg_logic': round(avg_logic, 1),
                 'avg_similarity': round(avg_similarity, 1)
-            }
+            },
+            'classes': student_classes
         })
 
     # Get unread notifications count
@@ -199,7 +234,7 @@ def teacherAnalytics():
     except (TypeError, ValueError):
         student_progress_json = '[]'
 
-    return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'], unread_notifications_count=unread_notifications_count)
+    return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'], unread_notifications_count=unread_notifications_count, classes=classes, class_id=class_id)
 
 @teacher_bp.route('/grades')
 def teacherGrades():

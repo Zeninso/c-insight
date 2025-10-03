@@ -235,3 +235,12 @@
         margin: 0 0.5rem;
     }
 }
+
+/* Hide scrollbar */
+::-webkit-scrollbar {
+display: none;
+}
+
+body {
+    scrollbar-width: none;
+}

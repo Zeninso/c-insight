@@ -267,4 +267,11 @@
             opacity: 0.5;
         }
 
-      
+      /* Hide scrollbar */
+        ::-webkit-scrollbar {
+        display: none;
+        }
+
+        body {
+            scrollbar-width: none;
+        }
