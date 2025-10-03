@@ -52,11 +52,23 @@
 
             <!-- Progress Overview -->
             <div class="progress-overview">
-                <h2>Overall Progress</h2>
-                <div class="progress-circle" id="progress-circle" data-percentage="{{ progress_percentage }}">
-                    {{ progress_percentage|round(1) }}%
+                <div class="progress-text">
+                    <h2>Overall Progress</h2>
+                    <p>You have completed <strong>{{ submitted_activities }}</strong> out of <strong>{{ total_activities }}</strong> activities</p>
                 </div>
-                <p>You have completed <strong>{{ submitted_activities }}</strong> out of <strong>{{ total_activities }}</strong> activities</p>
+                <div class="progress-circle-container">
+                    <svg class="progress-circle" id="progress-circle" width="150" height="150" viewBox="0 0 150 150" data-percentage="{{ progress_percentage }}">
+                        <circle cx="75" cy="75" r="60" stroke="#e0e0e0" stroke-width="10" fill="none"></circle>
+                        <circle cx="75" cy="75" r="60" stroke="url(#gradient)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99" id="progress-path"></circle>
+                    </svg>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#f0e8ff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#943bfa;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <div class="progress-percentage">{{ progress_percentage|round(1) }}%</div>
+                </div>
             </div>
 
             <!-- Class Progress -->
@@ -144,6 +156,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         const progressCircle = document.getElementById('progress-circle');
         const progressPercentage = parseFloat(progressCircle.getAttribute('data-percentage'));
+        const progressPath = document.getElementById('progress-path');
+        const circumference = 376.99; // 2 * π * 60
+
+        // Calculate the offset
+        const offset = circumference - (progressPercentage / 100) * circumference;
+
+        // Set the stroke-dashoffset to animate
+        setTimeout(() => {
+            progressPath.style.strokeDashoffset = offset;
+        }, 500); // Delay to allow initial render
 
         // Set width for class progress fills based on data-width
         document.querySelectorAll('.class-progress-fill').forEach(fill => {

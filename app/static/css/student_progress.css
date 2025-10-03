@@ -2,37 +2,104 @@
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
 
-    .progress-overview {
-            background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            text-align: center;
+        .progress-overview {
+            background: linear-gradient(135deg, rgba(72, 40, 133, 0.2) 25%, rgba(214, 51, 132, 0.2) 100%);
+            color: rgb(0, 0, 0);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .progress-overview h2 {
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
+        .progress-overview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .progress-overview p {
-            font-size: 1.2em;
-            margin: 10px 0;
+        .progress-text h2 {
+            margin: 0 0 15px 0;
+            font-size: 2.8em;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-text p {
+            font-size: 1.3em;
+            margin: 15px 0;
+            opacity: 0.9;
+        }
+
+        .progress-circle-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .progress-circle {
             width: 150px;
             height: 150px;
+            transform: rotate(-90deg);
+            filter: drop-shadow(0 0 10px rgba(78, 45, 138, 0.5));
+        }
+
+        .progress-circle circle {
+            transition: stroke-dashoffset 2s ease-in-out;
+        }
+
+        .progress-percentage {
+            position: absolute;
+            font-size: 2.2em;
+            font-weight: bold;
+            color: rgb(8, 8, 8);
+            background: rgba(0, 0, 0, 0.3);
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            margin: 20px auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2em;
+            user-select: none;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 0 10px rgba(134, 79, 193, 0.1);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+
+        .progress-bar-container {
+            position: relative;
+            width: 300px;
+            height: 40px;
+            background: rgba(139, 86, 193, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, rgba(207, 112, 241, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
             font-weight: bold;
-            color: rgb(226, 174, 239);
-            background: linear-gradient(135deg, rgba(213, 204, 232, 0.2) 25%, rgba(229, 191, 210, 0.2) 100%);
+            color: #6f42c1;
         }
 
         .class-progress-grid {
@@ -47,7 +114,7 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-left: 5px solid #667eea;
+            border-left: 5px solid #cd81e0;
         }
 
         .class-progress-card h3 {
@@ -175,7 +242,7 @@
         }
 
         .total-score {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ba83d8 0%, #764ba2 100%);
             color: white;
             padding: 15px;
             border-radius: 10px;
