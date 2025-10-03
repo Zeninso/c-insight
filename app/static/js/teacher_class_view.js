@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize with classwork tab active and hide other sections
 
+    // Check URL parameters for initial tab
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab');
+    if (initialTab && tabContents[initialTab]) {
+        switchTab(initialTab);
+    } else {
+        // Default to stream tab if no tab specified
+        switchTab('stream');
+    }
+
     // Delete selected students functionality
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const deleteStudentsForm = document.getElementById('deleteStudentsForm');

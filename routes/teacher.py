@@ -50,6 +50,13 @@ def teacherDashboard():
     cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
     total_classes = cur.fetchone()[0]
 
+    # Get first class id for view students link
+    first_class_id = None
+    if total_classes > 0:
+        cur.execute("SELECT id FROM classes WHERE teacher_id=%s ORDER BY created_at ASC LIMIT 1", (teacher_id,))
+        first_class = cur.fetchone()
+        first_class_id = first_class[0] if first_class else None
+
     # Get total students (across all classes)
     cur.execute("""
         SELECT COUNT(DISTINCT e.student_id)
@@ -89,7 +96,8 @@ def teacherDashboard():
                           total_students=total_students,
                           recent_activities=recent_activities,
                           pending_submissions=pending_submissions,
-                          unread_notifications_count=unread_notifications_count)
+                          unread_notifications_count=unread_notifications_count,
+                          first_class_id=first_class_id)
         
 
 @teacher_bp.route('/analytics')
