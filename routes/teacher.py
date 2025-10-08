@@ -445,24 +445,23 @@ def generate_grade_report():
 
     try:
         cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
+
         # Get teacher ID
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
         teacher_id = cur.fetchone()['id']
-        
+
         # Get all submissions for teacher's activities with student info
         query = """
-            SELECT 
+            SELECT
                 a.title as activity_title,
                 c.name as class_name,
                 u.first_name,
                 u.last_name,
-                u.username,
+                s.submitted_at,
                 ROUND(((s.correctness_score * a.correctness_weight / 100) +
-                 (s.syntax_score * a.syntax_weight / 100) +
-                 (s.logic_score * a.logic_weight / 100) +
-                 (s.similarity_score * a.similarity_weight / 100)), 2) as total_score,
-                s.submitted_at
+                       (s.syntax_score * a.syntax_weight / 100) +
+                       (s.logic_score * a.logic_weight / 100) +
+                       (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
             FROM submissions s
             JOIN activities a ON s.activity_id = a.id
             JOIN classes c ON a.class_id = c.id
@@ -472,30 +471,98 @@ def generate_grade_report():
         """
         cur.execute(query, (teacher_id,))
         submissions = cur.fetchall()
-        
+
         cur.close()
-        
+
+        if not submissions:
+            return jsonify({'error': 'No submissions found to generate report'}), 404
+
         # Create DataFrame
         df = pd.DataFrame(submissions)
-        
+
+        # Rename columns for better readability
+        df = df.rename(columns={
+            'activity_title': 'Activity',
+            'class_name': 'Class',
+            'first_name': 'First Name',
+            'last_name': 'Last Name',
+            'total_score': 'Total Score',
+            'submitted_at': 'Submitted At'
+        })
+
+        # Format submitted_at
+        df['Submitted At'] = pd.to_datetime(df['Submitted At']).dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        # Create summary DataFrame
+        summary_df = df.groupby(['Activity', 'Class']).agg({
+            'Total Score': ['count', 'mean', 'min', 'max', 'std']
+        }).round(2)
+        summary_df.columns = ['Submissions', 'Average Score', 'Min Score', 'Max Score', 'Std Deviation']
+        summary_df = summary_df.reset_index()
+
         # Create Excel file in memory
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name='Grade Report', index=False)
-            
-            # Auto-adjust columns' width
+            # Detailed report sheet
+            df.to_excel(writer, sheet_name='Detailed Report', index=False, startrow=3)
+
+            # Summary sheet
+            summary_df.to_excel(writer, sheet_name='Summary', index=False, startrow=3)
+
             workbook = writer.book
-            worksheet = writer.sheets['Grade Report']
-            
+            header_format = workbook.add_format({
+                'bold': True,
+                'font_size': 14,
+                'align': 'center',
+                'valign': 'vcenter',
+                'bg_color': "#BE95C6",
+                'font_color': 'white',
+                'border': 1
+            })
+
+            title_format = workbook.add_format({
+                'bold': True,
+                'font_size': 16,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+
+            # Detailed Report sheet formatting
+            worksheet1 = writer.sheets['Detailed Report']
+            worksheet1.merge_range('A1:G1', f'Grade Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', title_format)
+            worksheet1.merge_range('A2:G2', f'Teacher: {session["first_name"]} {session["last_name"]}', title_format)
+
+            # Add headers with formatting
+            for col_num, value in enumerate(df.columns.values):
+                worksheet1.write(3, col_num, value, header_format)
+
+            # Auto-adjust columns' width for detailed sheet
             for idx, col in enumerate(df.columns):
                 max_len = max(
                     df[col].astype(str).map(len).max(),
                     len(col)
                 ) + 2
-                worksheet.set_column(idx, idx, max_len)
-        
+                worksheet1.set_column(idx, idx, min(max_len, 30)) 
+
+            # Summary sheet formatting
+            worksheet2 = writer.sheets['Summary']
+            worksheet2.merge_range('A1:F1', f'Summary Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', title_format)
+            worksheet2.merge_range('A2:F2', f'Teacher: {session["first_name"]} {session["last_name"]}', title_format)
+
+            # Add headers with formatting for summary
+            for col_num, value in enumerate(summary_df.columns.values):
+                worksheet2.write(3, col_num, value, header_format)
+
+            # Auto-adjust columns' width for summary sheet
+            for idx, col in enumerate(summary_df.columns):
+                max_len = max(
+                    summary_df[col].astype(str).map(len).max(),
+                    len(col)
+                ) + 2
+                worksheet2.set_column(idx, idx, min(max_len, 30))
+
         output.seek(0)
-        
+
         # Create response with Excel file
         return send_file(
             output,
@@ -503,7 +570,7 @@ def generate_grade_report():
             as_attachment=True,
             download_name=f'grade_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         )
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
