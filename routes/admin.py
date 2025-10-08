@@ -39,7 +39,7 @@ def adminDashboard():
     }
 
     return render_template('admin_dashboard.html', stats=stats, first_name=session['first_name'],
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 @admin_bp.route('/users')
 def adminUsers():
@@ -63,7 +63,7 @@ def adminUsers():
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
 
     return render_template('admin_users.html', users=users, first_name=session['first_name'],
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 
