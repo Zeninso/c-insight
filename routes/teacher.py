@@ -311,44 +311,38 @@ def teacherGrades():
 
     submissions = cur.fetchall()
     
-    # If similarity filter is enabled, identify similar submissions
-    similar_submissions = []
-    grouped_submissions = []
+    # Handle similarity filtering
     display_submissions = submissions
-    
-    # Define threshold for low similarity (high copying)
-    low_similarity_threshold = 30
-    
-    if show_similar and activity_id and submissions:
-        # Group submissions with high similarity
-        grouped_submissions = group_similar_submissions(submissions, similarity_threshold=70)
+    grouped_submissions = []
 
-        # Flatten for display - each group will be displayed as a side-by-side comparison
-        display_submissions = []
-        for group in grouped_submissions:
-            if len(group) > 1:
-                # Mark as similar group
-                for submission in group:
-                    submission['is_similar_group'] = True
-                    submission['group_members'] = len(group)
-                    submission['group_submissions'] = group
-            display_submissions.extend(group)
-    else:
-        # Original logic for finding similar submissions based on low similarity score
-        for submission in submissions:
-            if submission['similarity_score'] is not None and submission['similarity_score'] <= low_similarity_threshold:
-                similar_submissions.append(submission)
-    
+    if show_similar:
+        if activity_id and submissions:
+            # Group submissions with high structural similarity for side-by-side comparison
+            grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
+
+            # Prepare display submissions with group metadata
+            display_submissions = []
+            for group in grouped_submissions:
+                if len(group) > 1:
+                    # Mark submissions as part of a similar group
+                    for submission in group:
+                        submission['is_similar_group'] = True
+                        submission['group_members'] = len(group)
+                        submission['group_submissions'] = group
+                display_submissions.extend(group)
+        else:
+            # Show submissions with high similarity scores (potential copying)
+            display_submissions = [
+                s for s in submissions
+                if s.get('similarity_score') is not None and s['similarity_score'] >= 80
+            ]
+
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id_for_count = cur.fetchone()['id']
     unread_notifications_count = get_unread_notifications_count(teacher_id_for_count)
 
     cur.close()
-
-    # Use similar submissions if filter is enabled, otherwise use all submissions
-    if show_similar and similar_submissions and not grouped_submissions:
-        display_submissions = similar_submissions
 
     return render_template('teacher_grades.html',
                          submissions=display_submissions,
@@ -396,28 +390,48 @@ def group_similar_submissions(submissions, similarity_threshold=70):
 
 
 def calculate_code_similarity(code1, code2):
-    """Calculate similarity between two code snippets"""
+    """Calculate similarity between two code snippets, accounting for variable renaming"""
     if not code1 or not code2:
         return 0
-        
-    # Remove comments and whitespace for better comparison
-    import re
-    
+
+    # Normalize code by replacing user-defined identifiers with VAR
     def normalize_code(code):
-        # Remove single-line comments
+        import re
+        # C keywords and common library functions to preserve
+        c_keywords = {
+            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
+            'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+            'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
+        }
+        library_functions = {
+            'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
+            'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
+            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
+        }
+
+        # Remove comments first
         code = re.sub(r'//.*', '', code)
-        # Remove multi-line comments
         code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+
+        # Find all words in the code
+        words = set(re.findall(r'\b\w+\b', code))
+
+        # Replace user-defined identifiers with VAR
+        normalized = code
+        for word in words:
+            if word not in c_keywords and word not in library_functions:
+                normalized = re.sub(r'\b' + re.escape(word) + r'\b', 'VAR', normalized)
+
         # Remove extra whitespace
-        code = re.sub(r'\s+', ' ', code)
-        return code.strip()
-    
+        normalized = re.sub(r'\s+', ' ', normalized)
+        return normalized.strip()
+
     norm1 = normalize_code(code1)
     norm2 = normalize_code(code2)
-    
+
     if not norm1 or not norm2:
         return 0
-        
+
     # Use sequence matching for similarity calculation
     from difflib import SequenceMatcher
     return int(SequenceMatcher(None, norm1, norm2).ratio() * 100)

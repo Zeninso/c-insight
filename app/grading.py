@@ -165,20 +165,20 @@ class CodeGrader:
 
     def check_ast_with_requirements(self, code, requirements, requirement_score):
         """Check correctness and logic using analysis."""
-        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code)
+        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code, requirements)
 
         return correctness_score, logic_score, enhanced_feedback
 
-    def enhanced_ml_grading(self, code):
+    def enhanced_ml_grading(self, code, requirements=None):
         """Enhanced grading function combining ML predictions with rule-based analysis."""
         if self.ml_models:
-            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code)
+            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code, requirements)
         else:
             ml_correctness, ml_logic, ml_syntax, analysis_type = 0, 0, 0, "Rule-based analysis"
 
         # Get rule-based analysis
         rule_correctness = self.analyze_c_code_correctness(code)
-        rule_logic = self.analyze_c_code_logic(code)
+        rule_logic = self.analyze_c_code_logic(code, requirements)
         rule_syntax, _ = self.check_syntax(code)
 
         # Combine scores
@@ -191,13 +191,13 @@ class CodeGrader:
             final_logic = rule_logic
             final_syntax = rule_syntax
 
-        return final_correctness, final_logic, final_syntax, self.analyze_c_code_detailed_feedback(code)
+        return final_correctness, final_logic, final_syntax, self.analyze_c_code_detailed_feedback(code, requirements)
 
-    def predict_grading_scores(self, code):
+    def predict_grading_scores(self, code, requirements=None):
         """Use trained ML models to predict grading scores."""
         if not self.ml_models:
             correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code)
+            logic_score = self.analyze_c_code_logic(code, requirements)
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -221,7 +221,7 @@ class CodeGrader:
         except Exception as e:
             logger.error(f"Error in ML prediction: {str(e)}")
             correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code)
+            logic_score = self.analyze_c_code_logic(code, requirements)
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -346,7 +346,7 @@ class CodeGrader:
 
         return min(100, max(0, score))
 
-    def analyze_c_code_logic(self, code):
+    def analyze_c_code_logic(self, code, requirements=None):
         """Analyze C code logic complexity and flow with improved criteria."""
         score = 40  # Base score increased for better baseline
 
@@ -355,6 +355,11 @@ class CodeGrader:
         loop_count = code.count('for ') + code.count('while ') + code.count('do ')
         switch_count = code.count('switch ')
         total_control = if_count + loop_count + switch_count
+
+        # Check if control flow is required
+        control_flow_required = False
+        if requirements:
+            control_flow_required = requirements.get('if_else', False) or requirements.get('loops', False) or requirements.get('switch', False)
 
         if total_control > 0:
             # More generous scoring for control flow complexity
@@ -367,12 +372,14 @@ class CodeGrader:
             else:
                 score += 10
         else:
-            # Reduce penalty for no control flow if code is short/simple
-            lines = [line.strip() for line in code.split('\n') if line.strip()]
-            if len(lines) <= 5:
-                score += 10  # Small program, no penalty
+            # Only penalize for missing control flow if it's explicitly required
+            if control_flow_required:
+                lines = [line.strip() for line in code.split('\n') if line.strip()]
+                if len(lines) > 5:
+                    score -= 5  # Penalize larger programs missing required control flow
             else:
-                score -= 5  # Larger program missing control flow
+                # No penalty if control flow not required
+                score += 10
 
         # Algorithm Indicators
         algorithm_indicators = 0
@@ -387,59 +394,89 @@ class CodeGrader:
 
         score += min(20, algorithm_indicators * 6)  # Slightly higher weight
 
-        # Data Processing
+        # Data Processing - only score if arrays are required or used
         array_usage = code.count('[') + code.count(']')
-        score += 15 if array_usage > 0 else 0  # Increased weight for arrays
+        if requirements and requirements.get('arrays', False):
+            score += 15 if array_usage > 0 else -5  # Penalize if arrays required but not used
+        elif array_usage > 0:
+            score += 15  # Bonus if arrays used even if not required
 
         # Error Handling (basic check for NULL and conditional usage)
         error_patterns = code.count('NULL') + code.count('if (') + code.count('else')
         score += 15 if error_patterns > 0 else 0  # Increased weight
 
-        # Code Efficiency (nested loops)
-        nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
-        if nested_loops == 0:
-            score += 20
-        elif nested_loops <= 2:
-            score += 15
-        else:
-            score += 10
+        # Code Efficiency (nested loops) - only if loops are used
+        if loop_count > 0:
+            nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
+            if nested_loops == 0:
+                score += 20
+            elif nested_loops <= 2:
+                score += 15
+            else:
+                score += 10
 
-        # Check for use of break/continue for loop control
-        if 'break;' in code or 'continue;' in code:
+        # Check for use of break/continue for loop control - only if loops are used
+        if loop_count > 0 and ('break;' in code or 'continue;' in code):
             score += 10  # Increased weight
 
         # Additional logic checks for better variation
-        # Check for proper loop initialization
-        loop_init_patterns = code.count('for (int ') + code.count('for (i =') + code.count('while (')
-        score += min(15, loop_init_patterns * 3)  # Increased weight
+        # Check for proper loop initialization - only if loops are used
+        if loop_count > 0:
+            loop_init_patterns = code.count('for (int ') + code.count('for (i =') + code.count('while (')
+            score += min(15, loop_init_patterns * 3)  # Increased weight
 
-        # Check for function calls within logic
-        func_in_logic = code.count('if (') + code.count('while (') + code.count('for (')
-        if func_in_logic > 0:
-            score += min(15, func_in_logic * 2)  # Increased weight
+        # Check for function calls within logic - only if functions are required
+        if requirements and requirements.get('functions', False):
+            func_in_logic = code.count('if (') + code.count('while (') + code.count('for (')
+            if func_in_logic > 0:
+                score += min(15, func_in_logic * 2)  # Increased weight
+        else:
+            # If functions not required, don't penalize for missing function calls in logic
+            pass
 
-        # Penalize for missing logic in simple programs
+        # Penalize for missing logic in simple programs - but only if logic features are required
         lines = code.split('\n')
         code_lines = [line.strip() for line in lines if line.strip()]
-        if len(code_lines) > 5 and total_control == 0:
-            score -= 10  # Reduced penalty
+        if len(code_lines) > 5 and total_control == 0 and control_flow_required:
+            score -= 10  # Reduced penalty only if control flow was required
 
         return min(100, max(0, score))
 
-    def analyze_c_code_detailed_feedback(self, code):
+    def analyze_c_code_detailed_feedback(self, code, requirements=None):
         """Provide detailed feedback on C code analysis."""
         feedback_parts = []
 
-        # Analyze code length
+        # Analyze code length based on activity requirements
         lines = [line for line in code.split('\n') if line.strip()]
         code_length = len(lines)
-        
-        if code_length < 10:
-            feedback_parts.append("Code is quite short - consider adding more functionality")
-        elif code_length > 70:
-            feedback_parts.append("Code is lengthy - consider breaking into functions")
+
+        # Determine expected code length based on requirements
+        if requirements:
+            required_features = sum(1 for req in requirements.values() if req is True)
+            # Estimate expected length: basic program ~5-15 lines, complex ~20-50 lines
+            if required_features <= 3:
+                min_expected = 5
+                max_expected = 20
+            elif required_features <= 7:
+                min_expected = 10
+                max_expected = 40
+            else:
+                min_expected = 15
+                max_expected = 60
         else:
-            feedback_parts.append("Code length is appropriate")
+            # Default thresholds if no requirements provided
+            min_expected = 10
+            max_expected = 70
+
+        if code_length < min_expected:
+            if requirements and required_features > 3:
+                feedback_parts.append(f"Code is quite short for the activity requirements - consider implementing more features as specified")
+            else:
+                feedback_parts.append("Code is quite short - consider adding more functionality")
+        elif code_length > max_expected:
+            feedback_parts.append("Code is lengthy - consider breaking into functions for better organization")
+        else:
+            feedback_parts.append("Code length is appropriate for the activity")
 
         # Check for specific C programming patterns
         patterns_found = []
@@ -448,7 +485,7 @@ class CodeGrader:
         if '#include <stdio.h>' in code: patterns_found.append("Includes standard I/O library")
         if 'int main(' in code: patterns_found.append("Has main function")
         if '{' in code and '}' in code: patterns_found.append("Proper code blocks")
-        
+
         if patterns_found:
             feedback_parts.append("Positive patterns: " + ", ".join(patterns_found))
 
@@ -457,7 +494,7 @@ class CodeGrader:
         if code.count('{') != code.count('}'): issues.append("Brace mismatch detected")
         if 'return 0;' not in code and 'return ' in code: issues.append("Consider returning 0 from main")
         if len([line for line in lines if len(line) > 80]) > 0: issues.append("Some lines are very long")
-        
+
         if issues:
             feedback_parts.append("Areas for improvement: " + ", ".join(issues))
 
@@ -703,8 +740,33 @@ class CodeGrader:
         cleaned_feedback_parts = [part.rstrip('. ') for part in feedback_parts]
         return max(0, requirement_score), '. '.join(cleaned_feedback_parts)
 
+    def normalize_code(self, code):
+        """Normalize code by replacing user-defined identifiers with VAR to detect similarity despite variable renaming."""
+        # C keywords and common library functions to preserve
+        c_keywords = {
+            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
+            'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+            'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
+        }
+        library_functions = {
+            'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
+            'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
+            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
+        }
+
+        # Find all words in the code
+        words = set(re.findall(r'\b\w+\b', code))
+
+        # Replace user-defined identifiers with VAR
+        normalized = code
+        for word in words:
+            if word not in c_keywords and word not in library_functions:
+                normalized = re.sub(r'\b' + re.escape(word) + r'\b', 'VAR', normalized)
+
+        return normalized
+
     def check_similarity(self, activity_id, code, student_id):
-        """Check similarity with other submissions using token-based similarity."""
+        """Check similarity with other submissions using token-based similarity, accounting for variable renaming."""
         try:
             cur = mysql.connection.cursor()
             cur.execute("""
@@ -723,21 +785,25 @@ class CodeGrader:
             if not other_codes:
                 return 100, "No similar submissions found."
 
-            # Tokenize codes by splitting on non-alphanumeric characters
+            # Normalize codes to handle variable renaming
+            normalized_code = self.normalize_code(code)
+            normalized_other_codes = [self.normalize_code(other_code) for other_code in other_codes]
+
+            # Tokenize normalized codes by splitting on non-alphanumeric characters
             def tokenize(text):
                 return set(re.findall(r'\b\w+\b', text))
-            code_tokens = tokenize(code)
+
+            code_tokens = tokenize(normalized_code)
             max_similarity = 0
 
-            for other_code in other_codes:
-                other_tokens = tokenize(other_code)
+            for other_normalized in normalized_other_codes:
+                other_tokens = tokenize(other_normalized)
                 intersection = code_tokens.intersection(other_tokens)
                 union = code_tokens.union(other_tokens)
                 similarity = len(intersection) / len(union) if union else 0
                 if similarity > max_similarity:
                     max_similarity = similarity
 
-            
             max_sim_percent = max_similarity * 100
             score = max(0, 100 - max_sim_percent)
 
