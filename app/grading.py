@@ -144,7 +144,7 @@ class CodeGrader:
             os.unlink(temp_file)
 
             if result.returncode == 0:
-                return 100, "Syntax is correct"
+                return 100, " Your Syntax is correct"
             else:
                 errors = result.stderr.strip()
                 error_count = len(re.findall(r'error:', errors))
