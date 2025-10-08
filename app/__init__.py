@@ -12,9 +12,11 @@ def create_app():
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # only for development
 
     # Register Google OAuth blueprint
+    client_id = os.environ.get('GOOGLE_CLIENT_ID')
+    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
     google_bp = make_google_blueprint(
-        client_id="490893083299-21dn9iqobkjgar8h482g5814qavogf78.apps.googleusercontent.com",
-        client_secret="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",
+        client_id=client_id,
+        client_secret=client_secret,
         scope=[
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -25,10 +27,11 @@ def create_app():
     app.register_blueprint(google_bp, url_prefix="/login")
 
     # MySQL configuration
-    app.config['MYSQL_HOST'] = 'localhost'
-    app.config['MYSQL_USER'] = 'root'
-    app.config['MYSQL_PASSWORD'] = 'YOURPASS'  # Replace with your MySQL password
-    app.config['MYSQL_DB'] = 'c_insight_db'
+    app.config['MYSQL_HOST'] = os.environ.get('MYSQL_HOST', 'localhost')
+    app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER', 'root')
+    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD', '_Zac@110502')
+    app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB', 'c_insight_db')
+
 
     mysql.init_app(app)
 
