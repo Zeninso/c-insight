@@ -5,7 +5,7 @@ function confirmLogout() {
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: ' #6f42c1',
-            cancelButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
             confirmButtonText: 'Yes, logout!'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -92,8 +92,8 @@ function confirmLogout() {
                 text: "This will invalidate the current code and generate a new one.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
+                confirmButtonColor: ' #6f42c1',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, regenerate!'
             }).then(async (result) => {
                 if (result.isConfirmed) {
@@ -138,7 +138,7 @@ function confirmLogout() {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, delete it!'
             }).then(async (result) => {
                 if (result.isConfirmed) {
