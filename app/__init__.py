@@ -7,14 +7,14 @@ mysql = MySQL()
 
 def create_app():
     app = Flask(__name__, static_folder='static')
-    app.secret_key = "your-secret-key-here"  # Use a proper secret key
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY')  # Use a proper secret key
 
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # only for development
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '1')  # only for development
 
     # Register Google OAuth blueprint
     google_bp = make_google_blueprint(
-        client_id="490893083299-21dn9iqobkjgar8h482g5814qavogf78.apps.googleusercontent.com",
-        client_secret="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",
+        client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+        client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
         scope=[
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -25,10 +25,10 @@ def create_app():
     app.register_blueprint(google_bp, url_prefix="/login")
 
     # MySQL configuration
-    app.config['MYSQL_HOST'] = os.environ.get('MYSQL_HOST', 'localhost')
-    app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER', 'root')
-    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD', 'yourpass')
-    app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB', 'c_insight_db')
+    app.config['MYSQL_HOST'] = os.environ.get('MYSQL_HOST')
+    app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER')
+    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD')
+    app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB')
 
 
     mysql.init_app(app)
