@@ -129,12 +129,6 @@
                             </div>
                         </div>
 
-                        {% if activity.total_score is not none %}
-                        <div class="total-score">
-                            <div class="score-label">Total Score</div>
-                            <div class="score-value">{{ activity.total_score|round(1) }}%</div>
-                        </div>
-                        {% endif %}
                         {% endif %}
                     </div>
                     {% endfor %}
