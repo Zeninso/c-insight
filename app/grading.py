@@ -69,25 +69,19 @@ class CodeGrader:
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
-            # If syntax score is below threshold, assign zero to all scores and skip further checks
-            if syntax_score < 50:
-                correctness_score = 0
-                syntax_score = 0
-                logic_score = 0
-                similarity_score = 0
-                ast_feedback = "Submission has syntax errors; grading scores set to zero."
-                sim_feedback = "Similarity check skipped due to syntax errors."
-            else:
-                # Correctness and Logic analysis
-                correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
-                    code, requirements, requirement_score
-                )
+            # Correctness and Logic analysis
+            correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
+                code, requirements, requirement_score
+            )
 
-                # Apply requirement penalty to correctness score
-                correctness_score = correctness_score * (requirement_score / 100)
+            # Apply requirement penalty to correctness score
+            correctness_score = correctness_score * (requirement_score / 100)
 
-                # Similarity check
+            # Similarity check - only if syntax is correct
+            if syntax_score >= 50:
                 similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
+            else:
+                similarity_score, sim_feedback = 100, "Skipped similarity check due to syntax errors"
 
             # Check for overdue penalty
             overdue_penalty = 0
@@ -131,16 +125,7 @@ class CodeGrader:
 
         except Exception as e:
             logger.error(f"Error grading submission: {str(e)}")
-            # Return zero scores when grading fails due to errors
-            return {
-                'correctness_score': 0,
-                'syntax_score': 0,
-                'logic_score': 0,
-                'similarity_score': 0,
-                'requirement_score': 0,
-                'total_score': 0,
-                'feedback': f'Grading failed due to an error: {str(e)}. All scores set to zero.'
-            }
+            return {'error': f'Grading failed: {str(e)}'}
 
     def check_syntax(self, code):
         """Check syntax and basic compilation using GCC compiler for C code."""

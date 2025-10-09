@@ -164,51 +164,47 @@
                                         These submissions show high similarity to each other
                                     </p>
                                 </div>
-                                
-                                {% for submission in group %}
-                                <div class="group-member">
-                                    <div class="grade-card high-similarity">
-                                        <!-- Student info and grades -->
-                                        <div class="student-info">
-                                            <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
-                                        </div>
-                                        
-                                        {% if submission.correctness_score is not none %}
-                                        <div class="grade-scores">
-                                            <div class="score-grid">
-                                                <div class="score-item">
-                                                    <div class="score-label">Similarity</div>
-                                                    <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                                    <div class="score-explanation" style="font-size: 12px; color: #dc3545;">
-                                                        (Raw: {{ submission.similarity_score }}%)
+
+                                <div class="group-members-container">
+                                    {% for submission in group %}
+                                    <div class="group-member">
+                                        <div class="grade-card high-similarity">
+                                            <!-- Student info and grades -->
+                                            <div class="student-info">
+                                                <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
+                                            </div>
+
+                                            {% if submission.correctness_score is not none %}
+                                            <div class="grade-scores">
+                                                <div class="score-grid">
+                                                    <div class="score-item">
+                                                        <div class="score-label">Similarity</div>
+                                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                                        <div class="score-explanation" style="font-size: 12px; color: #dc3545;">
+                                                            (Raw: {{ submission.similarity_score }}%)
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        {% endif %}
-                                        
-                                        <!-- Code comparison button -->
-                                        <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                                            <button class="btn btn-danger btn-sm" onclick="toggleGroupCode('group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}')">
-                                                <i class="fas fa-code"></i> View Code
-                                            </button>
-                                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
-                                                <i class="fas fa-trash"></i> Delete Submission
-                                            </button>
-                                        </div>
+                                            {% endif %}
 
-                                        <!-- Hidden delete form (for POST action reference in JS) -->
-                                        <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
-                                        </form>
-                                        
-                                        <!-- Individual code container -->
-                                        <div id="group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}" class="code-container" style="display:none;">
-                                            <pre><code>{{ submission.code }}</code></pre>
+                                            <!-- Code comparison button -->
+                                            <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                            </div>
+
+                                            <!-- Hidden delete form (for POST action reference in JS) -->
+                                            <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
+                                            </form>
+
+                                            <!-- Individual code container -->
+                                            <div id="group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                                                <pre><code>{{ submission.code }}</code></pre>
+                                            </div>
                                         </div>
                                     </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
-                                
+
                                 <!-- Side-by-side code comparison -->
                                 <div class="code-comparison-container">
                                     {% for i in range(group|length) %}

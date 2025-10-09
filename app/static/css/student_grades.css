@@ -285,6 +285,7 @@
         .grade-card.high-similarity {
             border-left: 4px solid #dc3545;
             background-color: #fff5f5;
+            padding: 20px;
         }
         .similarity-info {
             margin-top: 10px;
@@ -341,10 +342,12 @@
         }
         
         .group-members-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
             gap: 20px;
             margin-bottom: 20px;
+            justify-content: center;
         }
         
         .group-member-card {
