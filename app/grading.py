@@ -3,8 +3,7 @@ import tempfile
 import os
 import re
 import datetime
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from difflib import SequenceMatcher
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import numpy as np
@@ -347,7 +346,7 @@ class CodeGrader:
         return min(100, max(0, score))
 
     def analyze_c_code_logic(self, code, requirements=None):
-        """Analyze C code logic complexity and flow with improved criteria."""
+        """Analyze C code logic complexity and flow with enhanced criteria."""
         score = 40  # Base score increased for better baseline
 
         # Control Flow Complexity
@@ -391,8 +390,15 @@ class CodeGrader:
             algorithm_indicators += 1
         if '&&' in code or '||' in code:
             algorithm_indicators += 1
+        # Additional algorithm patterns
+        if 'bubble' in code.lower() or 'insertion' in code.lower() or 'selection' in code.lower():
+            algorithm_indicators += 2  # Higher weight for sorting algorithms
+        if 'binary' in code.lower() or 'linear' in code.lower():
+            algorithm_indicators += 2  # Higher weight for search algorithms
+        if 'recursion' in code.lower() or 'recursive' in code.lower():
+            algorithm_indicators += 2  # Higher weight for recursion
 
-        score += min(20, algorithm_indicators * 6)  # Slightly higher weight
+        score += min(25, algorithm_indicators * 5)  # Increased weight and max
 
         # Data Processing - only score if arrays are required or used
         array_usage = code.count('[') + code.count(']')
@@ -440,7 +446,147 @@ class CodeGrader:
         if len(code_lines) > 5 and total_control == 0 and control_flow_required:
             score -= 10  # Reduced penalty only if control flow was required
 
+        # Enhanced logic checks
+        # Check for proper variable initialization
+        var_init_score = self.check_variable_initialization(code)
+        score += var_init_score
+
+        # Check for logical consistency (e.g., no obvious errors)
+        logic_consistency_score = self.check_logical_consistency(code)
+        score += logic_consistency_score
+
+        # Check for proper nesting and structure
+        nesting_score = self.check_nesting_structure(code)
+        score += nesting_score
+
+        # Check for unreachable code patterns
+        unreachable_score = self.check_unreachable_code(code)
+        score += unreachable_score
+
         return min(100, max(0, score))
+
+    def check_variable_initialization(self, code):
+        """Check if variables are properly initialized before use."""
+        score = 0
+        lines = code.split('\n')
+        variables = set()
+        initialized = set()
+
+        for line in lines:
+            line = line.strip()
+            # Find variable declarations
+            if any(line.startswith(dtype + ' ') for dtype in ['int', 'char', 'float', 'double']):
+                # Extract variable names
+                var_match = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
+                for var in var_match:
+                    if var not in ['int', 'char', 'float', 'double', 'void']:
+                        variables.add(var)
+                        # Check if initialized
+                        if '=' in line:
+                            initialized.add(var)
+
+        # Check if variables are used before initialization
+        for line in lines:
+            line = line.strip()
+            if 'if (' in line or 'while (' in line or 'for (' in line:
+                # Extract variables used in conditions
+                used_vars = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
+                for var in used_vars:
+                    if var in variables and var not in initialized:
+                        score -= 5  # Penalize uninitialized variable usage
+
+        return max(-10, min(10, score))  # Cap the score
+
+    def check_logical_consistency(self, code):
+        """Check for logical consistency and potential errors."""
+        score = 0
+
+        # Check for division by zero patterns
+        if '/' in code:
+            lines = code.split('\n')
+            for line in lines:
+                if '/' in line and 'if (' not in line:
+                    # Simple check: if dividing by a variable, should have some check
+                    if re.search(r'/\s*[a-zA-Z_]\w*', line):
+                        score -= 2  # Potential division by zero
+
+        # Check for array bounds (simple check)
+        if '[' in code:
+            array_accesses = re.findall(r'\[[^\]]*\]', code)
+            for access in array_accesses:
+                if re.search(r'\b\d+\b', access):  # Direct index
+                    index = int(re.search(r'\b(\d+)\b', access).group(1))
+                    if index < 0:
+                        score -= 5  # Negative index
+
+        # Check for proper return statements in functions
+        func_lines = [line for line in code.split('\n') if line.strip().endswith('{')]
+        for i, line in enumerate(func_lines):
+            if 'int ' in line or 'float ' in line or 'double ' in line or 'char ' in line:
+                # Check if there's a return in the function
+                brace_count = 0
+                has_return = False
+                for j in range(i+1, len(code.split('\n'))):
+                    next_line = code.split('\n')[j].strip()
+                    brace_count += next_line.count('{') - next_line.count('}')
+                    if 'return ' in next_line:
+                        has_return = True
+                    if brace_count == 0:
+                        break
+                if not has_return:
+                    score -= 3  # Missing return in non-void function
+
+        return max(-15, min(15, score))  # Cap the score
+
+    def check_nesting_structure(self, code):
+        """Check for proper nesting of control structures."""
+        score = 0
+        lines = code.split('\n')
+        indent_levels = []
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Calculate indentation level
+            indent = len(line) - len(stripped)
+            indent_levels.append(indent)
+
+            # Check for control structures
+            if stripped.startswith(('if ', 'for ', 'while ', 'do ', 'switch ')):
+                # Should have proper indentation for nested content
+                pass  # This is a basic check; more complex nesting analysis could be added
+
+        # Check for consistent indentation
+        if indent_levels:
+            avg_indent = sum(indent_levels) / len(indent_levels)
+            consistent_indent = sum(1 for level in indent_levels if level % 4 == 0) / len(indent_levels)
+            if consistent_indent > 0.8:  # 80% consistent
+                score += 5
+
+        return max(0, min(10, score))
+
+    def check_unreachable_code(self, code):
+        """Check for unreachable code patterns."""
+        score = 0
+        lines = code.split('\n')
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith('return ') or stripped == 'break;' or stripped == 'continue;':
+                # Check if there's code after this that might be unreachable
+                j = i + 1
+                while j < len(lines):
+                    next_line = lines[j].strip()
+                    if next_line and not next_line.startswith('//') and not next_line.startswith('/*'):
+                        # Found code after return/break/continue
+                        if not next_line.endswith('{') and not next_line.startswith('}'):
+                            score -= 3  # Potential unreachable code
+                        break
+                    j += 1
+
+        return max(-10, min(5, score))  # Cap the score
 
     def analyze_c_code_detailed_feedback(self, code, requirements=None):
         """Provide detailed feedback on C code analysis."""
@@ -655,7 +801,7 @@ class CodeGrader:
             'main_function': 10,
             'include_stdio': 5,
             'return_statement': 8,
-            'logical_operators': 5,  # Adjusted to give points for logical operators
+            'logical_operators': 5, 
             'loops': 10,
             'functions': 10,
             'arrays': 10,
@@ -664,7 +810,7 @@ class CodeGrader:
             'comments': 5,
             'arithmetic': 5,
             'comparison': 5,
-            'specific_content': 5  # Adjusted to give points for specific content
+            'specific_content': 5
         }
 
         # Define checkers for each requirement
@@ -741,7 +887,33 @@ class CodeGrader:
         return max(0, requirement_score), '. '.join(cleaned_feedback_parts)
 
     def normalize_code(self, code):
-        """Normalize code by replacing user-defined identifiers with VAR to detect similarity despite variable renaming."""
+        """Normalize code by removing comments, normalizing whitespace, replacing literals, and user-defined identifiers with VAR to detect similarity despite variable renaming."""
+        # Remove single-line comments
+        code = re.sub(r'//.*', '', code)
+        # Remove multi-line comments
+        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+
+        # Remove preprocessor directives
+        code = re.sub(r'#.*', '', code)
+
+        # Normalize whitespace: replace multiple spaces/tabs with single space, strip lines
+        lines = code.split('\n')
+        normalized_lines = []
+        for line in lines:
+            line = re.sub(r'\s+', ' ', line.strip())
+            if line:
+                normalized_lines.append(line)
+        code = '\n'.join(normalized_lines)
+
+        # Replace string literals with STR_LITERAL
+        code = re.sub(r'"[^"]*"', 'STR_LITERAL', code)
+
+        # Replace character literals with CHAR_LITERAL
+        code = re.sub(r"'[^']'", 'CHAR_LITERAL', code)
+
+        # Replace numeric literals with NUM_LITERAL (including floats)
+        code = re.sub(r'\b\d+\.?\d*\b', 'NUM_LITERAL', code)
+
         # C keywords and common library functions to preserve
         c_keywords = {
             'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
@@ -751,7 +923,7 @@ class CodeGrader:
         library_functions = {
             'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
             'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
-            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
+            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp', 'ceil', 'floor'
         }
 
         # Find all words in the code
@@ -760,13 +932,13 @@ class CodeGrader:
         # Replace user-defined identifiers with VAR
         normalized = code
         for word in words:
-            if word not in c_keywords and word not in library_functions:
+            if word not in c_keywords and word not in library_functions and word not in ['STR_LITERAL', 'CHAR_LITERAL', 'NUM_LITERAL']:
                 normalized = re.sub(r'\b' + re.escape(word) + r'\b', 'VAR', normalized)
 
         return normalized
 
     def check_similarity(self, activity_id, code, student_id):
-        """Check similarity with other submissions using token-based similarity, accounting for variable renaming."""
+        """Check similarity with other submissions using sequence matching, accounting for variable renaming."""
         try:
             cur = mysql.connection.cursor()
             cur.execute("""
@@ -789,20 +961,12 @@ class CodeGrader:
             normalized_code = self.normalize_code(code)
             normalized_other_codes = [self.normalize_code(other_code) for other_code in other_codes]
 
-            # Tokenize normalized codes by splitting on non-alphanumeric characters
-            def tokenize(text):
-                return set(re.findall(r'\b\w+\b', text))
-
-            code_tokens = tokenize(normalized_code)
+            # Use sequence matching for similarity detection
             max_similarity = 0
-
             for other_normalized in normalized_other_codes:
-                other_tokens = tokenize(other_normalized)
-                intersection = code_tokens.intersection(other_tokens)
-                union = code_tokens.union(other_tokens)
-                similarity = len(intersection) / len(union) if union else 0
-                if similarity > max_similarity:
-                    max_similarity = similarity
+                ratio = SequenceMatcher(None, normalized_code, other_normalized).ratio()
+                if ratio > max_similarity:
+                    max_similarity = ratio
 
             max_sim_percent = max_similarity * 100
             score = max(0, 100 - max_sim_percent)

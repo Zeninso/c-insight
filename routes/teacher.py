@@ -331,10 +331,10 @@ def teacherGrades():
                         submission['group_submissions'] = group
                 display_submissions.extend(group)
         else:
-            # Show submissions with high similarity scores (potential copying)
+            # Show submissions with low similarity scores (high actual similarity - potential copying)
             display_submissions = [
                 s for s in submissions
-                if s.get('similarity_score') is not None and s['similarity_score'] >= 80
+                if s.get('similarity_score') is not None and s['similarity_score'] <= 60
             ]
 
     # Get unread notifications count
