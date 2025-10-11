@@ -3,7 +3,7 @@ Flask-MySQLdb==1.0.1
 Flask-Dance==6.2.0
 Werkzeug==2.3.7
 scikit-learn==1.7.2
-numpy==2.3.3
+numpy==1.26.4
 pandas==2.1.4
 joblib==1.5.2
 nltk==3.8.1
