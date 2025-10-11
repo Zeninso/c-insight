@@ -29,6 +29,7 @@ def create_app():
     app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB')
+    app.config['MYSQL_UNIX_SOCKET'] = None  # Disable socket for TCP connection
 
 
     mysql.init_app(app)
