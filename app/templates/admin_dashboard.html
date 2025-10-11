@@ -222,7 +222,7 @@
                 <div class="card-header">
                     <h3><i class="fas fa-chart-pie"></i> User Distribution</h3>
                 </div>
-                <canvas id="userDistributionChart" width="250" height="120"></canvas>
+                <canvas id="userDistributionChart" width="200" height="100"></canvas>
             </div>
         </div>
 
@@ -278,6 +278,39 @@
                 });
             })
             .catch(error => console.error('Error fetching chart data:', error));
+
+        // Render User Distribution Chart
+        const ctx2 = document.getElementById('userDistributionChart').getContext('2d');
+        const teacherCount = parseInt('{{ stats.teachers }}');
+        const studentCount = parseInt('{{ stats.students }}');
+        new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: ['Teachers', 'Students'],
+                datasets: [{
+                    data: [teacherCount, studentCount],
+                    backgroundColor: ['#FF6384', '#36A2EB'],
+                    hoverBackgroundColor: ['#FF6384', '#36A2EB']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         // Real-Time Notifications
         let lastNotificationCount = initialUnreadCount;
