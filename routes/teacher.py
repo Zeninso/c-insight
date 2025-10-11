@@ -450,116 +450,276 @@ def generate_grade_report():
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
         teacher_id = cur.fetchone()['id']
 
-        # Get all submissions for teacher's activities with student info
-        query = """
-            SELECT
-                a.title as activity_title,
-                c.name as class_name,
-                u.first_name,
-                u.last_name,
-                s.submitted_at,
-                ROUND(((s.correctness_score * a.correctness_weight / 100) +
-                       (s.syntax_score * a.syntax_weight / 100) +
-                       (s.logic_score * a.logic_weight / 100) +
-                       (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
-            FROM submissions s
-            JOIN activities a ON s.activity_id = a.id
-            JOIN classes c ON a.class_id = c.id
-            JOIN users u ON s.student_id = u.id
-            WHERE a.teacher_id = %s
-            ORDER BY a.title, c.name, u.last_name, u.first_name
-        """
-        cur.execute(query, (teacher_id,))
-        submissions = cur.fetchall()
+        # Get filter parameters from the form
+        class_id_str = request.form.get('class_id')
+        activity_id_str = request.form.get('activity_id')
+
+        class_id = None
+        if class_id_str and class_id_str.strip():
+            try:
+                class_id = int(class_id_str)
+            except ValueError:
+                pass
+
+        activity_id = None
+        if activity_id_str and activity_id_str.strip():
+            try:
+                activity_id = int(activity_id_str)
+            except ValueError:
+                pass
+
+        # First, get relevant students and activities based on filters
+        if class_id:
+            # Filter by class: get students in class and activities in class
+            cur.execute("""
+                SELECT DISTINCT u.id as student_id, u.first_name, u.last_name, c.name as class_name
+                FROM users u
+                JOIN enrollments e ON u.id = e.student_id
+                JOIN classes c ON e.class_id = c.id
+                WHERE c.id = %s AND c.teacher_id = %s
+                ORDER BY u.last_name, u.first_name
+            """, (class_id, teacher_id))
+            students = cur.fetchall()
+
+            cur.execute("""
+                SELECT id, title
+                FROM activities
+                WHERE class_id = %s AND teacher_id = %s
+                ORDER BY title
+            """, (class_id, teacher_id))
+            activities = cur.fetchall()
+        elif activity_id:
+            # Filter by activity: get students who submitted the activity, and only that activity
+            cur.execute("""
+                SELECT DISTINCT u.id as student_id, u.first_name, u.last_name, c.name as class_name
+                FROM submissions s
+                JOIN users u ON s.student_id = u.id
+                JOIN activities a ON s.activity_id = a.id
+                JOIN classes c ON a.class_id = c.id
+                WHERE a.id = %s AND a.teacher_id = %s
+                ORDER BY u.last_name, u.first_name
+            """, (activity_id, teacher_id))
+            students = cur.fetchall()
+
+            cur.execute("""
+                SELECT id, title
+                FROM activities
+                WHERE id = %s AND teacher_id = %s
+            """, (activity_id, teacher_id))
+            activities = cur.fetchall()
+        else:
+            # No filters: get all students and activities for teacher
+            cur.execute("""
+                SELECT DISTINCT u.id as student_id, u.first_name, u.last_name, c.name as class_name
+                FROM users u
+                JOIN enrollments e ON u.id = e.student_id
+                JOIN classes c ON e.class_id = c.id
+                WHERE c.teacher_id = %s
+                ORDER BY u.last_name, u.first_name
+            """, (teacher_id,))
+            students = cur.fetchall()
+
+            cur.execute("""
+                SELECT id, title
+                FROM activities
+                WHERE teacher_id = %s
+                ORDER BY title
+            """, (teacher_id,))
+            activities = cur.fetchall()
 
         cur.close()
 
-        if not submissions:
-            return jsonify({'error': 'No submissions found to generate report'}), 404
+        if not students:
+            return jsonify({'error': 'No students found to generate report'}), 404
 
-        # Create DataFrame
-        df = pd.DataFrame(submissions)
+        if not activities:
+            return jsonify({'error': 'No activities found to generate report'}), 404
 
-        # Rename columns for better readability
-        df = df.rename(columns={
-            'activity_title': 'Activity',
-            'class_name': 'Class',
-            'first_name': 'First Name',
-            'last_name': 'Last Name',
-            'total_score': 'Total Score',
-            'submitted_at': 'Submitted At'
-        })
+        # Create student DataFrame
+        student_df = pd.DataFrame(students)
+        student_df['Name'] = student_df['first_name'] + ' ' + student_df['last_name']
+        student_df = student_df[['student_id', 'Name', 'class_name']]
+        student_df = student_df.rename(columns={'class_name': 'Class'})
 
-        # Format submitted_at
-        df['Submitted At'] = pd.to_datetime(df['Submitted At']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        # For each student, get submissions for relevant activities
+        submission_data = []
+        for _, student in student_df.iterrows():
+            student_row = {'student_id': student['student_id'], 'Name': student['Name'], 'Class': student['Class']}
+            for act in activities:
+                act_id = act['id']
+                act_title = act['title']
 
-        # Create summary DataFrame
-        summary_df = df.groupby(['Activity', 'Class']).agg({
-            'Total Score': ['count', 'mean', 'min', 'max', 'std']
-        }).round(2)
-        summary_df.columns = ['Submissions', 'Average Score', 'Min Score', 'Max Score', 'Std Deviation']
-        summary_df = summary_df.reset_index()
+                # Get submission for this student and activity
+                cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                if class_id or activity_id:
+                    # Use the filter to get submissions
+                    query = """
+                        SELECT s.submitted_at,
+                               ROUND(((s.correctness_score * a.correctness_weight / 100) +
+                                      (s.syntax_score * a.syntax_weight / 100) +
+                                      (s.logic_score * a.logic_weight / 100) +
+                                      (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
+                        FROM submissions s
+                        JOIN activities a ON s.activity_id = a.id
+                    """
+                    params = []
+                    if class_id:
+                        query += " JOIN classes c ON a.class_id = c.id WHERE s.student_id = %s AND c.id = %s AND a.id = %s"
+                        params = [student['student_id'], class_id, act_id]
+                    elif activity_id:
+                        query += " JOIN classes c ON a.class_id = c.id WHERE s.student_id = %s AND a.id = %s"
+                        params = [student['student_id'], act_id]
+                    else:
+                        query += " WHERE s.student_id = %s AND a.id = %s"
+                        params = [student['student_id'], act_id]
+
+                    cur.execute(query, params)
+                else:
+                    # No filter, but ensure activity belongs to teacher's classes
+                    cur.execute("""
+                        SELECT s.submitted_at,
+                               ROUND(((s.correctness_score * a.correctness_weight / 100) +
+                                      (s.syntax_score * a.syntax_weight / 100) +
+                                      (s.logic_score * a.logic_weight / 100) +
+                                      (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
+                        FROM submissions s
+                        JOIN activities a ON s.activity_id = a.id
+                        JOIN classes c ON a.class_id = c.id
+                        WHERE s.student_id = %s AND a.id = %s AND c.teacher_id = %s
+                    """, (student['student_id'], act_id, teacher_id))
+
+                submission = cur.fetchone()
+                cur.close()
+
+                if submission:
+                    submitted_at = submission['submitted_at'].strftime('%m/%d/%Y %H:%M') if submission['submitted_at'] else 'N/A'
+                    score = submission['total_score'] if submission['total_score'] is not None else 'N/A'
+                else:
+                    submitted_at = 'Not Submitted'
+                    score = 'N/A'
+
+                # Add to row
+                col_date = f"{act_title} Submitted At"
+                col_score = f"{act_title} Score"
+                student_row[col_date] = submitted_at
+                student_row[col_score] = score
+
+            submission_data.append(student_row)
+
+        # Create the pivoted DataFrame
+        report_df = pd.DataFrame(submission_data)
+
+        # Reorder columns: Name first, then activity columns (sorted by activity title), then Class last
+        activity_cols = []
+        for act in sorted(activities, key=lambda x: x['title']):
+            activity_cols.extend([f"{act['title']} Submitted At", f"{act['title']} Score"])
+
+        cols_order = ['Name'] + activity_cols + ['Class']
+        report_df = report_df[cols_order]
+
+        # Create summary: average scores per activity
+        summary_data = {}
+        for act in activities:
+            act_title = act['title']
+            scores = []
+            for row in submission_data:
+                score_col = f"{act_title} Score"
+                if row[score_col] != 'N/A':
+                    try:
+                        scores.append(float(row[score_col]))
+                    except ValueError:
+                        pass
+            if scores:
+                avg_score = sum(scores) / len(scores)
+                summary_data[act_title] = round(avg_score, 2)
+            else:
+                summary_data[act_title] = 'N/A'
+
+        summary_df = pd.DataFrame([summary_data])
+        summary_df.insert(0, 'Metric', 'Average Score')
 
         # Create Excel file in memory
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            # Detailed report sheet
-            df.to_excel(writer, sheet_name='Detailed Report', index=False, startrow=3)
-
-            # Summary sheet
-            summary_df.to_excel(writer, sheet_name='Summary', index=False, startrow=3)
-
             workbook = writer.book
             header_format = workbook.add_format({
                 'bold': True,
-                'font_size': 14,
+                'font_size': 12,
                 'align': 'center',
                 'valign': 'vcenter',
                 'bg_color': "#BE95C6",
                 'font_color': 'white',
-                'border': 1
+                'border': 1,
+                'text_wrap': True
             })
 
             title_format = workbook.add_format({
                 'bold': True,
                 'font_size': 16,
                 'align': 'center',
-                'valign': 'vcenter'
+                'valign': 'vcenter',
+                'text_wrap': True
             })
 
-            # Detailed Report sheet formatting
-            worksheet1 = writer.sheets['Detailed Report']
-            worksheet1.merge_range('A1:G1', f'Grade Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', title_format)
-            worksheet1.merge_range('A2:G2', f'Teacher: {session["first_name"]} {session["last_name"]}', title_format)
+            data_format = workbook.add_format({
+                'text_wrap': True,
+                'align': 'left',
+                'valign': 'top'
+            })
+
+            # Create worksheets
+            worksheet1 = workbook.add_worksheet('Student Grades')
+            worksheet2 = workbook.add_worksheet('Summary')
+
+            # Student Grades sheet formatting
+            num_cols = len(report_df.columns)
+            title_text = f'Grade Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+            teacher_text = f'Teacher: {session["first_name"]} {session["last_name"]}'
+            worksheet1.merge_range(0, 0, 0, num_cols - 1, title_text, title_format)
+            worksheet1.merge_range(1, 0, 1, num_cols - 1, teacher_text, title_format)
 
             # Add headers with formatting
-            for col_num, value in enumerate(df.columns.values):
-                worksheet1.write(3, col_num, value, header_format)
+            for col_num, value in enumerate(report_df.columns.values):
+                worksheet1.write(2, col_num, value, header_format)
 
-            # Auto-adjust columns' width for detailed sheet
-            for idx, col in enumerate(df.columns):
+            # Write data rows with text wrapping
+            for row_idx in range(len(report_df)):
+                row_num = 3 + row_idx
+                row_data = report_df.iloc[row_idx]
+                for col_num in range(num_cols):
+                    worksheet1.write(row_num, col_num, row_data.iloc[col_num], data_format)
+
+            # Auto-adjust columns' width
+            for idx, col in enumerate(report_df.columns):
                 max_len = max(
-                    df[col].astype(str).map(len).max(),
-                    len(col)
+                    report_df[col].astype(str).map(len).max(),
+                    len(str(col))
                 ) + 2
-                worksheet1.set_column(idx, idx, min(max_len, 30)) 
+                worksheet1.set_column(idx, idx, min(max_len, 20))
 
             # Summary sheet formatting
-            worksheet2 = writer.sheets['Summary']
-            worksheet2.merge_range('A1:F1', f'Summary Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', title_format)
-            worksheet2.merge_range('A2:F2', f'Teacher: {session["first_name"]} {session["last_name"]}', title_format)
+            num_sum_cols = len(summary_df.columns)
+            title_text = f'Summary Report - Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+            teacher_text = f'Teacher: {session["first_name"]} {session["last_name"]}'
+            worksheet2.merge_range(0, 0, 0, num_sum_cols - 1, title_text, title_format)
+            worksheet2.merge_range(1, 0, 1, num_sum_cols - 1, teacher_text, title_format)
 
             # Add headers with formatting for summary
             for col_num, value in enumerate(summary_df.columns.values):
-                worksheet2.write(3, col_num, value, header_format)
+                worksheet2.write(2, col_num, value, header_format)
+
+            # Write summary data row with text wrapping
+            summary_row_data = summary_df.iloc[0]
+            for col_num in range(num_sum_cols):
+                worksheet2.write(3, col_num, summary_row_data.iloc[col_num], data_format)
 
             # Auto-adjust columns' width for summary sheet
             for idx, col in enumerate(summary_df.columns):
                 max_len = max(
                     summary_df[col].astype(str).map(len).max(),
-                    len(col)
+                    len(str(col))
                 ) + 2
-                worksheet2.set_column(idx, idx, min(max_len, 30))
+                worksheet2.set_column(idx, idx, min(max_len, 20))
 
         output.seek(0)
 
@@ -572,6 +732,8 @@ def generate_grade_report():
         )
 
     except Exception as e:
+        if 'cur' in locals():
+            cur.close()
         return jsonify({'error': str(e)}), 500
 
 @teacher_bp.route('/activities', methods=['GET', 'POST'])

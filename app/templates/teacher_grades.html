@@ -125,6 +125,8 @@
                         </form>
 
                         <form id="generateReportForm" method="post" action="{{ url_for('teacher.generate_grade_report') }}">
+                            <input type="hidden" name="class_id" value="{{ class_id or '' }}">
+                            <input type="hidden" name="activity_id" value="{{ activity_id or '' }}">
                             <button type="submit" class="btn btn-success" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; padding: 12px 20px; border-radius: 8px; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: transform 0.2s;">
                                 <i class="fas fa-file-excel"></i> Generate Grade Report
                             </button>
@@ -549,7 +551,7 @@
 
         document.getElementById('generateReportForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             // Show loading indicator
             Swal.fire({
                 title: 'Generating Report',
@@ -559,10 +561,14 @@
                     Swal.showLoading()
                 }
             });
-            
+
+            // Collect form data
+            const formData = new FormData(this);
+
             // Use fetch API to submit the request
             fetch(this.action, {
                 method: 'POST',
+                body: formData,
                 credentials: 'same-origin'
             })
             .then(response => {
