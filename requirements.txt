@@ -6,6 +6,6 @@ scikit-learn==1.7.2
 numpy==2.3.3
 pandas==2.0.3
 joblib==1.5.2
-transformers==4.30.0
+transformers==4.20.1
 nltk==3.8.1
 gunicorn==21.2.0
