@@ -25,9 +25,20 @@ def adminDashboard():
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
+    if user is None:
+        flash('User not found', 'error')
+        return redirect(url_for('auth.login'))
     admin_id = user[0]
 
-
+    # Fetch recent activities from notifications for current admin (last 5)
+    cur.execute("""
+        SELECT type, message, created_at
+        FROM notifications
+        WHERE user_id = %s AND role = 'admin'
+        ORDER BY created_at DESC
+        LIMIT 5
+    """, (admin_id,))
+    recent_activities = cur.fetchall()
     cur.close()
 
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
@@ -35,11 +46,11 @@ def adminDashboard():
     stats = {
         'teachers': teacher_count,
         'students': student_count
-
     }
 
     return render_template('admin_dashboard.html', stats=stats, first_name=session['first_name'],
-                            unread_notifications_count=unread_notifications_count)
+                           unread_notifications_count=unread_notifications_count,
+                           recent_activities=recent_activities)
 
 @admin_bp.route('/users')
 def adminUsers():
@@ -78,18 +89,37 @@ def editUser(user_id):
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     if request.method == 'POST':
-        username = request.form['username']
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form.get('email')
-        role = request.form['role']
+        update_fields = []
+        params = []
+
+        if 'username' in request.form:
+            update_fields.append('username = %s')
+            params.append(request.form['username'])
+
+        if 'first_name' in request.form:
+            update_fields.append('first_name = %s')
+            params.append(request.form['first_name'])
+
+        if 'last_name' in request.form:
+            update_fields.append('last_name = %s')
+            params.append(request.form['last_name'])
+
+        if 'email' in request.form:
+            email_val = request.form['email'] or None
+            update_fields.append('email = %s')
+            params.append(email_val)
+
+        if 'role' in request.form:
+            update_fields.append('role = %s')
+            params.append(request.form['role'])
+
+        if not update_fields:
+            return jsonify({'success': False, 'error': 'No fields to update'}), 400
 
         try:
-            cur.execute("""
-                UPDATE users
-                SET username=%s, first_name=%s, last_name=%s, email=%s, role=%s
-                WHERE id=%s
-            """, (username, first_name, last_name, email, role, user_id))
+            query = "UPDATE users SET " + ', '.join(update_fields) + " WHERE id = %s"
+            params.append(user_id)
+            cur.execute(query, params)
             mysql.connection.commit()
             return jsonify({'success': True})
         except Exception as e:
@@ -162,7 +192,13 @@ def adminSettings():
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
 
     if not settings:
-        settings = {'site_name': 'C-Insight', 'admin_email': 'admin@cinsight.com'}
+        settings = {
+            'site_name': 'C-Insight',
+            'admin_email': 'admin@cinsight.com',
+            'primary_color': '#6f42c1',
+            'secondary_color': '#007bff',
+            'font_family': 'Arial, sans-serif'
+        }
 
     # Get user statistics for status display
     cur = mysql.connection.cursor()
@@ -258,3 +294,39 @@ def admin_notifications():
     cur.close()
 
     return render_template('admin_notifications.html', notifications=notifications, username=session['username'])
+
+@admin_bp.route('/stats/monthly')
+def monthlyStats():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count
+        FROM users
+        WHERE role != 'admin'
+        GROUP BY month
+        ORDER BY month DESC
+        LIMIT 12
+    """)
+    data = cur.fetchall()
+    cur.close()
+
+    # Format as list of dicts
+    result = [{'month': row[0], 'count': row[1]} for row in data]
+    return jsonify(result)
+
+@admin_bp.route('/notifications/count')
+def notificationsCount():
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    cur = mysql.connection.cursor()
+    # Get admin id
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    user = cur.fetchone()
+    admin_id = user[0]
+    cur.close()
+
+    count = get_admin_unread_notifications_count(admin_id)
+    return jsonify({'count': count})

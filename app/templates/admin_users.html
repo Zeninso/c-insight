@@ -51,6 +51,61 @@
         .empty-state p {
             margin-bottom: 1.5rem;
         }
+
+        /* Bulk Actions Styles */
+        #bulkActions {
+            background: linear-gradient(135deg, #ae8fce 0%, #c278ab 100%);
+            color: white;
+            border-radius: 8px;
+            margin: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #bulkActions .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        #bulkActions .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        #bulkActions select {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 0.5rem;
+            min-width: 140px;
+        }
+        #bulkActions select option {
+            background: #ae8fce;
+            color: white;
+        }
+        #bulkActions .role-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        #selectedCount {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* Table Header Checkbox */
+        .table-header-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -97,11 +152,40 @@
                 <div class="card-header">
                     <h3><i class="fas fa-users"></i> All Users</h3>
                 </div>
-                
+
+                <!-- Search and Filter -->
+                <div class="filter-section" style="padding: 1rem; background-color: #f8f9fa; border-bottom: 1px solid #ddd;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" id="searchInput" placeholder="Search by name, username, or email..." style="flex: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+                        <select id="roleFilter" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">All Roles</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="student">Student</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div id="bulkActions" style="padding: 1rem; display: none;">
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <span id="selectedCount">0 selected</span>
+                        <button id="bulkDeleteBtn" class="btn btn-gradient" onclick="confirmBulkDelete()"><i class="fas fa-trash"></i> Delete Selected</button>
+                        <div class="role-group">
+                            <select id="bulkRoleSelect" style="padding: 0.5rem; border: none; background: transparent; color: white; min-width: 140px;">
+                                <option value="">Change Role To...</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="student">Student</option>
+                            </select>
+                            <button id="bulkChangeRoleBtn" class="btn btn-gradient" onclick="bulkChangeRole()"><i class="fas fa-user-cog"></i> Apply</button>
+                        </div>
+                    </div>
+                </div>
+
                 {% if users and users|length > 0 %}
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
                         <tr style="background-color: #f8f9fa;">
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;"><label class="table-header-checkbox"><input type="checkbox" id="selectAll"> Select All</label></th>
                             <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
                             <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Username</th>
                             <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">First Name</th>
@@ -114,6 +198,7 @@
                     <tbody>
                         {% for user in users %}
                         <tr id="user-{{ user.id }}" data-username="{{ user.username }}" data-firstname="{{ user.first_name }}" data-lastname="{{ user.last_name }}" data-email="{{ user.email }}" data-role="{{ user.role }}">
+                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;"><input type="checkbox" class="userCheckbox" value="{{ user.id }}"></td>
                             <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.id }}</td>
                             <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.username }}</td>
                             <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.first_name }}</td>
@@ -145,23 +230,69 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ url_for('static', filename='js/admin_users.js') }}"></script>
 
+    <script>
+    var initialUnreadCount = parseInt('{{ unread_notifications_count }}');
+
+    function confirmLogout() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "Are you sure you want to logout?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: ' #6f42c1',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+
+    // Real-Time Notifications
+    document.addEventListener('DOMContentLoaded', function() {
+        let lastNotificationCount = initialUnreadCount;
+        let notificationToastShown = false;
+
+        function checkNotifications() {
+            fetch('/admin/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    const currentCount = data.count;
+                    const badge = document.querySelector('.notification-badge');
+                    if (badge) {
+                        if (currentCount > 0) {
+                            badge.textContent = currentCount;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+
+                    if (currentCount > lastNotificationCount && !notificationToastShown) {
+                        // Show toast for new notification
+                        Swal.fire({
+                            title: 'New Notification!',
+                            text: 'You have new notifications.',
+                            icon: 'info',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                        notificationToastShown = true;
+                        setTimeout(() => notificationToastShown = false, 10000); // Reset after 10s
+                    }
+                    lastNotificationCount = currentCount;
+                })
+                .catch(error => console.error('Error checking notifications:', error));
+        }
+
+        // Poll every 10 seconds (faster than dashboard's 30s for better UX)
+        setInterval(checkNotifications, 10000);
+    });
+    </script>
+
 </body>
 </html>
-
-<script>
-function confirmLogout() {
-    Swal.fire({
-        title: 'Logout?',
-        text: "Are you sure you want to logout?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: ' #6f42c1',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, logout!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = "{{ url_for('auth.logout') }}";
-        }
-    });
-}
-</script>
