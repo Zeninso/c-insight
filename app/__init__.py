@@ -9,7 +9,7 @@ def create_app():
     app = Flask(__name__, static_folder='static')
     app.secret_key = os.environ.get('FLASK_SECRET_KEY')  # Use a proper secret key
 
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')  # only for development
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '1')  # only for development
 
     # Register Google OAuth blueprint
     google_bp = make_google_blueprint(
@@ -29,7 +29,8 @@ def create_app():
     app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB')
-    app.config['MYSQL_UNIX_SOCKET'] = None  # Disable socket for TCP connection
+    app.config['MYSQL_UNIX_SOCKET'] = None
+
 
 
     mysql.init_app(app)
