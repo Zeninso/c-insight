@@ -9,7 +9,7 @@ def create_app():
     app = Flask(__name__, static_folder='static')
     app.secret_key = os.environ.get('FLASK_SECRET_KEY')  # Use a proper secret key
 
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '1')  # only for development
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')  # only for development
 
     # Register Google OAuth blueprint
     google_bp = make_google_blueprint(
