@@ -15,9 +15,6 @@ import pandas as pd
 
 
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("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", "dev")
-
 
 teacher_bp = Blueprint('teacher', __name__)
 

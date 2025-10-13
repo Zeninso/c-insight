@@ -12,10 +12,6 @@ import MySQLdb
 import random, string
 import time
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("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", "dev")
-
-
 student_bp = Blueprint('student', __name__)
 
 

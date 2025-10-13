@@ -10,9 +10,9 @@ mysql = MySQL()
 
 def create_app():
     app = Flask(__name__, static_folder='static')
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')  # Use a proper secret key
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
 
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')  # only for development
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')
 
     # Register Google OAuth blueprint
     google_bp = make_google_blueprint(
@@ -32,15 +32,13 @@ def create_app():
     oauth_authorized.connect_via(google_bp)(google_logged_in)
 
     # MySQL configuration (Railway environment variables)
-    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST')
+    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
     app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
     
-
-
-
+    # Initialize MySQL with the app
     mysql.init_app(app)
 
     # Imported blueprints from routes
