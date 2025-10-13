@@ -32,11 +32,11 @@ def create_app():
     oauth_authorized.connect_via(google_bp)(google_logged_in)
 
     # MySQL configuration (Railway environment variables)
-    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
-    app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER')
-    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
-    app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
-    app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
+    app.config['MYSQLHOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
+    app.config['MYSQLUSER'] = os.environ.get('MYSQLUSER')
+    app.config['MYSQLPASSWORD'] = os.environ.get('MYSQLPASSWORD')
+    app.config['MYSQLDB'] = os.environ.get('MYSQLDATABASE')
+    app.config['MYSQLPORT'] = int(os.environ.get('MYSQLPORT', 3306))
     
     # Initialize MySQL with the app
     mysql.init_app(app)
@@ -55,3 +55,4 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     return app
+
