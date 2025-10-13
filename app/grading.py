@@ -162,7 +162,7 @@ class CodeGrader:
             else:
                 errors = result.stderr.strip()
                 error_count = len(re.findall(r'error:', errors))
-                
+
                 if error_count == 0:
                     return 80, "Minor syntax issues found"
                 elif error_count == 1:
@@ -174,8 +174,55 @@ class CodeGrader:
 
         except subprocess.TimeoutExpired:
             return 0, "Syntax check timed out."
+        except FileNotFoundError:
+            # Fallback if GCC is not available
+            logger.warning("GCC not found, using basic syntax check")
+            return self.basic_syntax_check(code)
         except Exception as e:
-            return 0, f"Syntax check failed: {str(e)}"
+            logger.error(f"Syntax check failed: {str(e)}")
+            # Fallback to basic syntax check
+            return self.basic_syntax_check(code)
+
+    def basic_syntax_check(self, code):
+        """Basic syntax check when GCC is not available."""
+        try:
+            score = 100
+            issues = []
+
+            # Check for balanced braces
+            if code.count('{') != code.count('}'):
+                score -= 20
+                issues.append("Unbalanced braces")
+
+            # Check for balanced parentheses
+            if code.count('(') != code.count(')'):
+                score -= 15
+                issues.append("Unbalanced parentheses")
+
+            # Check for basic structure
+            if 'int main(' not in code:
+                score -= 10
+                issues.append("Missing main function")
+
+            # Check for semicolons (basic check)
+            lines = code.split('\n')
+            missing_semicolons = 0
+            for line in lines:
+                line = line.strip()
+                if line and not line.endswith(';') and not line.endswith('{') and not line.endswith('}') and not line.startswith('#') and not line.startswith('//'):
+                    # Skip control statements and function declarations
+                    if not any(line.startswith(keyword) for keyword in ['if', 'for', 'while', 'do', 'switch', 'else', 'int ', 'char ', 'float ', 'double ', 'void ']):
+                        missing_semicolons += 1
+
+            if missing_semicolons > 0:
+                score -= min(20, missing_semicolons * 2)
+                issues.append(f"Possible missing semicolons ({missing_semicolons} lines)")
+
+            feedback = "Basic syntax check (GCC not available): " + ", ".join(issues) if issues else "Basic syntax appears correct"
+            return max(0, score), feedback
+
+        except Exception as e:
+            return 0, f"Basic syntax check failed: {str(e)}"
 
     def check_ast_with_requirements(self, code, requirements, requirement_score):
         """Check correctness and logic using analysis."""
