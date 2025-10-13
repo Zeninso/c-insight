@@ -29,7 +29,10 @@ RUN echo '#!/bin/bash\n\
 echo "Waiting for database..."\n\
 sleep 10\n\
 echo "Starting application..."\n\
-PORT=${PORT:-8000}\n\
+if [ -z "$PORT" ]; then\n\
+    PORT=5000\n\
+fi\n\
+echo "Using port: $PORT"\n\
 exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app' > /app/start.sh && \
 chmod +x /app/start.sh
 
