@@ -16,11 +16,11 @@ def adminDashboard():
     cur = mysql.connection.cursor()
 
     # Get user statistics
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='teacher'")
-    teacher_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='teacher'")
+    teacher_count = cur.fetchone()['count']
 
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
-    student_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='student'")
+    student_count = cur.fetchone()['count']
 
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -28,7 +28,7 @@ def adminDashboard():
     if user is None:
         flash('User not found', 'error')
         return redirect(url_for('auth.login'))
-    admin_id = user[0]
+    admin_id = user['id']
 
     # Fetch recent activities from notifications for current admin (last 5)
     cur.execute("""
@@ -68,7 +68,7 @@ def adminUsers():
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
-    admin_id = user[0]
+    admin_id = user['id']
     cur.close()
 
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
@@ -186,7 +186,7 @@ def adminSettings():
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
-    admin_id = user[0]
+    admin_id = user['id']
     cur.close()
 
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
@@ -202,10 +202,10 @@ def adminSettings():
 
     # Get user statistics for status display
     cur = mysql.connection.cursor()
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='teacher'")
-    teacher_count = cur.fetchone()[0]
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
-    student_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='teacher'")
+    teacher_count = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='student'")
+    student_count = cur.fetchone()['count']
     cur.close()
 
     stats = {
@@ -252,10 +252,10 @@ def add_admin_notification(message, notif_type='info', link=None):
 def get_admin_unread_notifications_count(admin_id):
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT COUNT(*) FROM notifications
+        SELECT COUNT(*) as count FROM notifications
         WHERE user_id = %s AND role = 'admin' AND is_read = FALSE
     """, (admin_id,))
-    count = cur.fetchone()[0]
+    count = cur.fetchone()['count']
     cur.close()
     return count
 
@@ -325,7 +325,7 @@ def notificationsCount():
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
-    admin_id = user[0]
+    admin_id = user['id']
     cur.close()
 
     count = get_admin_unread_notifications_count(admin_id)
