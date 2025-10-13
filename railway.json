@@ -3,6 +3,6 @@
     "builder": "dockerfile"
   },
   "deploy": {
-    "startCommand": "gunicorn --bind 0.0.0.0:$PORT app:application"
+    "startCommand": "gunicorn --bind 0.0.0.0:5000 app:application"
   }
 }
