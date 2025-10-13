@@ -34,6 +34,7 @@ def create_app():
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT') or 3306)
+    app.config['MYSQL_UNIX_SOCKET'] = None
 
 
     # Register blueprints

@@ -3,7 +3,7 @@
 -- Use Railway database (Railway provides 'railway' as the default database)
 USE railway;
 
--- Users table
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_role (role)
 );
 
--- Classes table
 CREATE TABLE IF NOT EXISTS classes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     teacher_id INT NOT NULL,
@@ -35,7 +34,6 @@ CREATE TABLE IF NOT EXISTS classes (
     INDEX idx_code_expires (code_expires)
 );
 
--- Enrollments table
 CREATE TABLE IF NOT EXISTS enrollments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     class_id INT NOT NULL,
@@ -48,7 +46,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     INDEX idx_student_id (student_id)
 );
 
--- Activities table
+
 CREATE TABLE IF NOT EXISTS activities (
     id INT AUTO_INCREMENT PRIMARY KEY,
     teacher_id INT NOT NULL,
@@ -74,7 +72,6 @@ CREATE TABLE IF NOT EXISTS activities (
     INDEX idx_notified_deadline (notified_deadline)
 );
 
--- Submissions table
 CREATE TABLE IF NOT EXISTS submissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     activity_id INT NOT NULL,
@@ -95,7 +92,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     INDEX idx_submitted_at (submitted_at)
 );
 
--- Notifications table
+
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -113,7 +110,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_created_at (created_at)
 );
 
--- Settings table
 CREATE TABLE IF NOT EXISTS settings (
     id INT PRIMARY KEY DEFAULT 1,
     site_name VARCHAR(100) DEFAULT 'C-Insight',
@@ -122,15 +118,6 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Insert default settings if not exists
+
 INSERT IGNORE INTO settings (id, site_name, admin_email) VALUES (1, 'C-Insight', NULL);
 
-INSERT INTO users (username, password, first_name, last_name, role, created_at)
-VALUES (
-    'admin',
-    'scrypt:32768:8:1$olBP7REJC8bDDHoQ$252df9aeb3f9b539be5772f385872a48536598c69d4b6373309e2f855f3de0f9c6841ea0c9053b01a59a958011b898bc3135e6ee9aeadb43023dca27059b3334',
-    'Administrator',
-    'System',
-    'admin',
-    CURRENT_TIMESTAMP
-);
