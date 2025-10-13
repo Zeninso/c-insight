@@ -36,7 +36,11 @@ def teacherDashboard():
 
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_row = cur.fetchone()
+    if not teacher_row:
+        flash("Teacher not found", "error")
+        return redirect(url_for('auth.login'))
+    teacher_id = teacher_row[0]
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(teacher_id)
@@ -216,9 +220,7 @@ def teacherAnalytics():
         })
 
     # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id_for_count = cur.fetchone()['id']
-    unread_notifications_count = get_unread_notifications_count(teacher_id_for_count)
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     cur.close()
 
@@ -333,9 +335,7 @@ def teacherGrades():
             ]
 
     # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id_for_count = cur.fetchone()['id']
-    unread_notifications_count = get_unread_notifications_count(teacher_id_for_count)
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     cur.close()
 
@@ -739,18 +739,16 @@ def teacherActivities():
 
     cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
-
-    #  Get teacher ID
+    # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_row = cur.fetchone()
     if not teacher_row:
         flash("Teacher not found", "error")
         return redirect(url_for('auth.login'))
     teacher_id = teacher_row[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     # Get classes for the teacher
     cur.execute("""
@@ -1075,11 +1073,7 @@ def teacherClasses():
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()[0]
     unread_notifications_count = get_unread_notifications_count(teacher_id)
-    
-    # Get teacher ID
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-    
+
     # Get all classes created by this teacher
     cur.execute("""
         SELECT c.id, c.name, c.description, c.class_code, c.code_expires, 
