@@ -35,27 +35,6 @@ def create_app():
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
 
-    print("\n Using private MySQL connection:")
-    print(f"Host: {app.config['MYSQL_HOST']}")
-    print(f"Port: {app.config['MYSQL_PORT']}")
-    print(f"User: {app.config['MYSQL_USER']}")
-    print(f"DB: {app.config['MYSQL_DB']}")
-
-    # Retry logic — wait up to 30 seconds for MySQL to be ready
-    mysql.init_app(app)
-    for attempt in range(10):
-        try:
-            with app.app_context():
-                cur = mysql.connection.cursor()
-                cur.execute("SELECT 1;")
-                cur.close()
-            print(f" Connected to MySQL on attempt {attempt + 1}\n")
-            break
-        except Exception as e:
-            print(f" Attempt {attempt + 1}: Database not ready yet ({e})")
-            time.sleep(3)
-    else:
-        print("Could not connect to MySQL after multiple attempts.\n")
 
     # Register blueprints
     from routes.home import home_bp
