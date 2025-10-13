@@ -32,7 +32,7 @@ def login():
             return render_template('login.html', user=user)
 
         # Check if exact case matches
-        if user_case_insensitive[0] != username:
+        if user_case_insensitive['username'] != username:
             cur.close()
             flash('Unauthorized access: Username Mismatch', 'error')
             user = {
@@ -45,17 +45,17 @@ def login():
         user = cur.fetchone()
         cur.close()
 
-        if user and check_password_hash(user[2], password):
+        if user and check_password_hash(user['password'], password):
             session['username'] = username
-            session['first_name'] = user[3]  
-            session['last_name'] = user[4]  
-            session['role'] = user[5] 
-                                
-            if user[5] == 'teacher':
+            session['first_name'] = user['first_name']
+            session['last_name'] = user['last_name']
+            session['role'] = user['role']
+
+            if user['role'] == 'teacher':
                 return redirect(url_for('teacher.teacherDashboard'))
-            elif user[5] == 'student':
+            elif user['role'] == 'student':
                 return redirect(url_for('student.studentDashboard'))
-            elif user[5] == 'admin':
+            elif user['role'] == 'admin':
                 return redirect(url_for('admin.adminDashboard'))
             else:
                 return redirect(url_for('home.home'))
