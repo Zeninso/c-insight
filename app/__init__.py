@@ -35,7 +35,7 @@ def create_app():
     app.config['MYSQLHOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
     app.config['MYSQLUSER'] = os.environ.get('MYSQLUSER')
     app.config['MYSQLPASSWORD'] = os.environ.get('MYSQLPASSWORD')
-    app.config['MYSQLDB'] = os.environ.get('MYSQLDATABASE')
+    app.config['MYSQLDATABASE'] = os.environ.get('MYSQLDATABASE')
     app.config['MYSQLPORT'] = int(os.environ.get('MYSQLPORT', 3306))
     
     # Initialize MySQL with the app
