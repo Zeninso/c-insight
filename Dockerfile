@@ -24,5 +24,13 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run with gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
+# Create a startup script
+RUN echo '#!/bin/bash\n\
+echo "Waiting for database..."\n\
+sleep 10\n\
+echo "Starting application..."\n\
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 4 --timeout 120 app:app' > /app/start.sh && \
+chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/app/start.sh"]
