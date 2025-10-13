@@ -300,7 +300,7 @@ def monthlyStats():
     if 'username' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("""
         SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count
         FROM users
@@ -313,7 +313,7 @@ def monthlyStats():
     cur.close()
 
     # Format as list of dicts
-    result = [{'month': row[0], 'count': row[1]} for row in data]
+    result = [{'month': row['month'], 'count': row['count']} for row in data]
     return jsonify(result)
 
 @admin_bp.route('/notifications/count')

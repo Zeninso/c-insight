@@ -47,7 +47,8 @@ def studentDashboard():
     cur.execute("""
         SELECT COUNT(*) FROM enrollments WHERE student_id = %s
     """, (student_id,))
-    enrolled_classes_count = cur.fetchone()[0]
+    enrolled_classes_count_result = cur.fetchone()
+    enrolled_classes_count = enrolled_classes_count_result[0] if enrolled_classes_count_result else 0
 
     # Get upcoming activities (next 5 due in the future)
     cur.execute("""
