@@ -37,9 +37,15 @@ def create_app():
     app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER', 'root')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
-
-    # Default to Railway’s internal 3306, but allow public port override
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
+
+    # 🔍 Print MySQL config for debugging
+    print("🔍 MySQL Connection Config:")
+    print(f"Host: {app.config['MYSQL_HOST']}")
+    print(f"User: {app.config['MYSQL_USER']}")
+    print(f"DB: {app.config['MYSQL_DB']}")
+    print(f"Port: {app.config['MYSQL_PORT']}")
+    print("Attempting to connect to the database...")
 
     # Initialize MySQL
     mysql.init_app(app)
