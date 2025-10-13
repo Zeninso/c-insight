@@ -109,7 +109,11 @@ def teacherAnalytics():
 
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()['id']
+    teacher_row = cur.fetchone()
+    if not teacher_row:
+        flash("Teacher not found", "error")
+        return redirect(url_for('auth.login'))
+    teacher_id = teacher_row['id']
 
     # Get class filter
     class_id = request.args.get('class_id')
