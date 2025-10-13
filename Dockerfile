@@ -33,7 +33,7 @@ if [ -z "$PORT" ]; then\n\
     PORT=5000\n\
 fi\n\
 echo "Using port: $PORT"\n\
-exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app' > /app/start.sh && \
+exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:application' > /app/start.sh && \
 chmod +x /app/start.sh
 
 # Run the startup script
