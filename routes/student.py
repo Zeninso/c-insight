@@ -32,15 +32,16 @@ def studentDashboard():
     # Notify students about upcoming or passed deadlines
     notify_students_activity_deadline()
 
-    cur = mysql.connection.cursor()
-
-    # Get student ID
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_row = cur.fetchone()
+    cur_dict = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur_dict.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_row = cur_dict.fetchone()
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
+    cur_dict.close()
+
+    cur = mysql.connection.cursor()
 
     # Get enrolled classes count
     cur.execute("""
@@ -108,17 +109,15 @@ def studentDashboard():
 @student_bp.route('/join_class', methods=['GET', 'POST'])
 def join_class():
 
-    cur = mysql.connection.cursor()
-
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_row = cur.fetchone()
+    cur_dict = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur_dict.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    student_row = cur_dict.fetchone()
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
     unread_notifications_count = get_unread_notifications_count(student_id)
-    cur.close()
+    cur_dict.close()
 
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
