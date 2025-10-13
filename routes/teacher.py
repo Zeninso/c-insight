@@ -34,14 +34,12 @@ def teacherDashboard():
 
     cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
-
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     teacher_id = cur.fetchone()[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     # Get total classes
     cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
