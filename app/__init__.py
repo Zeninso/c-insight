@@ -3,6 +3,7 @@ from flask_mysqldb import MySQL
 from flask_dance.contrib.google import make_google_blueprint
 import os
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 mysql = MySQL()
@@ -13,15 +14,13 @@ def create_app():
 
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')
 
-    # --- Google OAuth setup ---
+    # Google OAuth setup
     google_bp = make_google_blueprint(
         client_id=os.environ.get('GOOGLE_CLIENT_ID'),
         client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-        scope=[
-            "https://www.googleapis.com/auth/userinfo.profile",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "openid"
-        ]
+        scope=["https://www.googleapis.com/auth/userinfo.profile",
+               "https://www.googleapis.com/auth/userinfo.email",
+               "openid"]
     )
     app.register_blueprint(google_bp, url_prefix="/login")
 
@@ -29,31 +28,36 @@ def create_app():
     from flask_dance.consumer import oauth_authorized
     oauth_authorized.connect_via(google_bp)(google_logged_in)
 
-    # --- MySQL (Private Railway Connection) ---
+    # --- MySQL Private Config ---
     app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
-    app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER')
+    app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER', 'root')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
 
-    print("Using private Railway MySQL network:")
+    print("\n Using private MySQL connection:")
     print(f"Host: {app.config['MYSQL_HOST']}")
     print(f"Port: {app.config['MYSQL_PORT']}")
     print(f"User: {app.config['MYSQL_USER']}")
     print(f"DB: {app.config['MYSQL_DB']}")
-    print("Attempting DB connection...")
 
-    try:
-        mysql.init_app(app)
-        with app.app_context():
-            cur = mysql.connection.cursor()
-            cur.execute("SELECT 1;")
-            print("Private MySQL connection successful!")
-            cur.close()
-    except Exception as e:
-        print(" MySQL connection failed:", e)
+    # Retry logic — wait up to 30 seconds for MySQL to be ready
+    mysql.init_app(app)
+    for attempt in range(10):
+        try:
+            with app.app_context():
+                cur = mysql.connection.cursor()
+                cur.execute("SELECT 1;")
+                cur.close()
+            print(f" Connected to MySQL on attempt {attempt + 1}\n")
+            break
+        except Exception as e:
+            print(f" Attempt {attempt + 1}: Database not ready yet ({e})")
+            time.sleep(3)
+    else:
+        print("Could not connect to MySQL after multiple attempts.\n")
 
-    # --- Register blueprints ---
+    # Register blueprints
     from routes.home import home_bp
     from routes.auth import auth_bp
     from routes.teacher import teacher_bp
