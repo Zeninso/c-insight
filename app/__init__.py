@@ -2,12 +2,15 @@ from flask import Flask
 from flask_mysqldb import MySQL
 from flask_dance.contrib.google import make_google_blueprint
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 mysql = MySQL()
 
 def create_app():
     app = Flask(__name__, static_folder='static')
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY')  # Use a proper secret key
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')  # Use a proper secret key
 
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0')  # only for development
 
@@ -19,10 +22,14 @@ def create_app():
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
-        ],
-        redirect_to="auth.google_callback"
+        ]
     )
     app.register_blueprint(google_bp, url_prefix="/login")
+
+    # Import and connect the Google OAuth handler
+    from routes.auth import google_logged_in
+    from flask_dance.consumer import oauth_authorized
+    oauth_authorized.connect_via(google_bp)(google_logged_in)
 
     # MySQL configuration
     app.config['MYSQL_HOST'] = os.environ.get('MYSQL_HOST')
