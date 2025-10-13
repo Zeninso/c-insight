@@ -36,7 +36,11 @@ def studentDashboard():
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Get enrolled classes count
     cur.execute("""
@@ -57,8 +61,6 @@ def studentDashboard():
     upcoming_activities = cur.fetchall()
 
     # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
     unread_notifications_count = get_unread_notifications_count(student_id)
 
     # Get recent submissions (last 5)
@@ -110,7 +112,11 @@ def join_class():
 
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
     unread_notifications_count = get_unread_notifications_count(student_id)
     cur.close()
 
@@ -145,7 +151,11 @@ def join_class():
         
         # Get student ID
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        student_id = cur.fetchone()[0]
+        student_row = cur.fetchone()
+        if not student_row:
+            flash("Student not found", "error")
+            return redirect(url_for('auth.login'))
+        student_id = student_row[0]
         
         # Check if student is already enrolled
         cur.execute("""
@@ -199,11 +209,13 @@ def studentClasses():
     
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
     unread_notifications_count = get_unread_notifications_count(student_id)
     
     # Get all classes the student is enrolled in
@@ -270,14 +282,16 @@ def studentActivities():
     
     cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(student_id)
-    
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(student_id)
     
     # Get all activities from classes where the student is enrolled
     cur.execute("""
@@ -332,7 +346,11 @@ def studentSettings():
     cur = mysql.connection.cursor()
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
     unread_notifications_count = get_unread_notifications_count(student_id)
     cur.close()
 
@@ -450,7 +468,11 @@ def class_details(class_id):
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Check if student is enrolled in the class
     cur.execute("""
@@ -519,14 +541,16 @@ def viewActivity(activity_id):
 
     cur = mysql.connection.cursor()
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
-    unread_notifications_count = get_unread_notifications_count(student_id)
-
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(student_id)
 
     # Get activity details and check if student is enrolled in the class
     cur.execute("""
@@ -602,7 +626,11 @@ def submit_activity(activity_id):
     try:
         # Get student ID
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        student_id = cur.fetchone()[0]
+        student_row = cur.fetchone()
+        if not student_row:
+            flash("Student not found", "error")
+            return redirect(url_for('auth.login'))
+        student_id = student_row[0]
 
         # Check if student is enrolled in the class for this activity
         cur.execute("""
@@ -692,7 +720,11 @@ def un_enroll(class_id):
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Check if student is enrolled in the class
     cur.execute("""
@@ -778,7 +810,11 @@ def studentProgress():
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
@@ -895,7 +931,11 @@ def studentGrades():
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    student_id = cur.fetchone()[0]
+    student_row = cur.fetchone()
+    if not student_row:
+        flash("Student not found", "error")
+        return redirect(url_for('auth.login'))
+    student_id = student_row[0]
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
