@@ -1,8 +1,13 @@
 import os
-from app import create_app
+from flask import Flask
 
-app = create_app()
-application = app  # For Gunicorn
+app = Flask(__name__)
+application = app  # This line is crucial!
+
+
+@app.route('/')
+def home():
+    return 'C-Insight is working!'
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
