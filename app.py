@@ -2,12 +2,11 @@ import os
 from flask import Flask
 
 app = Flask(__name__)
-application = app  # This line is crucial!
-
+application = app  # Crucial for gunicorn
 
 @app.route('/')
 def home():
-    return 'C-Insight is working!'
+    return 'C-Insight with GCC is working!'
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

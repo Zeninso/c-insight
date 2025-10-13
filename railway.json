@@ -1,6 +1,6 @@
 {
   "build": {
-    "builder": "nixpacks"
+    "builder": "dockerfile"
   },
   "deploy": {
     "startCommand": "gunicorn --bind 0.0.0.0:$PORT app:application"
