@@ -31,20 +31,20 @@ def create_app():
     from flask_dance.consumer import oauth_authorized
     oauth_authorized.connect_via(google_bp)(google_logged_in)
 
-    # --- MySQL configuration ---
-    # Use private network first, fallback to public proxy
-    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
+    # --- MySQL configuration (PUBLIC PROXY) ---
+    # Use Railway public proxy host and port
+    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST', 'interchange.proxy.rlwy.net')
     app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER', 'root')
     app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')
     app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')
-    app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306))
+    app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 35718))  # <-- public proxy port
 
-    # 🔍 Print MySQL config for debugging
-    print("🔍 MySQL Connection Config:")
+    # 🔍 Log MySQL connection info for debugging
+    print("🌐 Connecting to PUBLIC MySQL endpoint:")
     print(f"Host: {app.config['MYSQL_HOST']}")
+    print(f"Port: {app.config['MYSQL_PORT']}")
     print(f"User: {app.config['MYSQL_USER']}")
     print(f"DB: {app.config['MYSQL_DB']}")
-    print(f"Port: {app.config['MYSQL_PORT']}")
     print("Attempting to connect to the database...")
 
     # Initialize MySQL
