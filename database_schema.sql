@@ -1,5 +1,5 @@
 -- Database schema for C-Insight Capstone Flask application
--- Compatible with PythonAnywhere MySQL
+
 
 -- Create database (uncomment if needed)
 CREATE DATABASE IF NOT EXISTS c_insight_db;
