@@ -36,6 +36,7 @@ def create_app():
     app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT') or 3306)
     app.config['MYSQL_UNIX_SOCKET'] = None
     app.config['MYSQL_CONNECT_TIMEOUT'] = None
+    app.config['MYSQL_READ_DEFAULT_FILE'] = None
 
 
     # Register blueprints
