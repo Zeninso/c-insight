@@ -127,3 +127,12 @@ CREATE TABLE IF NOT EXISTS settings (
 -- Insert default settings if not exists
 INSERT IGNORE INTO settings (id, site_name, admin_email) VALUES (1, 'C-Insight', NULL);
 
+INSERT INTO users (username, password, first_name, last_name, role, created_at)
+VALUES (
+    'admin',
+    'scrypt:32768:8:1$olBP7REJC8bDDHoQ$252df9aeb3f9b539be5772f385872a48536598c69d4b6373309e2f855f3de0f9c6841ea0c9053b01a59a958011b898bc3135e6ee9aeadb43023dca27059b3334',
+    'Administrator',
+    'System',
+    'admin',
+    CURRENT_TIMESTAMP
+);

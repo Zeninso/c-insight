@@ -11,3 +11,7 @@ def home():
     return render_template('home.html', username=username)
 
 
+@home_bp.route('/health')
+def health():
+    """Health check endpoint for Railway"""
+    return {'status': 'healthy'}, 200
