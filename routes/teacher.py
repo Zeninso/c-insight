@@ -1585,9 +1585,9 @@ def get_unread_notifications_count(user_id):
 def add_notification(user_id, role, notif_type, message, link=None):
     cur = mysql.connection.cursor()
     cur.execute("""
-        INSERT INTO notifications (user_id, role, type, message, link)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (user_id, role, notif_type, message, link))
+        INSERT INTO notifications (user_id, role, `type`, message, link, is_read, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+    """, (user_id, role, notif_type, message, link, False))
     mysql.connection.commit()
     cur.close()
 
@@ -1599,9 +1599,9 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
         message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
         link = url_for('student.viewActivity', activity_id=activity_id)
         cur.execute("""
-            INSERT INTO notifications (user_id, role, type, message, link)
-            VALUES (%s, 'student', 'new_activity', %s, %s)
-        """, (student_id, message, link))
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, 'student', 'new_activity', %s, %s, %s, NOW())
+        """, (student_id, message, link, False))
     mysql.connection.commit()
     cur.close()
 
@@ -1633,6 +1633,8 @@ def notify_finished_activities():
     activities = cur.fetchall()
 
     for activity_id, title, class_id, teacher_id, class_name in activities:
+        if teacher_id is None:
+            continue
         # Count total students in class
         cur.execute("SELECT COUNT(*) FROM enrollments WHERE class_id = %s", (class_id,))
         total_students = cur.fetchone()['COUNT(*)']
