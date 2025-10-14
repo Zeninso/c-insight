@@ -574,8 +574,16 @@
             .then(response => {
                 if (response.ok) {
                     return response.blob();
+                } else {
+                    return response.text().then(text => {
+                        try {
+                            const err = JSON.parse(text);
+                            throw new Error(err.error || 'Unknown error');
+                        } catch {
+                            throw new Error(text || 'Network response was not ok.');
+                        }
+                    });
                 }
-                throw new Error('Network response was not ok.');
             })
             .then(blob => {
                 // Create a download link and trigger click
