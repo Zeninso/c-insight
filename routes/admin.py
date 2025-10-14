@@ -150,18 +150,14 @@ def deleteUser(user_id):
         cur.execute("SELECT username, first_name, last_name, role FROM users WHERE id=%s", (user_id,))
         user = cur.fetchone()
         if not user:
-            return jsonify({'success': False, 'error': 'User  not found'}), 404
-        
-        cur.execute("DELETE FROM notifications WHERE user_id=%s", (user_id,))
-        cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
-        cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
-        cur.execute("DELETE FROM activities WHERE teacher_id=%s", (user_id,))
-        cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        # Delete the user; CASCADE will handle deleting related records
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
 
         # Notify admins about user deletion
-        message = f"User  deleted: {user[1]} {user[2]} ({user[0]}), Role: {user[3]}."
+        message = f"User deleted: {user[1]} {user[2]} ({user[0]}), Role: {user[3]}."
         add_admin_notification(message, notif_type='user_deleted')
 
         return jsonify({'success': True})
