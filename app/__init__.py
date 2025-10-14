@@ -17,6 +17,9 @@ def create_app():
     # Secret key
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
 
+    # Force HTTPS for OAuth redirects
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+
     # --- MySQL Railway Config ---
     app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST')            # Railway host
     app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER')            # Railway username
