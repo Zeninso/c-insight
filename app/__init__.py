@@ -19,6 +19,7 @@ def create_app():
 
     # Force HTTPS for OAuth redirects
     app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['FORCE_HTTPS'] = True
 
     # --- MySQL Railway Config ---
     app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST')            # Railway host
@@ -41,7 +42,8 @@ def create_app():
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
-        ]
+        ],
+        redirect_to='authorized'
     )
     app.register_blueprint(google_bp, url_prefix="/login")
 

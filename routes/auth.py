@@ -147,7 +147,7 @@ def user_profile():
 
 # Handle Google OAuth authorization
 def google_logged_in(blueprint, token):
-    from flask import current_app, redirect, url_for
+    from flask import current_app
     if not token:
         flash("Failed to log in with Google.", "error")
         return False
