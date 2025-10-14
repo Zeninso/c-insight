@@ -1044,7 +1044,7 @@ class CodeGrader:
             if len(submissions) == 0:
                 return 100, "Insufficient submissions for similarity check."
 
-            other_codes = [row[0] for row in submissions if row[0] and isinstance(row[0], str)]
+            other_codes = [row['code'] for row in submissions if row['code'] and isinstance(row['code'], str)]
 
             if not other_codes:
                 return 100, "No similar submissions found."
