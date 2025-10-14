@@ -815,9 +815,9 @@ def teacherActivities():
     classes_list = []
     for class_item in classes:
         classes_list.append({
-            'id': class_item[0],
-            'name': class_item[1],
-            'description': class_item[2]
+            'id': class_item['id'],
+            'name': class_item['name'],
+            'description': class_item['description']
         })
 
     return render_template('teacher_activities.html', activities=activities_list, classes=classes_list,
