@@ -1722,7 +1722,7 @@ def delete_submission(submission_id):
 
         student_id = submission['student_id']
         activity_id = submission['activity_id']
-        activity_title = submission['title']
+        activity_title = submission['activity_title']
 
         # Verify teacher owns the activity (direct via activities.teacher_id) or class (via classes.teacher_id)
         if submission['teacher_id'] != teacher_id and submission['class_teacher_id'] != teacher_id:
