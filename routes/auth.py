@@ -92,6 +92,10 @@ def register():
             )
             mysql.connection.commit()
 
+            # Notify admins about new user registration
+            message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
+            add_admin_notification(message, notif_type='user_registered')
+
             flash('Registration successful. Please login.', 'success')
             return redirect(url_for('auth.login'))
         except Exception as e:
