@@ -98,7 +98,7 @@ def studentDashboard():
 
     cur.close()
 
-    return render_template('student_Dashboard.html',
+    return render_template('student_dashboard.html',
                           username=session['username'],
                           enrolled_classes_count=enrolled_classes_count,
                           upcoming_activities=upcoming_activities,
