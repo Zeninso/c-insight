@@ -1732,7 +1732,7 @@ def delete_submission(submission_id):
         
         # Send notification to the student
         message = f"Your submission for '{activity_title}' has been deleted by your teacher. You can now resubmit it."
-        link = url_for('student.viewActivity', activity_id=activity_id, _external=True)  # Full URL for link
+        link = url_for('student.viewActivity', activity_id=activity_id)  # Internal URL for link
         cur.execute("""
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW())
