@@ -253,28 +253,43 @@ def updateSettings():
         cur.close()
 
 def add_admin_notification(message, notif_type='info', link=None):
-    print("add_admin_notification called")
+    print(f"add_admin_notification called: {message}")
+    cur = None
     try:
         cur = mysql.connection.cursor()
-        # Assuming admin user(s) have role='admin', you can notify all admins or a specific admin
-        # Here, notify all admins
+        
+        # Get all admin users
         cur.execute("SELECT id FROM users WHERE role='admin'")
         admins = cur.fetchall()
-        print(f"Found {len(admins)} admins.")
+        print(f"Found {len(admins)} admin users")
+        
+        if not admins:
+            print("No admin users found!")
+            return False
+            
+        # Insert notification for each admin
         for (admin_id,) in admins:
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
                 VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
             """, (admin_id, notif_type, message, link))
+        
         mysql.connection.commit()
-        print("Notification committed successfully.")
-        cur.close()
+        print("Notifications successfully saved to database")
+        return True
+        
     except Exception as e:
         print(f"Error in add_admin_notification: {str(e)}")
-        mysql.connection.rollback()
-        if 'cur' in locals():
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        if mysql.connection:
+            mysql.connection.rollback()
+        return False
+    finally:
+        if cur:
             cur.close()
+
 def get_admin_unread_notifications_count(admin_id):
     cur = mysql.connection.cursor()
     cur.execute("""
@@ -356,3 +371,51 @@ def notificationsCount():
 
     count = get_admin_unread_notifications_count(admin_id)
     return jsonify({'count': count})
+
+
+@admin_bp.route('/test-notification', methods=['POST'])
+def test_notification():
+    """Test route to verify notifications work"""
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        message = "Test notification from admin panel"
+        success = add_admin_notification(message, 'test')
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Test notification created'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to create notification'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@admin_bp.route('/check-notifications-table')
+def check_notifications_table():
+    """Check if notifications table exists and has data"""
+    if 'username' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # Check table structure
+        cur.execute("DESCRIBE notifications")
+        table_structure = cur.fetchall()
+        
+        # Count notifications
+        cur.execute("SELECT COUNT(*) as count FROM notifications")
+        count_result = cur.fetchone()
+        
+        # Get recent notifications
+        cur.execute("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 5")
+        recent_notifications = cur.fetchall()
+        
+        return jsonify({
+            'table_structure': table_structure,
+            'total_count': count_result['count'],
+            'recent_notifications': recent_notifications
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
