@@ -206,20 +206,20 @@ def studentClasses():
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
-    
-    cur = mysql.connection.cursor()
-    
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_row = cur.fetchone()
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
-    
+
     # Get all classes the student is enrolled in
     cur.execute("""
         SELECT c.id, c.name, c.description, u.first_name, u.last_name, e.enrolled_at
@@ -229,9 +229,9 @@ def studentClasses():
         WHERE e.student_id = %s
         ORDER BY e.enrolled_at DESC
     """, (student_id,))
-    
+
     classes = cur.fetchall()
-    
+
     # Get activities count and activities for each class
     classes_list = []
     for class_item in classes:
@@ -239,8 +239,9 @@ def studentClasses():
             SELECT COUNT(*)
             FROM activities
             WHERE class_id = %s
-        """, (class_item[0],))
-        activity_count = cur.fetchone()[0]
+        """, (class_item['id'],))
+        activity_count_result = cur.fetchone()
+        activity_count = activity_count_result['COUNT(*)'] if activity_count_result else 0
 
         # Get activities for this class
         cur.execute("""
@@ -248,32 +249,32 @@ def studentClasses():
             FROM activities
             WHERE class_id = %s
             ORDER BY due_date ASC
-        """, (class_item[0],))
+        """, (class_item['id'],))
         activities = cur.fetchall()
 
         activities_list = []
         for activity in activities:
             activities_list.append({
-                'id': activity[0],
-                'title': activity[1],
-                'due_date': activity[2],
-                'created_at': activity[3]
+                'id': activity['id'],
+                'title': activity['title'],
+                'due_date': activity['due_date'],
+                'created_at': activity['created_at']
             })
 
         classes_list.append({
-            'id': class_item[0],
-            'name': class_item[1],
-            'description': class_item[2],
-            'teacher_name': f"{class_item[3]} {class_item[4]}",
-            'enrolled_at': class_item[5],
+            'id': class_item['id'],
+            'name': class_item['name'],
+            'description': class_item['description'],
+            'teacher_name': f"{class_item['first_name']} {class_item['last_name']}",
+            'enrolled_at': class_item['enrolled_at'],
             'activity_count': activity_count,
             'activities': activities_list
         })
-    
+
     cur.close()
-    
+
     return render_template('student_classes.html', classes=classes_list, username=session['username'],
-                            unread_notifications_count=unread_notifications_count)    
+                            unread_notifications_count=unread_notifications_count)
 
 
 @student_bp.route('/activities')
@@ -281,8 +282,8 @@ def studentActivities():
     if 'username' not in session or session.get('role') != 'student':
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
-    
-    cur = mysql.connection.cursor()
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -290,14 +291,14 @@ def studentActivities():
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
-    
+
     # Get all activities from classes where the student is enrolled
     cur.execute("""
-        SELECT a.id, a.teacher_id, a.class_id, a.title, a.description, 
+        SELECT a.id, a.teacher_id, a.class_id, a.title, a.description,
                 a.instructions, a.starter_code, a.due_date, a.created_at,
                 u.first_name, u.last_name, c.name as class_name,
                 CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
@@ -309,29 +310,29 @@ def studentActivities():
         LEFT JOIN submissions s ON a.id = s.activity_id AND s.student_id = %s
         ORDER BY a.due_date ASC, a.created_at DESC
     """, (student_id, student_id))
-    
+
     activities = cur.fetchall()
     cur.close()
-    
+
     # Convert to list of dictionaries
     activities_list = []
     for activity in activities:
         activities_list.append({
-            'id': activity[0],
-            'teacher_id': activity[1],
-            'class_id': activity[2],
-            'title': activity[3],
-            'description': activity[4],
-            'instructions': activity[5],
-            'starter_code': activity[6],
-            'due_date': activity[7],
-            'created_at': activity[8],
-            'teacher_name': f"{activity[9]} {activity[10]}",
-            'class_name': activity[11],
-            'submitted': bool(activity[12]),
-            'overdue': bool(activity[13])
+            'id': activity['id'],
+            'teacher_id': activity['teacher_id'],
+            'class_id': activity['class_id'],
+            'title': activity['title'],
+            'description': activity['description'],
+            'instructions': activity['instructions'],
+            'starter_code': activity['starter_code'],
+            'due_date': activity['due_date'],
+            'created_at': activity['created_at'],
+            'teacher_name': f"{activity['first_name']} {activity['last_name']}",
+            'class_name': activity['class_name'],
+            'submitted': bool(activity['submitted']),
+            'overdue': bool(activity['overdue'])
         })
-    
+
     return render_template('student_activities.html', activities=activities_list, username=session['username'],
                             unread_notifications_count=unread_notifications_count)
 
