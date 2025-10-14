@@ -2,14 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import mysql
 from datetime import datetime, timedelta
-from flask import Flask
-from flask_mysqldb import MySQL
-from flask_dance.contrib.google import make_google_blueprint
-import os
-from flask_dance.contrib.google import google
-from flask import current_app as app
 import MySQLdb
-import random, string
 import time
 
 student_bp = Blueprint('student', __name__)
@@ -128,27 +121,29 @@ def join_class():
     
     if request.method == 'POST':
         class_code = request.form['class_code'].strip().upper()
-        
-        cur = mysql.connection.cursor()
-        
+
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
         # Check if class code is valid and not expired
         cur.execute("""
-            SELECT id, name, code_expires 
-            FROM classes 
+            SELECT id, name, code_expires
+            FROM classes
             WHERE class_code = %s
         """, (class_code,))
-        
+
         class_info = cur.fetchone()
-        
+
         if not class_info:
             flash('Invalid class code', 'error')
             return redirect(url_for('student.join_class'))
-        
-        class_id, class_name, code_expires = class_info
+
+        class_id = class_info['id']
+        class_name = class_info['name']
+        code_expires = class_info['code_expires']
 
         # Parse code_expires to datetime for comparison
         if code_expires:
-            code_expires_dt = datetime.strptime(code_expires, '%Y-%m-%d %H:%M:%S')
+            code_expires_dt = datetime.strptime(str(code_expires), '%Y-%m-%d %H:%M:%S')
             if datetime.now() > code_expires_dt:
                 flash('This class code has expired', 'error')
                 return redirect(url_for('student.join_class'))
@@ -162,7 +157,7 @@ def join_class():
         if not student_row:
             flash("Student not found", "error")
             return redirect(url_for('auth.login'))
-        student_id = student_row[0]
+        student_id = student_row['id']
         
         # Check if student is already enrolled
         cur.execute("""

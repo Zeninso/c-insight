@@ -70,7 +70,7 @@ class CodeGrader:
             syntax_score, syntax_feedback = self.check_syntax(code)
 
             # If syntax score is below threshold, assign zero to all scores and skip further checks
-            if syntax_score < 70:
+            if syntax_score < 85:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
