@@ -189,7 +189,7 @@ def join_class():
         teacher_id = class_info['teacher_id']
         class_name = class_info['name']
         student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
-        notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'joined')
+        notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'joined', class_id)
         
         mysql.connection.commit()
         cur.close()
@@ -793,10 +793,11 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
         add_notification(student_id, 'student', 'new_activity', message, link)
     cur.close()
 
-def notify_teacher_student_join_leave(teacher_id, student_name, class_name, action):
+def notify_teacher_student_join_leave(teacher_id, student_name, class_name, action, class_id=None):
     # action: 'joined' or 'left'
     message = f"Student {student_name} has {action} your class '{class_name}'."
-    add_notification(teacher_id, 'teacher', f'student_{action}', message)
+    link = url_for('teacher.view_class', class_id=class_id) if class_id else None
+    add_notification(teacher_id, 'teacher', f'student_{action}', message, link)
 
 def notify_teacher_activity_finished(teacher_id, activity_title, class_name, total_submissions, total_students):
     message = (f"Activity '{activity_title}' in class '{class_name}' is finished. "
