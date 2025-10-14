@@ -11,6 +11,7 @@ import pickle
 import logging
 import hashlib
 from app import mysql
+import MySQLdb
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -52,11 +53,26 @@ class CodeGrader:
 
             title, description, instructions, starter_code, due_date, correctness_w, syntax_w, logic_w, similarity_w = activity
 
-            # Convert weights to float
-            correctness_w = float(correctness_w)
-            syntax_w = float(syntax_w)
-            logic_w = float(logic_w)
-            similarity_w = float(similarity_w)
+            # Convert weights to float with error handling
+            try:
+                correctness_w = float(correctness_w)
+            except (ValueError, TypeError):
+                correctness_w = 25.0  # default weight
+
+            try:
+                syntax_w = float(syntax_w)
+            except (ValueError, TypeError):
+                syntax_w = 25.0  # default weight
+
+            try:
+                logic_w = float(logic_w)
+            except (ValueError, TypeError):
+                logic_w = 25.0  # default weight
+
+            try:
+                similarity_w = float(similarity_w)
+            except (ValueError, TypeError):
+                similarity_w = 25.0  # default weight
 
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
