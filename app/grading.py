@@ -13,6 +13,7 @@ import hashlib
 from app import mysql
 import MySQLdb
 
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,26 +54,11 @@ class CodeGrader:
 
             title, description, instructions, starter_code, due_date, correctness_w, syntax_w, logic_w, similarity_w = activity
 
-            # Convert weights to float with error handling
-            try:
-                correctness_w = float(correctness_w)
-            except (ValueError, TypeError):
-                return {'error': 'Invalid correctness_weight: must be a valid number'}
-
-            try:
-                syntax_w = float(syntax_w)
-            except (ValueError, TypeError):
-                return {'error': 'Invalid syntax_weight: must be a valid number'}
-
-            try:
-                logic_w = float(logic_w)
-            except (ValueError, TypeError):
-                return {'error': 'Invalid logic_weight: must be a valid number'}
-
-            try:
-                similarity_w = float(similarity_w)
-            except (ValueError, TypeError):
-                return {'error': 'Invalid similarity_weight: must be a valid number'}
+            # Convert weights to float
+            correctness_w = float(correctness_w)
+            syntax_w = float(syntax_w)
+            logic_w = float(logic_w)
+            similarity_w = float(similarity_w)
 
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
