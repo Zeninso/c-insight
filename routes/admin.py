@@ -140,6 +140,7 @@ def editUser(user_id):
 
 @admin_bp.route('/user/<int:user_id>/delete', methods=['POST'])
 def deleteUser(user_id):
+    print("deleteUser called")
     if 'username' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'error': 'Unauthorized access'}), 403
 
@@ -153,6 +154,7 @@ def deleteUser(user_id):
             return jsonify({'success': False, 'error': 'User not found'}), 404
 
         username, first_name, last_name, role = user
+        print(f"Deleting user: {username}, role: {role}")
 
         # Manually delete related records in the correct order to avoid CASCADE issues
         if role == 'student':
@@ -169,6 +171,7 @@ def deleteUser(user_id):
         # Delete the user
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
+        print("User deleted and committed")
 
         # Notify admins about user deletion
         message = f"User deleted: {first_name} {last_name} ({username}), Role: {role}."
@@ -178,6 +181,7 @@ def deleteUser(user_id):
 
         return jsonify({'success': True})
     except Exception as e:
+        print(f"Error in deleteUser: {str(e)}")
         mysql.connection.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
