@@ -94,14 +94,7 @@ def register():
 
             # Notify admins about new user registration
             message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
-            cur.execute("SELECT id FROM users WHERE role='admin'")
-            admins = cur.fetchall()
-            for admin in admins:
-                admin_id = int(admin[0])
-                cur.execute("""
-                    INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-                    VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
-                """, (admin_id, 'user_created', message, None))
+            add_admin_notification(message, notif_type='user_registered')
 
             flash('Registration successful. Please login.', 'success')
             return redirect(url_for('auth.login'))
@@ -257,17 +250,7 @@ def google_register():
 
         # Notify admins about new user registration
         message = f"New user registered: {data['first_name']} {data['last_name']} ({data['username']}), Role: {role}."
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT id FROM users WHERE role='admin'")
-        admins = cursor.fetchall()
-        for admin in admins:
-            admin_id = int(admin[0])
-            cursor.execute("""
-                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
-            """, (admin_id, 'user_created', message, None))
-        mysql.connection.commit()
-        cursor.close()
+        add_admin_notification(message, notif_type='user_registered')
 
         print("Registration successful, redirecting now...")
         flash("Registration complete. Logged in successfully!", "success")

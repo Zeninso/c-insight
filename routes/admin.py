@@ -176,15 +176,7 @@ def deleteUser(user_id):
         # Notify admins about user deletion
         message = f"User deleted: {first_name} {last_name} ({username}), Role: {role}."
         print(f"About to add notification: {message}")
-        cur.execute("SELECT id FROM users WHERE role='admin'")
-        admins = cur.fetchall()
-        for admin in admins:
-            admin_id = int(admin[0])
-            cur.execute("""
-                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
-            """, (admin_id, 'user_deleted', message, None))
-        mysql.connection.commit()
+        add_admin_notification(message, notif_type='user_deleted')
         print("Notification added successfully.")
 
         return jsonify({'success': True})
@@ -276,8 +268,7 @@ def add_admin_notification(message, notif_type='info', link=None):
             return False
             
         # Insert notification for each admin
-        for admin in admins:
-            admin_id = int(admin[0])
+        for (admin_id,) in admins:
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
