@@ -85,14 +85,14 @@ def studentDashboard():
         WHERE e.student_id = %s
     """, (student_id,))
     total_activities_result = cur.fetchone()
-    total_activities = total_activities_result[0] if total_activities_result else 0
+    total_activities = total_activities_result['COUNT(*)'] if total_activities_result else 0
 
     cur.execute("""
         SELECT COUNT(*) FROM submissions s
         WHERE s.student_id = %s
     """, (student_id,))
     submitted_activities_result = cur.fetchone()
-    submitted_activities = submitted_activities_result[0] if submitted_activities_result else 0
+    submitted_activities = submitted_activities_result['COUNT(*)'] if submitted_activities_result else 0
 
     progress_percentage = (submitted_activities / total_activities * 100) if total_activities > 0 else 0
 
