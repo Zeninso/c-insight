@@ -34,7 +34,7 @@ def studentDashboard():
     student_id = student_row['id']
     cur_dict.close()
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get enrolled classes count
     cur.execute("""
@@ -719,7 +719,7 @@ def un_enroll(class_id):
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -727,7 +727,7 @@ def un_enroll(class_id):
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Check if student is enrolled in the class
     cur.execute("""
@@ -750,8 +750,8 @@ def un_enroll(class_id):
     # Insert notification for teacher
     cur.execute("SELECT teacher_id, name FROM classes WHERE id = %s", (class_id,))
     class_info = cur.fetchone()
-    teacher_id = class_info[0]
-    class_name = class_info[1]
+    teacher_id = class_info['teacher_id']
+    class_name = class_info['name']
 
     student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
     notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'left')
@@ -811,7 +811,7 @@ def studentProgress():
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -819,7 +819,7 @@ def studentProgress():
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
@@ -831,13 +831,15 @@ def studentProgress():
         JOIN enrollments e ON c.id = e.class_id
         WHERE e.student_id = %s
     """, (student_id,))
-    total_activities = cur.fetchone()[0]
+    total_activities_result = cur.fetchone()
+    total_activities = total_activities_result['COUNT(*)'] if total_activities_result else 0
 
     cur.execute("""
         SELECT COUNT(*) FROM submissions s
         WHERE s.student_id = %s
     """, (student_id,))
-    submitted_activities = cur.fetchone()[0]
+    submitted_activities_result = cur.fetchone()
+    submitted_activities = submitted_activities_result['COUNT(*)'] if submitted_activities_result else 0
 
     progress_percentage = (submitted_activities / total_activities * 100) if total_activities > 0 else 0
 
@@ -879,41 +881,41 @@ def studentProgress():
     activities_progress_list = []
     for activity in activity_progress:
         total_score = None
-        if activity[5] and all(score is not None for score in activity[6:10]):  # submitted and has scores
+        if activity['submitted'] and all(score is not None for score in [activity['correctness_score'], activity['syntax_score'], activity['logic_score'], activity['similarity_score']]):  # submitted and has scores
             total_score = (
-                (activity[6] * activity[10] / 100) +  # correctness
-                (activity[7] * activity[11] / 100) +  # syntax
-                (activity[8] * activity[12] / 100) +  # logic
-                (activity[9] * activity[13] / 100)    # similarity
+                (activity['correctness_score'] * activity['correctness_weight'] / 100) +  # correctness
+                (activity['syntax_score'] * activity['syntax_weight'] / 100) +  # syntax
+                (activity['logic_score'] * activity['logic_weight'] / 100) +  # logic
+                (activity['similarity_score'] * activity['similarity_weight'] / 100)    # similarity
             )
 
         activities_progress_list.append({
-            'id': activity[0],
-            'title': activity[1],
-            'class_name': activity[2],
-            'due_date': activity[3],
-            'submitted': bool(activity[4]),
-            'overdue': bool(activity[5]),
-            'correctness_score': activity[6],
-            'syntax_score': activity[7],
-            'logic_score': activity[8],
-            'similarity_score': activity[9],
-            'correctness_weight': activity[10],
-            'syntax_weight': activity[11],
-            'logic_weight': activity[12],
-            'similarity_weight': activity[13],
+            'id': activity['id'],
+            'title': activity['title'],
+            'class_name': activity['class_name'],
+            'due_date': activity['due_date'],
+            'submitted': bool(activity['submitted']),
+            'overdue': bool(activity['overdue']),
+            'correctness_score': activity['correctness_score'],
+            'syntax_score': activity['syntax_score'],
+            'logic_score': activity['logic_score'],
+            'similarity_score': activity['similarity_score'],
+            'correctness_weight': activity['correctness_weight'],
+            'syntax_weight': activity['syntax_weight'],
+            'logic_weight': activity['logic_weight'],
+            'similarity_weight': activity['similarity_weight'],
             'total_score': total_score
         })
 
     # Process class progress data
     classes_progress_list = []
     for class_item in class_progress:
-        class_progress_percentage = (class_item[3] / class_item[2] * 100) if class_item[2] > 0 else 0
+        class_progress_percentage = (class_item['submitted_activities'] / class_item['total_activities'] * 100) if class_item['total_activities'] > 0 else 0
         classes_progress_list.append({
-            'name': class_item[0],
-            'id': class_item[1],
-            'total_activities': class_item[2],
-            'submitted_activities': class_item[3],
+            'name': class_item['name'],
+            'id': class_item['id'],
+            'total_activities': class_item['total_activities'],
+            'submitted_activities': class_item['submitted_activities'],
             'progress_percentage': class_progress_percentage
         })
 
