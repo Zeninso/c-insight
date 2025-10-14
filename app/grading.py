@@ -1045,8 +1045,22 @@ class CodeGrader:
                 return 100, "No similar submissions found."
 
             # Normalize codes to handle variable renaming
-            normalized_code = self.normalize_code(code)
-            normalized_other_codes = [self.normalize_code(other_code) for other_code in other_codes]
+            try:
+                normalized_code = self.normalize_code(code)
+            except Exception as e:
+                logger.error(f"Failed to normalize submitted code: {str(e)}")
+                return 100, "Failed to process submitted code for similarity check."
+
+            normalized_other_codes = []
+            for other_code in other_codes:
+                try:
+                    normalized_other_codes.append(self.normalize_code(other_code))
+                except Exception as e:
+                    logger.warning(f"Failed to normalize other code: {str(e)}")
+                    continue
+
+            if not normalized_other_codes:
+                return 100, "No valid other submissions for similarity check."
 
             # Use sequence matching for similarity detection
             try:
