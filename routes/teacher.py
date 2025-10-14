@@ -1411,7 +1411,7 @@ def delete_class(class_id):
         # Get class name
         cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
         class_name_row = cur.fetchone()
-        class_name = class_name_row[0] if class_name_row else "the class"
+        class_name = class_name_row['name'] if class_name_row else "the class"
 
         # Notify students about class deletion
         notification_query = """
