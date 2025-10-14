@@ -84,13 +84,15 @@ def studentDashboard():
         JOIN enrollments e ON c.id = e.class_id
         WHERE e.student_id = %s
     """, (student_id,))
-    total_activities = cur.fetchone()[0]
+    total_activities_result = cur.fetchone()
+    total_activities = total_activities_result[0] if total_activities_result else 0
 
     cur.execute("""
         SELECT COUNT(*) FROM submissions s
         WHERE s.student_id = %s
     """, (student_id,))
-    submitted_activities = cur.fetchone()[0]
+    submitted_activities_result = cur.fetchone()
+    submitted_activities = submitted_activities_result[0] if submitted_activities_result else 0
 
     progress_percentage = (submitted_activities / total_activities * 100) if total_activities > 0 else 0
 
@@ -184,8 +186,8 @@ def join_class():
         # Insert notification for teacher
         cur.execute("SELECT teacher_id, name FROM classes WHERE id = %s", (class_id,))
         class_info = cur.fetchone()
-        teacher_id = class_info[0]
-        class_name = class_info[1]
+        teacher_id = class_info['teacher_id']
+        class_name = class_info['name']
         student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
         notify_teacher_student_join_leave(teacher_id, student_name, class_name, 'joined')
         
