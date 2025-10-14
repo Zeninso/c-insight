@@ -784,8 +784,8 @@ def teacherActivities():
     #  Convert to dicts and format datetime fields
     activities_list = []
     for activity in activities:
-        class_name = activity[14]
-        if activity[2] is None:
+        class_name = activity['class_name']
+        if activity['class_id'] is None:
             class_name = 'No Class'
         elif class_name is None:
             class_name = 'Class Deleted'
@@ -794,20 +794,20 @@ def teacherActivities():
         # else keep class_name
 
         activities_list.append({
-            'id': activity[0],
-            'teacher_id': activity[1],
-            'class_id': activity[2],
-            'title': activity[3],
-            'description': activity[4],
-            'instructions': activity[5],
-            'starter_code': activity[6],
-            'due_date': activity[7],
-            'correctness_weight': activity[8],
-            'syntax_weight': activity[9],
-            'logic_weight': activity[10],
-            'similarity_weight': activity[11],
-            'created_at': activity[12],
-            'submission_count': activity[13],
+            'id': activity['id'],
+            'teacher_id': activity['teacher_id'],
+            'class_id': activity['class_id'],
+            'title': activity['title'],
+            'description': activity['description'],
+            'instructions': activity['instructions'],
+            'starter_code': activity['starter_code'],
+            'due_date': activity['due_date'],
+            'correctness_weight': activity['correctness_weight'],
+            'syntax_weight': activity['syntax_weight'],
+            'logic_weight': activity['logic_weight'],
+            'similarity_weight': activity['similarity_weight'],
+            'created_at': activity['created_at'],
+            'submission_count': activity['submission_count'],
             'class_name': class_name
         })
 
@@ -946,8 +946,8 @@ def manage_activity(activity_id):
                 return jsonify({'error': 'Activity not found'}), 404
 
 
-            class_name = activity[14]
-            if activity[2] is None:
+            class_name = activity['class_name']
+            if activity['class_id'] is None:
                 class_name = 'No Class'
             elif class_name is None:
                 class_name = 'Class Deleted'
@@ -956,20 +956,20 @@ def manage_activity(activity_id):
             # else keep class_name
 
             activity_dict = {
-                'id': activity[0],
-                'teacher_id': activity[1],
-                'class_id': activity[2],
-                'title': activity[3],
-                'description': activity[4],
-                'instructions': activity[5],
-                'starter_code': activity[6],
-                'due_date': activity[7].strftime('%Y-%m-%d %H:%M:%S') if activity[7] else None,
-                'correctness_weight': activity[8],
-                'syntax_weight': activity[9],
-                'logic_weight': activity[10],
-                'similarity_weight': activity[11],
-                'created_at': activity[12].strftime('%Y-%m-%d %H:%M:%S') if activity[12] else None,
-                'submission_count': activity[13],
+                'id': activity['id'],
+                'teacher_id': activity['teacher_id'],
+                'class_id': activity['class_id'],
+                'title': activity['title'],
+                'description': activity['description'],
+                'instructions': activity['instructions'],
+                'starter_code': activity['starter_code'],
+                'due_date': activity['due_date'].strftime('%Y-%m-%d %H:%M:%S') if activity['due_date'] else None,
+                'correctness_weight': activity['correctness_weight'],
+                'syntax_weight': activity['syntax_weight'],
+                'logic_weight': activity['logic_weight'],
+                'similarity_weight': activity['similarity_weight'],
+                'created_at': activity['created_at'].strftime('%Y-%m-%d %H:%M:%S') if activity['created_at'] else None,
+                'submission_count': activity['submission_count'],
                 'class_name': class_name
             }
 
