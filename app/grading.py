@@ -1024,6 +1024,9 @@ class CodeGrader:
     def check_similarity(self, activity_id, code, student_id):
         """Check similarity with other submissions using sequence matching, accounting for variable renaming."""
         try:
+            if not code or not isinstance(code, str) or len(code.strip()) == 0:
+                return 100, "No valid code submitted for similarity check."
+
             cur = mysql.connection.cursor()
             cur.execute("""
                 SELECT code FROM submissions
@@ -1036,7 +1039,7 @@ class CodeGrader:
             if len(submissions) == 0:
                 return 100, "Insufficient submissions for similarity check."
 
-            other_codes = [row[0] for row in submissions]
+            other_codes = [row[0] for row in submissions if row[0] and isinstance(row[0], str)]
 
             if not other_codes:
                 return 100, "No similar submissions found."
@@ -1046,11 +1049,15 @@ class CodeGrader:
             normalized_other_codes = [self.normalize_code(other_code) for other_code in other_codes]
 
             # Use sequence matching for similarity detection
-            max_similarity = 0
-            for other_normalized in normalized_other_codes:
-                ratio = SequenceMatcher(None, normalized_code, other_normalized).ratio()
-                if ratio > max_similarity:
-                    max_similarity = ratio
+            try:
+                max_similarity = 0
+                for other_normalized in normalized_other_codes:
+                    ratio = SequenceMatcher(None, normalized_code, other_normalized).ratio()
+                    if ratio > max_similarity:
+                        max_similarity = ratio
+            except Exception as e:
+                logger.error(f"Error calculating similarity ratio: {str(e)}")
+                return 100, "Similarity calculation failed due to technical error."
 
             max_sim_percent = max_similarity * 100
             score = max(0, 100 - max_sim_percent)
@@ -1067,7 +1074,7 @@ class CodeGrader:
 
         except Exception as e:
             logger.error(f"Similarity check failed: {str(e)}")
-            return 50, f"Similarity check failed: {str(e)}"
+            return 100, "Similarity check unavailable due to technical error."
 
     def train_ml_grading_model(self):
         """Train machine learning models using historical grading data."""
