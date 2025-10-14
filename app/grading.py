@@ -52,13 +52,27 @@ class CodeGrader:
             if not activity:
                 return {'error': 'Activity not found'}
 
-            title, description, instructions, starter_code, due_date, correctness_w, syntax_w, logic_w, similarity_w = activity
-
-            # Convert weights to float
-            correctness_w = float(correctness_w)
-            syntax_w = float(syntax_w)
-            logic_w = float(logic_w)
-            similarity_w = float(similarity_w)
+            title = activity['title']
+            description = activity['description']
+            instructions = activity['instructions']
+            starter_code = activity['starter_code']
+            due_date = activity['due_date']
+            try:
+                correctness_w = float(activity['correctness_weight'])
+            except (ValueError, TypeError):
+                correctness_w = 25.0
+            try:
+                syntax_w = float(activity['syntax_weight'])
+            except (ValueError, TypeError):
+                syntax_w = 25.0
+            try:
+                logic_w = float(activity['logic_weight'])
+            except (ValueError, TypeError):
+                logic_w = 25.0
+            try:
+                similarity_w = float(activity['similarity_weight'])
+            except (ValueError, TypeError):
+                similarity_w = 25.0
 
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
