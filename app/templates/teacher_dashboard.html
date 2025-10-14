@@ -124,11 +124,11 @@
                     <p>Submission Progress per Activity:</p>
                     {% if recent_activities %}
                         {% for activity in recent_activities %}
-                            {% set total_students = activity[3] if activity|length > 3 else 0 %}
-                            {% set submitted = activity[4] if activity|length > 4 else 0 %}
+                            {% set total_students = activity.total_students %}
+                            {% set submitted = activity.submitted_count %}
                             {% set progress_percent = (submitted / total_students * 100) if total_students > 0 else 0 %}
                             <div class="progress-activity">
-                                <h4>{{ activity[0] }}</h4>
+                                <h4>{{ activity.title }}</h4>
                                 <div class="progress-container">
                                     <div class="progress-fill" style="--progress-width: {{ progress_percent }}%;"></div>
                                 </div>
@@ -151,10 +151,10 @@
                         {% for activity in recent_activities %}
                             <div class="activity-item">
                                 <div class="activity-info">
-                                    <h4>{{ activity[0] }}</h4>
+                                    <h4>{{ activity.title }}</h4>
                                     <div class="activity-meta">
-                                        <span><i class="fas fa-calendar-plus"></i> Created: {{ activity[1].strftime('%b %d, %Y') }}</span>
-                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ activity[2] }}</span>
+                                        <span><i class="fas fa-calendar-plus"></i> Created: {{ activity.created_at.strftime('%b %d, %Y') }}</span>
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ activity.class_name }}</span>
                                     </div>
                                 </div>
                             </div>
