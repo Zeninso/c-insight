@@ -155,7 +155,7 @@ def join_class():
         else:
             flash('Invalid class code expiration', 'error')
             return redirect(url_for('student.join_class'))
-        
+
         # Get student ID
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
         student_row = cur.fetchone()
@@ -936,7 +936,7 @@ def studentGrades():
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -944,7 +944,7 @@ def studentGrades():
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
@@ -958,7 +958,7 @@ def studentGrades():
         ORDER BY c.name
     """, (student_id,))
     classes_data = cur.fetchall()
-    classes = [{'id': c[0], 'name': c[1]} for c in classes_data]
+    classes = [{'id': c['id'], 'name': c['name']} for c in classes_data]
 
     # Get filter parameters
     class_id_filter = request.args.get('class_id')
@@ -990,29 +990,29 @@ def studentGrades():
     grades_list = []
     for submission in submissions:
         total_score = (
-            (submission[5] * submission[9] / 100) +  # correctness
-            (submission[6] * submission[10] / 100) +  # syntax
-            (submission[7] * submission[11] / 100) + # logic
-            (submission[8] * submission[12] / 100)   # similarity
-        ) if submission[5] is not None else None
+            (submission['correctness_score'] * submission['correctness_weight'] / 100) +  # correctness
+            (submission['syntax_score'] * submission['syntax_weight'] / 100) +  # syntax
+            (submission['logic_score'] * submission['logic_weight'] / 100) + # logic
+            (submission['similarity_score'] * submission['similarity_weight'] / 100)   # similarity
+        ) if submission['correctness_score'] is not None else None
 
         grades_list.append({
-            'id': submission[0],
-            'activity_title': submission[1],
-            'class_name': submission[2],
-            'class_id': submission[3],
-            'submitted_at': submission[4],
-            'correctness_score': submission[5],
-            'syntax_score': submission[6],
-            'logic_score': submission[7],
-            'similarity_score': submission[8],
-            'correctness_weight': submission[9],
-            'syntax_weight': submission[10],
-            'logic_weight': submission[11],
-            'similarity_weight': submission[12],
+            'id': submission['id'],
+            'activity_title': submission['title'],
+            'class_name': submission['class_name'],
+            'class_id': submission['class_id'],
+            'submitted_at': submission['submitted_at'],
+            'correctness_score': submission['correctness_score'],
+            'syntax_score': submission['syntax_score'],
+            'logic_score': submission['logic_score'],
+            'similarity_score': submission['similarity_score'],
+            'correctness_weight': submission['correctness_weight'],
+            'syntax_weight': submission['syntax_weight'],
+            'logic_weight': submission['logic_weight'],
+            'similarity_weight': submission['similarity_weight'],
             'total_score': total_score,
-            'feedback': submission[13],
-            'code': submission[14]
+            'feedback': submission['feedback'],
+            'code': submission['code']
         })
 
     return render_template('student_grades.html', grades=grades_list, classes=classes,
