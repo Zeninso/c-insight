@@ -464,25 +464,33 @@ class CodeGrader:
                 # No penalty if control flow not required
                 score += 10
 
-        # Algorithm Indicators
+        # Algorithm Indicators with improved detection
         algorithm_indicators = 0
-        if 'sort' in code.lower() or 'search' in code.lower():
-            algorithm_indicators += 1
-        if '%' in code:
-            algorithm_indicators += 1
-        if 'sqrt' in code or 'pow' in code:
-            algorithm_indicators += 1
-        if '&&' in code or '||' in code:
-            algorithm_indicators += 1
-        # Additional algorithm patterns
-        if 'bubble' in code.lower() or 'insertion' in code.lower() or 'selection' in code.lower():
-            algorithm_indicators += 2  # Higher weight for sorting algorithms
-        if 'binary' in code.lower() or 'linear' in code.lower():
-            algorithm_indicators += 2  # Higher weight for search algorithms
-        if 'recursion' in code.lower() or 'recursive' in code.lower():
-            algorithm_indicators += 2  # Higher weight for recursion
+        code_lower = code.lower()
 
-        score += min(25, algorithm_indicators * 5)  # Increased weight and max
+        # Basic algorithm patterns
+        if 'sort' in code_lower or 'search' in code_lower:
+            algorithm_indicators += 1
+        if '%' in code:  # Modulo operations often used in algorithms
+            algorithm_indicators += 1
+        if 'sqrt' in code or 'pow' in code:  # Mathematical functions
+            algorithm_indicators += 1
+        if '&&' in code or '||' in code:  # Logical operations
+            algorithm_indicators += 1
+
+        # Specific algorithm implementations
+        sorting_algorithms = ['bubble', 'insertion', 'selection', 'merge', 'quick', 'heap']
+        search_algorithms = ['binary', 'linear', 'sequential']
+        if any(alg in code_lower for alg in sorting_algorithms):
+            algorithm_indicators += 3  # Higher weight for sorting algorithms
+        if any(alg in code_lower for alg in search_algorithms):
+            algorithm_indicators += 3  # Higher weight for search algorithms
+        if 'recursion' in code_lower or 'recursive' in code_lower:
+            algorithm_indicators += 3  # Higher weight for recursion
+
+        # Check for proper algorithm implementation patterns
+        algorithm_quality_score = self.check_algorithm_quality(code)
+        score += min(25, algorithm_indicators * 4 + algorithm_quality_score)
 
         # Data Processing - only score if arrays are required or used
         array_usage = code.count('[') + code.count(']')
@@ -491,29 +499,40 @@ class CodeGrader:
         elif array_usage > 0:
             score += 15  # Bonus if arrays used even if not required
 
-        # Error Handling (basic check for NULL and conditional usage)
+        # Error Handling (enhanced check for NULL, bounds checking, and conditional usage)
         error_patterns = code.count('NULL') + code.count('if (') + code.count('else')
-        score += 15 if error_patterns > 0 else 0  # Increased weight
+        bounds_checks = code.count('if (') + code.count('while (') + code.count('< ') + code.count('> ') + code.count('<=') + code.count('>=')
+        error_handling_score = min(20, error_patterns * 2 + bounds_checks)
+        score += error_handling_score
 
-        # Code Efficiency (nested loops) - only if loops are used
+        # Code Efficiency (nested loops and complexity analysis)
         if loop_count > 0:
             nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
+            efficiency_score = 0
             if nested_loops == 0:
-                score += 20
+                efficiency_score = 25
             elif nested_loops <= 2:
-                score += 15
+                efficiency_score = 20
+            elif nested_loops <= 4:
+                efficiency_score = 15
             else:
-                score += 10
+                efficiency_score = 5  # Penalize deeply nested loops
+
+            # Check for potential infinite loops
+            infinite_loop_penalty = self.check_infinite_loops(code)
+            efficiency_score -= infinite_loop_penalty
+
+            score += efficiency_score
 
         # Check for use of break/continue for loop control - only if loops are used
         if loop_count > 0 and ('break;' in code or 'continue;' in code):
-            score += 10  # Increased weight
+            score += 12  # Increased weight
 
         # Additional logic checks for better variation
-        # Check for proper loop initialization - only if loops are used
+        # Check for proper loop initialization and bounds - only if loops are used
         if loop_count > 0:
-            loop_init_patterns = code.count('for (int ') + code.count('for (i =') + code.count('while (')
-            score += min(15, loop_init_patterns * 3)  # Increased weight
+            loop_quality_score = self.check_loop_quality(code)
+            score += loop_quality_score
 
         # Check for function calls within logic - only if functions are required
         if requirements and requirements.get('functions', False):
@@ -531,12 +550,12 @@ class CodeGrader:
             score -= 10  # Reduced penalty only if control flow was required
 
         # Enhanced logic checks
-        # Check for proper variable initialization
-        var_init_score = self.check_variable_initialization(code)
-        score += var_init_score
+        # Check for proper variable initialization and usage
+        var_logic_score = self.check_variable_logic(code)
+        score += var_logic_score
 
-        # Check for logical consistency (e.g., no obvious errors)
-        logic_consistency_score = self.check_logical_consistency(code)
+        # Check for logical consistency and potential errors
+        logic_consistency_score = self.check_enhanced_logical_consistency(code)
         score += logic_consistency_score
 
         # Check for proper nesting and structure
@@ -547,80 +566,16 @@ class CodeGrader:
         unreachable_score = self.check_unreachable_code(code)
         score += unreachable_score
 
+        # Check for proper operator usage
+        operator_score = self.check_operator_usage(code)
+        score += operator_score
+
+        # Check for memory safety
+        memory_score = self.check_memory_safety(code)
+        score += memory_score
+
         return min(100, max(0, score))
 
-    def check_variable_initialization(self, code):
-        """Check if variables are properly initialized before use."""
-        score = 0
-        lines = code.split('\n')
-        variables = set()
-        initialized = set()
-
-        for line in lines:
-            line = line.strip()
-            # Find variable declarations
-            if any(line.startswith(dtype + ' ') for dtype in ['int', 'char', 'float', 'double']):
-                # Extract variable names
-                var_match = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
-                for var in var_match:
-                    if var not in ['int', 'char', 'float', 'double', 'void']:
-                        variables.add(var)
-                        # Check if initialized
-                        if '=' in line:
-                            initialized.add(var)
-
-        # Check if variables are used before initialization
-        for line in lines:
-            line = line.strip()
-            if 'if (' in line or 'while (' in line or 'for (' in line:
-                # Extract variables used in conditions
-                used_vars = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
-                for var in used_vars:
-                    if var in variables and var not in initialized:
-                        score -= 5  # Penalize uninitialized variable usage
-
-        return max(-10, min(10, score))  # Cap the score
-
-    def check_logical_consistency(self, code):
-        """Check for logical consistency and potential errors."""
-        score = 0
-
-        # Check for division by zero patterns
-        if '/' in code:
-            lines = code.split('\n')
-            for line in lines:
-                if '/' in line and 'if (' not in line:
-                    # Simple check: if dividing by a variable, should have some check
-                    if re.search(r'/\s*[a-zA-Z_]\w*', line):
-                        score -= 2  # Potential division by zero
-
-        # Check for array bounds (simple check)
-        if '[' in code:
-            array_accesses = re.findall(r'\[[^\]]*\]', code)
-            for access in array_accesses:
-                if re.search(r'\b\d+\b', access):  # Direct index
-                    index = int(re.search(r'\b(\d+)\b', access).group(1))
-                    if index < 0:
-                        score -= 5  # Negative index
-
-        # Check for proper return statements in functions
-        func_lines = [line for line in code.split('\n') if line.strip().endswith('{')]
-        for i, line in enumerate(func_lines):
-            if 'int ' in line or 'float ' in line or 'double ' in line or 'char ' in line:
-                # Check if there's a return in the function
-                brace_count = 0
-                has_return = False
-                for j in range(i+1, len(code.split('\n'))):
-                    next_line = code.split('\n')[j].strip()
-                    brace_count += next_line.count('{') - next_line.count('}')
-                    if 'return ' in next_line:
-                        has_return = True
-                    if brace_count == 0:
-                        break
-                if not has_return:
-                    score -= 3  # Missing return in non-void function
-
-        return max(-15, min(15, score))  # Cap the score
 
     def check_nesting_structure(self, code):
         """Check for proper nesting of control structures."""
@@ -671,6 +626,247 @@ class CodeGrader:
                     j += 1
 
         return max(-10, min(5, score))  # Cap the score
+
+    def check_algorithm_quality(self, code):
+        """Check for proper algorithm implementation patterns."""
+        score = 0
+        lines = code.split('\n')
+
+        # Check for proper sorting algorithm patterns
+        if 'bubble' in code.lower() or 'insertion' in code.lower() or 'selection' in code.lower():
+            # Look for nested loops (typical in sorting)
+            nested_loop_count = 0
+            for line in lines:
+                if 'for (' in line or 'while (' in line:
+                    nested_loop_count += 1
+            if nested_loop_count >= 2:
+                score += 5
+
+        # Check for proper search algorithm patterns
+        if 'binary' in code.lower() or 'linear' in code.lower():
+            # Look for proper bounds checking
+            if 'if (' in code and ('<' in code or '>' in code):
+                score += 5
+
+        # Check for recursion patterns
+        if 'recursion' in code.lower() or 'recursive' in code.lower():
+            # Look for function calls within the same function
+            func_calls = re.findall(r'\b\w+\s*\(', code)
+            if len(func_calls) > 1:  # More than just main/printf/scanf
+                score += 5
+
+        return min(10, score)
+
+    def check_infinite_loops(self, code):
+        """Check for potential infinite loop patterns."""
+        penalty = 0
+        lines = code.split('\n')
+
+        for i, line in enumerate(lines):
+            if 'while (' in line:
+                # Check if the condition can become false
+                condition = line.split('while (')[1].split(')')[0].strip()
+                if condition in ['1', 'true', 'TRUE']:
+                    penalty += 10  # Likely infinite loop
+                elif not any(op in condition for op in ['<', '>', '==', '!=', '&&', '||']):
+                    penalty += 5  # Suspicious condition
+
+            elif 'for (' in line:
+                # Check for (;;) pattern
+                if ';;' in line:
+                    penalty += 10  # Infinite for loop
+
+        return penalty
+
+    def check_loop_quality(self, code):
+        """Check for proper loop initialization and bounds."""
+        score = 0
+        lines = code.split('\n')
+
+        for line in lines:
+            if 'for (' in line:
+                # Check for proper initialization (i = 0)
+                if 'i = 0' in line or 'int i = 0' in line:
+                    score += 3
+                # Check for proper condition (< n or < size)
+                if '<' in line and ('n' in line or 'size' in line or 'length' in line):
+                    score += 3
+                # Check for proper increment (i++)
+                if 'i++' in line:
+                    score += 3
+
+            elif 'while (' in line:
+                # Check for proper condition
+                condition = line.split('while (')[1].split(')')[0].strip()
+                if any(op in condition for op in ['<', '>', '==', '!=']):
+                    score += 5
+
+        return min(15, score)
+
+    def check_variable_logic(self, code):
+        """Check for proper variable initialization and usage."""
+        score = 0
+        lines = code.split('\n')
+        variables = set()
+        initialized = set()
+
+        # Find variable declarations and initializations
+        for line in lines:
+            line = line.strip()
+            # Variable declarations
+            if any(line.startswith(dtype + ' ') for dtype in ['int', 'char', 'float', 'double']):
+                var_match = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
+                for var in var_match:
+                    if var not in ['int', 'char', 'float', 'double', 'void']:
+                        variables.add(var)
+                        if '=' in line:
+                            initialized.add(var)
+
+            # Check for initialization in separate lines
+            elif '=' in line and not line.startswith('if') and not line.startswith('while') and not line.startswith('for'):
+                var_match = re.findall(r'\b([a-zA-Z_]\w*)\b', line.split('=')[0])
+                for var in var_match:
+                    if var in variables:
+                        initialized.add(var)
+
+        # Check usage before initialization
+        for line in lines:
+            line = line.strip()
+            if 'if (' in line or 'while (' in line or 'for (' in line or 'printf(' in line or 'scanf(' in line:
+                used_vars = re.findall(r'\b([a-zA-Z_]\w*)\b', line)
+                for var in used_vars:
+                    if var in variables and var not in initialized:
+                        score -= 3  # Penalize uninitialized usage
+
+        # Bonus for proper initialization
+        if len(initialized) > 0:
+            score += min(5, len(initialized))
+
+        return max(-10, min(10, score))
+
+    def check_enhanced_logical_consistency(self, code):
+        """Enhanced check for logical consistency and potential errors."""
+        score = 0
+
+        # Check for division by zero with better detection
+        if '/' in code:
+            lines = code.split('\n')
+            for line in lines:
+                if '/' in line and 'if (' not in line:
+                    # Check for division by variable without protection
+                    if re.search(r'/\s*[a-zA-Z_]\w*\s*;', line):
+                        # Look for preceding checks
+                        var_match = re.search(r'/\s*([a-zA-Z_]\w*)', line)
+                        if var_match:
+                            var = var_match.group(1)
+                            # Check if there's a check for this variable earlier
+                            has_check = False
+                            for prev_line in lines[:lines.index(line)]:
+                                if f'if ({var}' in prev_line or f'if (!{var}' in prev_line:
+                                    has_check = True
+                                    break
+                            if not has_check:
+                                score -= 3
+
+        # Check for array bounds with better detection
+        if '[' in code:
+            array_accesses = re.findall(r'\[[^\]]*\]', code)
+            for access in array_accesses:
+                if re.search(r'\b\d+\b', access):  # Direct numeric index
+                    index = int(re.search(r'\b(\d+)\b', access).group(1))
+                    if index < 0:
+                        score -= 5
+                    elif index > 100:  # Suspiciously large index
+                        score -= 2
+
+        # Check for proper return statements in functions
+        func_lines = [line for line in code.split('\n') if line.strip().endswith('{')]
+        for i, line in enumerate(func_lines):
+            if any(dtype in line for dtype in ['int ', 'float ', 'double ', 'char ']) and 'main' not in line:
+                # Non-void function should have return
+                brace_count = 0
+                has_return = False
+                for j in range(i+1, len(code.split('\n'))):
+                    next_line = code.split('\n')[j].strip()
+                    brace_count += next_line.count('{') - next_line.count('}')
+                    if 'return ' in next_line:
+                        has_return = True
+                    if brace_count == 0:
+                        break
+                if not has_return:
+                    score -= 5
+
+        # Check for logical operator consistency
+        if '&&' in code or '||' in code:
+            # Look for potential logical errors
+            if 'if (a && b || c)' in code:  # Missing parentheses
+                score -= 3
+
+        return max(-15, min(15, score))
+
+    def check_operator_usage(self, code):
+        """Check for proper operator usage."""
+        score = 0
+
+        # Check for assignment vs comparison
+        if '=' in code:
+            lines = code.split('\n')
+            for line in lines:
+                if 'if (' in line and '=' in line and '==' not in line:
+                    # Potential assignment in condition
+                    score -= 3
+
+        # Check for proper increment/decrement usage
+        if '++' in code or '--' in code:
+            score += 2  # Bonus for using increment/decrement
+
+        # Check for mixed operators
+        arith_ops = code.count('+') + code.count('-') + code.count('*') + code.count('/')
+        comp_ops = code.count('==') + code.count('!=') + code.count('<') + code.count('>') + code.count('<=') + code.count('>=')
+        logic_ops = code.count('&&') + code.count('||')
+
+        if arith_ops > 0 and comp_ops > 0:
+            score += 3  # Good mix of arithmetic and comparison
+
+        if logic_ops > 0:
+            score += 2  # Uses logical operators
+
+        return max(-5, min(10, score))
+
+    def check_memory_safety(self, code):
+        """Check for memory safety issues."""
+        score = 0
+
+        # Check for proper malloc/free usage
+        if 'malloc' in code:
+            malloc_count = code.count('malloc(')
+            free_count = code.count('free(')
+            if free_count >= malloc_count:
+                score += 5  # Proper memory management
+            else:
+                score -= 5  # Potential memory leaks
+
+        # Check for NULL checks before pointer usage
+        if '*' in code:
+            pointer_usage = code.count('*')
+            null_checks = code.count('NULL') + code.count('null')
+            if null_checks > 0:
+                score += min(5, null_checks * 2)
+            else:
+                score -= 3  # No NULL checks with pointers
+
+        # Check for array bounds safety
+        if '[' in code:
+            array_accesses = re.findall(r'\[[^\]]*\]', code)
+            bounds_checks = 0
+            for access in array_accesses:
+                # Look for bounds checking before array access
+                if 'if (' in code and ('<' in code or '>' in code):
+                    bounds_checks += 1
+            if bounds_checks > 0:
+                score += min(5, bounds_checks)
+
+        return max(-10, min(10, score))
 
     def analyze_c_code_detailed_feedback(self, code, requirements=None):
         """Provide detailed feedback on C code analysis."""
