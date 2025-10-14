@@ -375,7 +375,7 @@ def studentSettings():
         # Validate required profile fields
         if not username or not first_name or not last_name:
             flash('Username, First name, and Last name, are required.', 'error')
-            return render_template('teacher_settings.html', user=user)
+            return render_template('student_settings.html', user=user)
         
         # Check if the new username is already taken by another user
         cur.execute("SELECT username FROM users WHERE username = %s AND username != %s", (username, session['username']))
@@ -765,7 +765,8 @@ def get_unread_notifications_count(user_id):
         SELECT COUNT(*) FROM notifications
         WHERE user_id = %s AND role = 'student' AND is_read = FALSE
     """, (user_id,))
-    count = cur.fetchone()[0]
+    result = cur.fetchone()
+    count = result['COUNT(*)'] if result else 0
     cur.close()
     return count
 
