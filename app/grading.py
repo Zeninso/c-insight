@@ -52,6 +52,12 @@ class CodeGrader:
 
             title, description, instructions, starter_code, due_date, correctness_w, syntax_w, logic_w, similarity_w = activity
 
+            # Convert weights to float
+            correctness_w = float(correctness_w)
+            syntax_w = float(syntax_w)
+            logic_w = float(logic_w)
+            similarity_w = float(similarity_w)
+
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
                 try:
