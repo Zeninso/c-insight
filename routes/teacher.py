@@ -1272,12 +1272,12 @@ def view_class(class_id):
     cur.close()
     
     class_dict = {
-        'id': class_data[0],
-        'name': class_data[1],
-        'description': class_data[2],
-        'class_code': class_data[3],
-        'code_expires': class_data[4],
-        'created_at': class_data[5]
+        'id': class_data['id'],
+        'name': class_data['name'],
+        'description': class_data['description'],
+        'class_code': class_data['class_code'],
+        'code_expires': class_data['code_expires'],
+        'created_at': class_data['created_at']
     }
     
     students_list = []
