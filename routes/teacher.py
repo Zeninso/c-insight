@@ -55,7 +55,7 @@ def teacherDashboard():
     if total_classes > 0:
         cur.execute("SELECT id FROM classes WHERE teacher_id=%s ORDER BY created_at ASC LIMIT 1", (teacher_id,))
         first_class = cur.fetchone()
-        first_class_id = first_class[0] if first_class else None
+        first_class_id = first_class['id'] if first_class else None
 
     # Get total students (across all classes)
     cur.execute("""
@@ -64,7 +64,8 @@ def teacherDashboard():
         JOIN classes c ON e.class_id = c.id
         WHERE c.teacher_id = %s
     """, (teacher_id,))
-    total_students = cur.fetchone()[0]
+    total_students_result = cur.fetchone()
+    total_students = total_students_result['COUNT(DISTINCT e.student_id)'] if total_students_result else 0
 
     # Get recent activities (last 5) with submission progress
     cur.execute("""
@@ -86,7 +87,8 @@ def teacherDashboard():
         JOIN activities a ON s.activity_id = a.id
         WHERE a.teacher_id = %s AND s.correctness_score IS NULL
     """, (teacher_id,))
-    pending_submissions = cur.fetchone()[0]
+    pending_submissions_result = cur.fetchone()
+    pending_submissions = pending_submissions_result['COUNT(*)'] if pending_submissions_result else 0
 
     cur.close()
 
