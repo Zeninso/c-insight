@@ -1,4 +1,4 @@
-  function confirmDelete(userId) {
+    function confirmDelete(userId) {
         Swal.fire({
             title: 'Are you sure?',
             text: 'This will permanently delete the user.',
@@ -8,8 +8,14 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 fetch(`/admin/user/${userId}/delete`, { method: 'POST' })
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) {
+                            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                        }
+                        return res.json();
+                    })
                     .then(data => {
+                        console.log('Delete response:', data);
                         if (data.success) {
                             Swal.fire({
                                 title: 'Deleted!',
@@ -21,6 +27,10 @@
                         } else {
                             Swal.fire('Error!', data.error, 'error');
                         }
+                    })
+                    .catch(error => {
+                        console.error('Delete error:', error);
+                        Swal.fire('Error!', 'Failed to delete user: ' + error.message, 'error');
                     });
             }
         });

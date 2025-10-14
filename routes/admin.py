@@ -152,12 +152,26 @@ def deleteUser(user_id):
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
 
-        # Delete the user; CASCADE will handle deleting related records
+        username, first_name, last_name, role = user
+
+        # Manually delete related records in the correct order to avoid CASCADE issues
+        if role == 'student':
+            # Delete submissions and enrollments for student
+            cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
+            cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
+        elif role == 'teacher':
+            # Delete classes for teacher (this will cascade to enrollments, activities, submissions)
+            cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
+
+        # Delete notifications for the user
+        cur.execute("DELETE FROM notifications WHERE user_id=%s", (user_id,))
+
+        # Delete the user
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
         mysql.connection.commit()
 
         # Notify admins about user deletion
-        message = f"User deleted: {user[1]} {user[2]} ({user[0]}), Role: {user[3]}."
+        message = f"User deleted: {first_name} {last_name} ({username}), Role: {role}."
         add_admin_notification(message, notif_type='user_deleted')
 
         return jsonify({'success': True})
@@ -233,18 +247,26 @@ def updateSettings():
         cur.close()
 
 def add_admin_notification(message, notif_type='info', link=None):
-    cur = mysql.connection.cursor()
-    # Assuming admin user(s) have role='admin', you can notify all admins or a specific admin
-    # Here, notify all admins
-    cur.execute("SELECT id FROM users WHERE role='admin'")
-    admins = cur.fetchall()
-    for (admin_id,) in admins:
-        cur.execute("""
-            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-            VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
-        """, (admin_id, notif_type, message, link))
-    mysql.connection.commit()
-    cur.close()
+    try:
+        cur = mysql.connection.cursor()
+        # Assuming admin user(s) have role='admin', you can notify all admins or a specific admin
+        # Here, notify all admins
+        cur.execute("SELECT id FROM users WHERE role='admin'")
+        admins = cur.fetchall()
+        print(f"Found {len(admins)} admins to notify.")
+        for (admin_id,) in admins:
+            print(f"Inserting notification for admin_id: {admin_id}")
+            cur.execute("""
+                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
+            """, (admin_id, notif_type, message, link))
+        mysql.connection.commit()
+        print("Notification committed successfully.")
+        cur.close()
+    except Exception as e:
+        print(f"Error adding admin notification: {str(e)}")
+        mysql.connection.rollback()
+        cur.close()
 def get_admin_unread_notifications_count(admin_id):
     cur = mysql.connection.cursor()
     cur.execute("""
