@@ -249,26 +249,28 @@ def updateSettings():
         cur.close()
 
 def add_admin_notification(message, notif_type='info', link=None):
+    print("add_admin_notification called")
     try:
         cur = mysql.connection.cursor()
         # Assuming admin user(s) have role='admin', you can notify all admins or a specific admin
         # Here, notify all admins
         cur.execute("SELECT id FROM users WHERE role='admin'")
         admins = cur.fetchall()
-        print(f"Found {len(admins)} admins to notify.")
+        print(f"Found {len(admins)} admins.")
         for (admin_id,) in admins:
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-                VALUES (%s, 'admin', %s, %s, %s, FALSE, UTC_TIMESTAMP())
+                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
             """, (admin_id, notif_type, message, link))
         mysql.connection.commit()
         print("Notification committed successfully.")
         cur.close()
     except Exception as e:
-        print(f"Error adding admin notification: {str(e)}")
+        print(f"Error in add_admin_notification: {str(e)}")
         mysql.connection.rollback()
-        cur.close()
+        if 'cur' in locals():
+            cur.close()
 def get_admin_unread_notifications_count(admin_id):
     cur = mysql.connection.cursor()
     cur.execute("""
