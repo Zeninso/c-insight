@@ -57,22 +57,22 @@ class CodeGrader:
             try:
                 correctness_w = float(correctness_w)
             except (ValueError, TypeError):
-                correctness_w = 25.0  # default weight
+                return {'error': 'Invalid correctness_weight: must be a valid number'}
 
             try:
                 syntax_w = float(syntax_w)
             except (ValueError, TypeError):
-                syntax_w = 25.0  # default weight
+                return {'error': 'Invalid syntax_weight: must be a valid number'}
 
             try:
                 logic_w = float(logic_w)
             except (ValueError, TypeError):
-                logic_w = 25.0  # default weight
+                return {'error': 'Invalid logic_weight: must be a valid number'}
 
             try:
                 similarity_w = float(similarity_w)
             except (ValueError, TypeError):
-                similarity_w = 25.0  # default weight
+                return {'error': 'Invalid similarity_weight: must be a valid number'}
 
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
