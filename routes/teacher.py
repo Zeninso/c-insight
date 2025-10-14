@@ -1714,17 +1714,18 @@ def delete_submission(submission_id):
             JOIN classes c ON a.class_id = c.id
             WHERE s.id = %s
         """, (submission_id,))
+
         submission = cur.fetchone()
 
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
 
-        student_id = submission[1]
-        activity_id = submission[2]
-        activity_title = submission[3]
+        student_id = submission['student_id']
+        activity_id = submission['activity_id']
+        activity_title = submission['title']
 
         # Verify teacher owns the activity (direct via activities.teacher_id) or class (via classes.teacher_id)
-        if submission[4] != teacher_id and submission[6] != teacher_id:
+        if submission['teacher_id'] != teacher_id and submission['class_teacher_id'] != teacher_id:
             return jsonify({'error': 'Not authorized to delete this submission'}), 403
 
         # Delete the submission
