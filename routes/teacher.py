@@ -1283,20 +1283,20 @@ def view_class(class_id):
     students_list = []
     for student in students:
         students_list.append({
-            'id': student[0],
-            'username': student[1],
-            'first_name': student[2],
-            'last_name': student[3],
-            'enrolled_at': student[4]
+            'id': student['id'],
+            'username': student['username'],
+            'first_name': student['first_name'],
+            'last_name': student['last_name'],
+            'enrolled_at': student['enrolled_at']
         })
-    
+
     activities_list = []
     for activity in activities:
         activities_list.append({
-            'id': activity[0],
-            'title': activity[1],
-            'due_date': activity[2],
-            'created_at': activity[3]
+            'id': activity['id'],
+            'title': activity['title'],
+            'due_date': activity['due_date'],
+            'created_at': activity['created_at']
         })
 
     unread_notifications_count = session.pop('unread_notifications_count', None)
@@ -1635,11 +1635,11 @@ def notify_finished_activities():
     for activity_id, title, class_id, teacher_id, class_name in activities:
         # Count total students in class
         cur.execute("SELECT COUNT(*) FROM enrollments WHERE class_id = %s", (class_id,))
-        total_students = cur.fetchone()[0]
+        total_students = cur.fetchone()['COUNT(*)']
 
         # Count total submissions for activity
         cur.execute("SELECT COUNT(DISTINCT student_id) FROM submissions WHERE activity_id = %s", (activity_id,))
-        total_submissions = cur.fetchone()[0]
+        total_submissions = cur.fetchone()['COUNT(DISTINCT student_id)']
 
         notify_teacher_activity_finished(teacher_id, title, class_name, total_submissions, total_students)
 
