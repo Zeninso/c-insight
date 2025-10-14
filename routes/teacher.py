@@ -40,7 +40,7 @@ def teacherDashboard():
     if not teacher_row:
         flash("Teacher not found", "error")
         return redirect(url_for('auth.login'))
-    teacher_id = teacher_row[0]
+    teacher_id = teacher_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(teacher_id)
@@ -742,7 +742,7 @@ def teacherActivities():
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -750,7 +750,7 @@ def teacherActivities():
     if not teacher_row:
         flash("Teacher not found", "error")
         return redirect(url_for('auth.login'))
-    teacher_id = teacher_row[0]
+    teacher_id = teacher_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(teacher_id)
@@ -914,14 +914,14 @@ def manage_activity(activity_id):
     if 'username' not in session or session.get('role') != 'teacher':
         return jsonify({'error': 'Unauthorized access'}), 401
     
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
     try:
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
         teacher_row = cur.fetchone()
         if not teacher_row:
             return jsonify({'error': 'Teacher not found'}), 404
-        teacher_id = teacher_row[0]
+        teacher_id = teacher_row['id']
         
         if request.method == 'GET':
             # Get activity details
@@ -1072,11 +1072,11 @@ def teacherClasses():
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
     
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_id = cur.fetchone()['id']
     unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     # Get all classes created by this teacher
@@ -1132,11 +1132,10 @@ def create_class():
         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         code_expires = datetime.now() + timedelta(days=7)  # Code expires in 7 days
         
-        cur = mysql.connection.cursor()
-        
-        # Get teacher ID
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        #  Get teacher ID
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        teacher_id = cur.fetchone()[0]
+        teacher_id = cur.fetchone()['id']
         
         # Insert new class
         cur.execute("""
@@ -1172,7 +1171,7 @@ def regenerate_class_code(class_id):
         new_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         new_expires = datetime.now() + timedelta(days=7)
         
-        cur = mysql.connection.cursor()
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
         # Verify the teacher owns this class
         cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
@@ -1182,9 +1181,9 @@ def regenerate_class_code(class_id):
             return jsonify({'error': 'Class not found'}), 404
         
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        teacher_id = cur.fetchone()[0]
+        teacher_id = cur.fetchone()['id']
         
-        if class_info[0] != teacher_id:
+        if class_info['teacher_id'] != teacher_id:
             return jsonify({'error': 'Unauthorized access'}), 403
         
         # Update the class code
@@ -1214,11 +1213,11 @@ def view_class(class_id):
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
     
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_id = cur.fetchone()['id']
     unread_notifications_count = get_unread_notifications_count(teacher_id)
     
     # Verify the teacher owns this class
@@ -1230,9 +1229,9 @@ def view_class(class_id):
         return redirect(url_for('teacher.teacherClasses'))
     
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_id = cur.fetchone()['id']
     
-    if class_info[0] != teacher_id:
+    if class_info['teacher_id'] != teacher_id:
         flash('Unauthorized access', 'error')
         return redirect(url_for('teacher.teacherClasses'))
     
@@ -1319,11 +1318,11 @@ def delete_enrolled_students(class_id):
         flash('No students selected for deletion.', 'error')
         return redirect(url_for('teacher.view_class', class_id=class_id))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_id = cur.fetchone()['id']
     unread_notifications_count = get_unread_notifications_count(teacher_id)
 
     # Verify the teacher owns this class
@@ -1335,9 +1334,9 @@ def delete_enrolled_students(class_id):
         return redirect(url_for('teacher.teacherClasses'))
 
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()[0]
+    teacher_id = cur.fetchone()['id']
 
-    if class_info[0] != teacher_id:
+    if class_info['teacher_id'] != teacher_id:
         flash('Unauthorized access', 'error')
         cur.close()
         return redirect(url_for('teacher.teacherClasses'))
@@ -1385,7 +1384,7 @@ def delete_class(class_id):
     if 'username' not in session or session.get('role') != 'teacher':
         return jsonify({'error': 'Unauthorized access'}), 401
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     try:
         # Verify the teacher owns this class
@@ -1395,9 +1394,9 @@ def delete_class(class_id):
             return jsonify({'error': 'Class not found'}), 404
 
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        teacher_id = cur.fetchone()[0]
+        teacher_id = cur.fetchone()['id']
 
-        if class_info[0] != teacher_id:
+        if class_info['teacher_id'] != teacher_id:
             return jsonify({'error': 'Unauthorized access'}), 403
         
         # Get all students enrolled in the class
@@ -1684,7 +1683,7 @@ def delete_submission(submission_id):
     if 'username' not in session or session.get('role') != 'teacher':
         return jsonify({'error': 'Unauthorized access'}), 401
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     try:
         # Get teacher ID
@@ -1692,7 +1691,7 @@ def delete_submission(submission_id):
         teacher_row = cur.fetchone()
         if not teacher_row:
             return jsonify({'error': 'Teacher not found'}), 404
-        teacher_id = teacher_row[0]
+        teacher_id = teacher_row['id']
 
         # Fetch submission details to verify existence, ownership, and get student_id/activity_title
         cur.execute("""
