@@ -1583,6 +1583,7 @@ def get_unread_notifications_count(user_id):
     return result['COUNT(*)'] if result else 0
 
 def add_notification(user_id, role, notif_type, message, link=None):
+    user_id = int(user_id)
     cur = mysql.connection.cursor()
     cur.execute("""
         INSERT INTO notifications (user_id, role, `type`, message, link, is_read, created_at)
