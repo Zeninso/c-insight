@@ -1027,14 +1027,19 @@ class CodeGrader:
             if not code or not isinstance(code, str) or len(code.strip()) == 0:
                 return 100, "No valid code submitted for similarity check."
 
-            cur = mysql.connection.cursor()
-            cur.execute("""
-                SELECT code FROM submissions
-                WHERE activity_id = %s AND code IS NOT NULL AND LENGTH(code) > 10
-                AND student_id != %s
-            """, (activity_id, student_id))
-            submissions = cur.fetchall()
-            cur.close()
+            # Database query with error handling
+            try:
+                cur = mysql.connection.cursor()
+                cur.execute("""
+                    SELECT code FROM submissions
+                    WHERE activity_id = %s AND code IS NOT NULL AND LENGTH(code) > 10
+                    AND student_id != %s
+                """, (activity_id, student_id))
+                submissions = cur.fetchall()
+                cur.close()
+            except Exception as e:
+                logger.error(f"Database error in similarity check: {str(e)}")
+                return 100, "Database error during similarity check."
 
             if len(submissions) == 0:
                 return 100, "Insufficient submissions for similarity check."
@@ -1047,6 +1052,8 @@ class CodeGrader:
             # Normalize codes to handle variable renaming
             try:
                 normalized_code = self.normalize_code(code)
+                if not normalized_code or not normalized_code.strip():
+                    return 100, "Submitted code has no meaningful content after normalization."
             except Exception as e:
                 logger.error(f"Failed to normalize submitted code: {str(e)}")
                 return 100, "Failed to process submitted code for similarity check."
@@ -1054,7 +1061,9 @@ class CodeGrader:
             normalized_other_codes = []
             for other_code in other_codes:
                 try:
-                    normalized_other_codes.append(self.normalize_code(other_code))
+                    normalized = self.normalize_code(other_code)
+                    if normalized and normalized.strip():
+                        normalized_other_codes.append(normalized)
                 except Exception as e:
                     logger.warning(f"Failed to normalize other code: {str(e)}")
                     continue
