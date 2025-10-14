@@ -145,10 +145,15 @@ def join_class():
             return redirect(url_for('student.join_class'))
         
         class_id, class_name, code_expires = class_info
-        
-        from datetime import datetime
-        if datetime.now() > code_expires:
-            flash('This class code has expired', 'error')
+
+        # Parse code_expires to datetime for comparison
+        if code_expires:
+            code_expires_dt = datetime.strptime(code_expires, '%Y-%m-%d %H:%M:%S')
+            if datetime.now() > code_expires_dt:
+                flash('This class code has expired', 'error')
+                return redirect(url_for('student.join_class'))
+        else:
+            flash('Invalid class code expiration', 'error')
             return redirect(url_for('student.join_class'))
         
         # Get student ID
