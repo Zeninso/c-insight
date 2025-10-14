@@ -12,7 +12,7 @@ load_dotenv()
 mysql = MySQL()
 
 def create_app():
-    app = Flask(__name__, static_folder='app/static', template_folder='app/templates')
+    app = Flask(__name__, static_folder='static', template_folder='templates')
 
     # Secret key
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
