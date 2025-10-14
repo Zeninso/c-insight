@@ -39,6 +39,8 @@ def adminDashboard():
         LIMIT 5
     """, (admin_id,))
     recent_activities = cur.fetchall()
+    # Convert tuples to lists for easier access in template
+    recent_activities = [list(activity) for activity in recent_activities]
     cur.close()
 
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)

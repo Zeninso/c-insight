@@ -94,7 +94,7 @@ def register():
 
             # Notify admins about new user registration
             message = f"New user registered: {first_name} {last_name} ({username}), Role: {role}."
-            add_admin_notification(message, notif_type='user_registered')
+            add_admin_notification(message, notif_type='user_created')
 
             flash('Registration successful. Please login.', 'success')
             return redirect(url_for('auth.login'))
@@ -250,7 +250,7 @@ def google_register():
 
         # Notify admins about new user registration
         message = f"New user registered: {data['first_name']} {data['last_name']} ({data['username']}), Role: {role}."
-        add_admin_notification(message, notif_type='user_registered')
+        add_admin_notification(message, notif_type='user_created')
 
         print("Registration successful, redirecting now...")
         flash("Registration complete. Logged in successfully!", "success")
