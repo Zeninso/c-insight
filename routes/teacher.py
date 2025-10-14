@@ -92,7 +92,7 @@ def teacherDashboard():
 
     cur.close()
 
-    return render_template('teacher_Dashboard.html',
+    return render_template('teacher_dashboard.html',
                           first_name=session['first_name'],
                           total_classes=total_classes,
                           total_students=total_students,
