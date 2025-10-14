@@ -1099,8 +1099,8 @@ def teacherClasses():
     # Get activities count for each class
     classes_list = []
     for class_item in classes:
-        cur.execute("SELECT COUNT(*) FROM activities WHERE class_id=%s", (class_item[0],))
-        activity_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM activities WHERE class_id=%s", (class_item['id'],))
+        activity_count = cur.fetchone()['COUNT(*)']
         
         classes_list.append({
             'id': class_item[0],
