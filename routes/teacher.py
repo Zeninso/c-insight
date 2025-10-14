@@ -48,7 +48,7 @@ def teacherDashboard():
     # Get total classes
     cur.execute("SELECT COUNT(*) FROM classes WHERE teacher_id=%s", (teacher_id,))
     total_classes_result = cur.fetchone()
-    total_classes = total_classes_result[0] if total_classes_result else 0
+    total_classes = total_classes_result['COUNT(*)'] if total_classes_result else 0
 
     # Get first class id for view students link
     first_class_id = None
