@@ -73,10 +73,10 @@
                         {% for activity in upcoming_activities %}
                             <div class="activity-item">
                                 <div class="activity-info">
-                                    <h4>{{ activity[0] }}</h4>
+                                    <h4>{{ activity['title'] }}</h4>
                                     <div class="activity-meta">
-                                        <span><i class="fas fa-clock"></i> Due: {{ activity[1].strftime('%b %d, %Y') }}</span>
-                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ activity[2] }}</span>
+                                        <span><i class="fas fa-clock"></i> Due: {{ activity['due_date'].strftime('%b %d, %Y') }}</span>
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ activity['class_name'] }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -97,10 +97,10 @@
                         {% for submission in recent_submissions %}
                             <div class="activity-item">
                                 <div class="activity-info">
-                                    <h4>{{ submission[0] }}</h4>
+                                    <h4>{{ submission['title'] }}</h4>
                                     <div class="activity-meta">
-                                        <span><i class="fas fa-calendar-check"></i> Submitted: {{ submission[1].strftime('%b %d, %Y') }}</span>
-                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ submission[2] }}</span>
+                                        <span><i class="fas fa-calendar-check"></i> Submitted: {{ submission['submitted_at'].strftime('%b %d, %Y') }}</span>
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{ submission['class_name'] }}</span>
                                     </div>
                                 </div>
                             </div>

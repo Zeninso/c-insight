@@ -346,14 +346,14 @@ def studentSettings():
     
 
     
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Get unread notifications count
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     student_row = cur.fetchone()
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
     unread_notifications_count = get_unread_notifications_count(student_id)
     cur.close()
 
@@ -467,7 +467,7 @@ def class_details(class_id):
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -475,7 +475,7 @@ def class_details(class_id):
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Check if student is enrolled in the class
     cur.execute("""
@@ -515,22 +515,22 @@ def class_details(class_id):
 
     # Convert to dict
     class_info = {
-        'id': class_data[0],
-        'name': class_data[1],
-        'description': class_data[2],
-        'class_code': class_data[3],
-        'code_expires': class_data[4],
-        'created_at': class_data[5],
-        'teacher_name': f"{class_data[6]} {class_data[7]}"
+        'id': class_data['id'],
+        'name': class_data['name'],
+        'description': class_data['description'],
+        'class_code': class_data['class_code'],
+        'code_expires': class_data['code_expires'],
+        'created_at': class_data['created_at'],
+        'teacher_name': f"{class_data['first_name']} {class_data['last_name']}"
     }
 
     activities_list = []
     for activity in activities:
         activities_list.append({
-            'id': activity[0],
-            'title': activity[1],
-            'due_date': activity[2],
-            'created_at': activity[3]
+            'id': activity['id'],
+            'title': activity['title'],
+            'due_date': activity['due_date'],
+            'created_at': activity['created_at']
         })
 
     return render_template('student_class_details.html', class_data=class_info, activities=activities_list)
@@ -542,7 +542,7 @@ def viewActivity(activity_id):
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get student ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -550,7 +550,7 @@ def viewActivity(activity_id):
     if not student_row:
         flash("Student not found", "error")
         return redirect(url_for('auth.login'))
-    student_id = student_row[0]
+    student_id = student_row['id']
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(student_id)
@@ -624,7 +624,7 @@ def submit_activity(activity_id):
         flash('Submission code cannot be empty.', 'error')
         return redirect(url_for('student.viewActivity', activity_id=activity_id))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     try:
         # Get student ID
@@ -633,7 +633,7 @@ def submit_activity(activity_id):
         if not student_row:
             flash("Student not found", "error")
             return redirect(url_for('auth.login'))
-        student_id = student_row[0]
+        student_id = student_row['id']
 
         # Check if student is enrolled in the class for this activity
         cur.execute("""
