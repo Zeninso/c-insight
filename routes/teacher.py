@@ -1348,7 +1348,7 @@ def delete_enrolled_students(class_id):
     cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
     class_name_row = cur.fetchone()
     if class_name_row:
-        class_name = class_name_row[0]
+        class_name = class_name_row['name']
     else:
         class_name = "the class"
 
@@ -1415,13 +1415,13 @@ def delete_class(class_id):
 
         # Notify students about class deletion
         notification_query = """
-            INSERT INTO notifications (user_id, message, link, is_read, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
         for student_id in student_ids:
             message = f'The class "{class_name}" has been deleted by your teacher.'
             link = url_for('student.studentClasses')
-            cur.execute(notification_query, (student_id, message, link, False))
+            cur.execute(notification_query, (student_id, 'student', 'class_deleted', message, link, False))
 
         # Delete submissions for activities in this class
         cur.execute("""
