@@ -32,7 +32,7 @@ def teacherDashboard():
     # Notify teacher about finished activities
     notify_finished_activities()
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get teacher ID
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -867,9 +867,10 @@ def create_activity():
             return jsonify({'error': 'Rubric weights must sum to 100%'}), 400
 
         #  Get teacher ID
-        cur = mysql.connection.cursor()
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-        teacher_id = cur.fetchone()[0]
+        teacher_row = cur.fetchone()
+        teacher_id = teacher_row['id']
 
         # Verify teacher owns the class
         cur.execute("SELECT id FROM classes WHERE id=%s AND teacher_id=%s", (class_id, teacher_id))
@@ -891,7 +892,8 @@ def create_activity():
 
         # Get the last inserted activity ID
         cur.execute("SELECT LAST_INSERT_ID()")
-        activity_id = cur.fetchone()[0]
+        activity_id_row = cur.fetchone()
+        activity_id = activity_id_row['LAST_INSERT_ID()']
 
         # Notify students about the new activity
         notify_students_activity_assigned(class_id, activity_id, title, due_date)
@@ -1574,9 +1576,9 @@ def get_unread_notifications_count(user_id):
         SELECT COUNT(*) FROM notifications
         WHERE user_id = %s AND role = 'teacher' AND is_read = FALSE
     """, (user_id,))
-    count = cur.fetchone()[0]
+    result = cur.fetchone()
     cur.close()
-    return count
+    return result['COUNT(*)'] if result else 0
 
 def add_notification(user_id, role, notif_type, message, link=None):
     cur = mysql.connection.cursor()
