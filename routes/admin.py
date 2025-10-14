@@ -39,8 +39,6 @@ def adminDashboard():
         LIMIT 5
     """, (admin_id,))
     recent_activities = cur.fetchall()
-    # Convert tuples to lists for easier access in template
-    recent_activities = [list(activity) for activity in recent_activities]
     cur.close()
 
     unread_notifications_count = get_admin_unread_notifications_count(admin_id)
@@ -180,7 +178,8 @@ def deleteUser(user_id):
         print(f"About to add notification: {message}")
         cur.execute("SELECT id FROM users WHERE role='admin'")
         admins = cur.fetchall()
-        for (admin_id,) in admins:
+        for admin in admins:
+            admin_id = int(admin[0])
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
                 VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
@@ -277,7 +276,8 @@ def add_admin_notification(message, notif_type='info', link=None):
             return False
             
         # Insert notification for each admin
-        for (admin_id,) in admins:
+        for admin in admins:
+            admin_id = int(admin[0])
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
