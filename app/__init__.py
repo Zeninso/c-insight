@@ -41,7 +41,8 @@ def create_app():
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
-        ]
+        ],
+        base_url='https://c-insight-capstone.up.railway.app'
     )
     app.register_blueprint(google_bp, url_prefix="/login")
 
