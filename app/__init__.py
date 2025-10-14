@@ -42,7 +42,7 @@ def create_app():
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
         ],
-        base_url='https://c-insight-capstone.up.railway.app'
+        redirect_url='https://c-insight-capstone.up.railway.app/login/google/authorized'
     )
     app.register_blueprint(google_bp, url_prefix="/login")
 
