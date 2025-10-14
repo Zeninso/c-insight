@@ -431,7 +431,7 @@ class CodeGrader:
 
     def analyze_c_code_logic(self, code, requirements=None):
         """Analyze C code logic complexity and flow with enhanced criteria."""
-        score = 40  # Base score increased for better baseline
+        score = 50  # Increased base score for better baseline
 
         # Control Flow Complexity
         if_count = code.count('if ') + code.count('else if')
@@ -445,78 +445,78 @@ class CodeGrader:
             control_flow_required = requirements.get('if_else', False) or requirements.get('loops', False) or requirements.get('switch', False)
 
         if total_control > 0:
-            # More generous scoring for control flow complexity
+            # More generous scoring for control flow complexity - higher scores for proper logic
             if total_control <= 3:
-                score += 25
+                score += 30  # Increased from 25
             elif total_control <= 7:
-                score += 20
+                score += 25  # Increased from 20
             elif total_control <= 12:
-                score += 15
+                score += 20  # Increased from 15
             else:
-                score += 10
+                score += 15  # Increased from 10
         else:
             # Only penalize for missing control flow if it's explicitly required
             if control_flow_required:
                 lines = [line.strip() for line in code.split('\n') if line.strip()]
                 if len(lines) > 5:
-                    score -= 5  # Penalize larger programs missing required control flow
+                    score -= 5  # Reduced penalty
             else:
-                # No penalty if control flow not required
-                score += 10
+                # Bonus if control flow not required but code is simple and clear
+                score += 15  # Increased from 10
 
-        # Algorithm Indicators with improved detection
+        # Algorithm Indicators with improved detection - higher weights for proper algorithms
         algorithm_indicators = 0
         code_lower = code.lower()
 
         # Basic algorithm patterns
         if 'sort' in code_lower or 'search' in code_lower:
-            algorithm_indicators += 1
+            algorithm_indicators += 2  # Increased weight
         if '%' in code:  # Modulo operations often used in algorithms
-            algorithm_indicators += 1
+            algorithm_indicators += 2
         if 'sqrt' in code or 'pow' in code:  # Mathematical functions
-            algorithm_indicators += 1
+            algorithm_indicators += 2
         if '&&' in code or '||' in code:  # Logical operations
             algorithm_indicators += 1
 
-        # Specific algorithm implementations
+        # Specific algorithm implementations - higher bonuses for proper implementations
         sorting_algorithms = ['bubble', 'insertion', 'selection', 'merge', 'quick', 'heap']
         search_algorithms = ['binary', 'linear', 'sequential']
         if any(alg in code_lower for alg in sorting_algorithms):
-            algorithm_indicators += 3  # Higher weight for sorting algorithms
+            algorithm_indicators += 5  # Increased from 3
         if any(alg in code_lower for alg in search_algorithms):
-            algorithm_indicators += 3  # Higher weight for search algorithms
+            algorithm_indicators += 5  # Increased from 3
         if 'recursion' in code_lower or 'recursive' in code_lower:
-            algorithm_indicators += 3  # Higher weight for recursion
+            algorithm_indicators += 5  # Increased from 3
 
         # Check for proper algorithm implementation patterns
         algorithm_quality_score = self.check_algorithm_quality(code)
-        score += min(25, algorithm_indicators * 4 + algorithm_quality_score)
+        score += min(35, algorithm_indicators * 3 + algorithm_quality_score)  # Increased cap and multiplier
 
-        # Data Processing - only score if arrays are required or used
+        # Data Processing - higher scores for proper array usage
         array_usage = code.count('[') + code.count(']')
         if requirements and requirements.get('arrays', False):
-            score += 15 if array_usage > 0 else -5  # Penalize if arrays required but not used
+            score += 20 if array_usage > 0 else -5  # Increased bonus
         elif array_usage > 0:
-            score += 15  # Bonus if arrays used even if not required
+            score += 20  # Increased bonus
 
-        # Error Handling (enhanced check for NULL, bounds checking, and conditional usage)
+        # Error Handling (enhanced check for NULL, bounds checking, and conditional usage) - higher rewards
         error_patterns = code.count('NULL') + code.count('if (') + code.count('else')
         bounds_checks = code.count('if (') + code.count('while (') + code.count('< ') + code.count('> ') + code.count('<=') + code.count('>=')
-        error_handling_score = min(20, error_patterns * 2 + bounds_checks)
+        error_handling_score = min(30, error_patterns * 3 + bounds_checks * 2)  # Increased multipliers and cap
         score += error_handling_score
 
-        # Code Efficiency (nested loops and complexity analysis)
+        # Code Efficiency (nested loops and complexity analysis) - higher rewards for good efficiency
         if loop_count > 0:
             nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
             efficiency_score = 0
             if nested_loops == 0:
-                efficiency_score = 25
+                efficiency_score = 30  # Increased from 25
             elif nested_loops <= 2:
-                efficiency_score = 20
+                efficiency_score = 25  # Increased from 20
             elif nested_loops <= 4:
-                efficiency_score = 15
+                efficiency_score = 20  # Increased from 15
             else:
-                efficiency_score = 5  # Penalize deeply nested loops
+                efficiency_score = 10  # Increased from 5
 
             # Check for potential infinite loops
             infinite_loop_penalty = self.check_infinite_loops(code)
@@ -524,55 +524,55 @@ class CodeGrader:
 
             score += efficiency_score
 
-        # Check for use of break/continue for loop control - only if loops are used
+        # Check for use of break/continue for loop control - higher bonus for proper control
         if loop_count > 0 and ('break;' in code or 'continue;' in code):
-            score += 12  # Increased weight
+            score += 15  # Increased from 12
 
         # Additional logic checks for better variation
-        # Check for proper loop initialization and bounds - only if loops are used
+        # Check for proper loop initialization and bounds - higher scores for good loops
         if loop_count > 0:
             loop_quality_score = self.check_loop_quality(code)
-            score += loop_quality_score
+            score += loop_quality_score * 1.5  # Multiplier for better loop quality
 
-        # Check for function calls within logic - only if functions are required
+        # Check for function calls within logic - higher bonus when functions are properly used
         if requirements and requirements.get('functions', False):
             func_in_logic = code.count('if (') + code.count('while (') + code.count('for (')
             if func_in_logic > 0:
-                score += min(15, func_in_logic * 2)  # Increased weight
+                score += min(20, func_in_logic * 3)  # Increased weight
         else:
-            # If functions not required, don't penalize for missing function calls in logic
-            pass
+            # If functions not required, bonus for clean simple code
+            score += 5
 
-        # Penalize for missing logic in simple programs - but only if logic features are required
+        # Reduced penalty for missing logic in simple programs
         lines = code.split('\n')
         code_lines = [line.strip() for line in lines if line.strip()]
         if len(code_lines) > 5 and total_control == 0 and control_flow_required:
-            score -= 10  # Reduced penalty only if control flow was required
+            score -= 5  # Reduced from 10
 
-        # Enhanced logic checks
+        # Enhanced logic checks - higher weights for good practices
         # Check for proper variable initialization and usage
         var_logic_score = self.check_variable_logic(code)
-        score += var_logic_score
+        score += var_logic_score * 1.2  # Multiplier for variable logic
 
         # Check for logical consistency and potential errors
         logic_consistency_score = self.check_enhanced_logical_consistency(code)
-        score += logic_consistency_score
+        score += logic_consistency_score * 1.3  # Higher multiplier for consistency
 
         # Check for proper nesting and structure
         nesting_score = self.check_nesting_structure(code)
-        score += nesting_score
+        score += nesting_score * 1.5  # Higher multiplier for good structure
 
-        # Check for unreachable code patterns
+        # Check for unreachable code patterns - less penalty for good code
         unreachable_score = self.check_unreachable_code(code)
-        score += unreachable_score
+        score += unreachable_score * 1.2  # Reduced penalty impact
 
         # Check for proper operator usage
         operator_score = self.check_operator_usage(code)
-        score += operator_score
+        score += operator_score * 1.4  # Higher multiplier for operator usage
 
-        # Check for memory safety
+        # Check for memory safety - higher bonus for safe code
         memory_score = self.check_memory_safety(code)
-        score += memory_score
+        score += memory_score * 1.5  # Higher multiplier for memory safety
 
         return min(100, max(0, score))
 
@@ -879,22 +879,24 @@ class CodeGrader:
         # Determine expected code length based on requirements
         if requirements:
             required_features = sum(1 for req in requirements.values() if req is True)
-            # Estimate expected length: basic program ~5-15 lines, complex ~20-50 lines
+            # Estimate expected length: basic program ~8-15 lines, complex ~20-50 lines
             if required_features <= 3:
-                min_expected = 5
+                min_expected = 8
                 max_expected = 20
             elif required_features <= 7:
-                min_expected = 10
+                min_expected = 12
                 max_expected = 40
             else:
                 min_expected = 15
                 max_expected = 60
         else:
-            # Default thresholds if no requirements provided
-            min_expected = 10
+            # Default thresholds if no requirements provided - more strict for short code
+            min_expected = 8
             max_expected = 70
 
-        if code_length < min_expected:
+        if code_length < 5:
+            feedback_parts.append("Code is extremely short - this appears to be incomplete or missing key functionality")
+        elif code_length < min_expected:
             if requirements and required_features > 3:
                 feedback_parts.append(f"Code is quite short for the activity requirements - consider implementing more features as specified")
             else:
