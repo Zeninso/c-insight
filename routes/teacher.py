@@ -1633,7 +1633,12 @@ def notify_finished_activities():
     """)
     activities = cur.fetchall()
 
-    for activity_id, title, class_id, teacher_id, class_name in activities:
+    for activity in activities:
+        activity_id = activity['id']
+        title = activity['title']
+        class_id = activity['class_id']
+        teacher_id = activity['teacher_id']
+        class_name = activity['name']
         if teacher_id is None:
             continue
         # Count total students in class
