@@ -46,6 +46,14 @@ def login():
         cur.close()
 
         if user and check_password_hash(user['password'], password):
+            # Set role-specific session keys to allow multiple roles in same browser
+            role_key = f"{user['role']}_username"
+            session[role_key] = username
+            session[f"{user['role']}_first_name"] = user['first_name']
+            session[f"{user['role']}_last_name"] = user['last_name']
+            session[f"{user['role']}_role"] = user['role']
+
+            # Also set general session keys for backward compatibility
             session['username'] = username
             session['first_name'] = user['first_name']
             session['last_name'] = user['last_name']
