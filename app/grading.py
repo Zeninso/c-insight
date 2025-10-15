@@ -85,24 +85,32 @@ class CodeGrader:
             activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
             requirements = self.extract_activity_requirements(activity_text)
 
-            # Check if code meets specific activity requirements
-            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
+            # Check if code meets specific activity requirements - THIS IS CRITICAL
+            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements, activity_text)
 
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
-            # If syntax score is below threshold, assign zero to all scores and skip further checks
-            if syntax_score < 85:
+            # MAJOR CHANGE: If code doesn't meet basic activity requirements, assign zero to all scores
+            if requirement_score < 50:  # Less than 50% on requirements
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
                 similarity_score = 0
-                ast_feedback = "Submission has syntax errors; grading scores set to zero."
+                ast_feedback = f"Submission does not meet basic activity requirements: {requirement_feedback}. All scores set to zero."
+                sim_feedback = "Similarity check skipped due to failed requirements."
+            # If syntax score is below threshold, also assign zero to all scores
+            elif syntax_score < 85:
+                correctness_score = 0
+                syntax_score = 0
+                logic_score = 0
+                similarity_score = 0
+                ast_feedback = "Submission has critical syntax errors; grading scores set to zero."
                 sim_feedback = "Similarity check skipped due to syntax errors."
             else:
                 # Correctness and Logic analysis
                 correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
-                    code, requirements, requirement_score
+                    code, requirements, requirement_score, activity_text
                 )
 
                 # Apply requirement penalty to correctness score
@@ -246,22 +254,22 @@ class CodeGrader:
         except Exception as e:
             return 0, f"Basic syntax check failed: {str(e)}"
 
-    def check_ast_with_requirements(self, code, requirements, requirement_score):
-        """Check correctness and logic using analysis."""
-        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code, requirements)
+    def check_ast_with_requirements(self, code, requirements, requirement_score, activity_text):
+        """Check correctness and logic using analysis with activity context."""
+        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code, requirements, activity_text)
 
         return correctness_score, logic_score, enhanced_feedback
 
-    def enhanced_ml_grading(self, code, requirements=None):
+    def enhanced_ml_grading(self, code, requirements=None, activity_text=""):
         """Enhanced grading function combining ML predictions with rule-based analysis."""
         if self.ml_models:
-            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code, requirements)
+            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code, requirements, activity_text)
         else:
             ml_correctness, ml_logic, ml_syntax, analysis_type = 0, 0, 0, "Rule-based analysis"
 
         # Get rule-based analysis
-        rule_correctness = self.analyze_c_code_correctness(code)
-        rule_logic = self.analyze_c_code_logic(code, requirements)
+        rule_correctness = self.analyze_c_code_correctness(code, activity_text)
+        rule_logic = self.analyze_c_code_logic(code, requirements, activity_text)
         rule_syntax, _ = self.check_syntax(code)
 
         # Combine scores
@@ -274,13 +282,13 @@ class CodeGrader:
             final_logic = rule_logic
             final_syntax = rule_syntax
 
-        return final_correctness, final_logic, final_syntax, self.analyze_c_code_detailed_feedback(code, requirements)
+        return final_correctness, final_logic, final_syntax, self.analyze_c_code_detailed_feedback(code, requirements, activity_text)
 
-    def predict_grading_scores(self, code, requirements=None):
+    def predict_grading_scores(self, code, requirements=None, activity_text=""):
         """Use trained ML models to predict grading scores."""
         if not self.ml_models:
-            correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code, requirements)
+            correctness_score = self.analyze_c_code_correctness(code, activity_text)
+            logic_score = self.analyze_c_code_logic(code, requirements, activity_text)
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -303,8 +311,8 @@ class CodeGrader:
 
         except Exception as e:
             logger.error(f"Error in ML prediction: {str(e)}")
-            correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code, requirements)
+            correctness_score = self.analyze_c_code_correctness(code, activity_text)
+            logic_score = self.analyze_c_code_logic(code, requirements, activity_text)
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -382,8 +390,8 @@ class CodeGrader:
         
         return features
 
-    def analyze_c_code_correctness(self, code):
-        """Analyze C code correctness with enhanced criteria."""
+    def analyze_c_code_correctness(self, code, activity_text=""):
+        """Analyze C code correctness with enhanced criteria and activity context."""
         score = 50  # Base score
 
         lines = code.split('\n')
@@ -427,10 +435,142 @@ class CodeGrader:
         if 'int main(' in code and 'return 0;' not in code:
             score -= 5
 
+        # NEW: Check if code actually implements what the activity requires
+        activity_implementation_score = self.check_activity_implementation(code, activity_text)
+        score = score * 0.7 + activity_implementation_score * 0.3  # Weight activity implementation heavily
+
         return min(100, max(0, score))
 
-    def analyze_c_code_logic(self, code, requirements=None):
-        """Analyze C code logic complexity and flow with enhanced criteria."""
+    def check_activity_implementation(self, code, activity_text):
+        """
+        Check if the code actually implements what the activity description requires.
+        This is a generic check that works for any activity type.
+        """
+        code_lower = code.lower()
+        activity_lower = activity_text.lower()
+        
+        score = 100  # Start with perfect score
+        
+        # Generic activity requirement checks that apply to most programming activities
+        
+        # 1. Check for core programming concepts based on activity description
+        if any(word in activity_lower for word in ['calculate', 'compute', 'sum', 'add', 'subtract', 'multiply', 'divide', 'arithmetic', 'math']):
+            # Activity requires calculations
+            if not any(op in code for op in ['+', '-', '*', '/', '%']):
+                score -= 60
+                logger.info("Activity requires calculations but no arithmetic operators found")
+        
+        # 2. Check for input operations
+        if any(word in activity_lower for word in ['input', 'enter', 'scanf', 'read', 'user input']):
+            if 'scanf(' not in code:
+                score -= 50
+                logger.info("Activity requires input but no scanf found")
+        
+        # 3. Check for output operations  
+        if any(word in activity_lower for word in ['output', 'display', 'print', 'show', 'result', 'printf']):
+            if 'printf(' not in code:
+                score -= 40
+                logger.info("Activity requires output but no printf found")
+        
+        # 4. Check for conditional logic
+        if any(word in activity_lower for word in ['if', 'else', 'condition', 'conditional', 'decision']):
+            if 'if ' not in code and 'switch ' not in code:
+                score -= 40
+                logger.info("Activity requires conditional logic but none found")
+        
+        # 5. Check for loops
+        if any(word in activity_lower for word in ['loop', 'for', 'while', 'repeat', 'iteration']):
+            if 'for ' not in code and 'while ' not in code:
+                score -= 40
+                logger.info("Activity requires loops but none found")
+        
+        # 6. Check for arrays
+        if any(word in activity_lower for word in ['array', 'list', 'matrix', 'element[]']):
+            if '[' not in code or ']' not in code:
+                score -= 50
+                logger.info("Activity requires arrays but none found")
+        
+        # 7. Check for functions
+        if any(word in activity_lower for word in ['function', 'define function', 'user-defined']):
+            # Count user-defined functions (excluding main)
+            func_pattern = r'\b(int|void|float|double|char)\s+(\w+)\s*\('
+            user_functions = re.findall(func_pattern, code)
+            if len(user_functions) <= 1:  # Only main function
+                score -= 50
+                logger.info("Activity requires user-defined functions but none found")
+        
+        # 8. Check for specific data types
+        if 'string' in activity_lower or 'character' in activity_lower:
+            if 'char' not in code:
+                score -= 30
+                logger.info("Activity requires character/string operations but no char type found")
+        
+        if 'float' in activity_lower or 'decimal' in activity_lower:
+            if 'float' not in code and 'double' not in code:
+                score -= 30
+                logger.info("Activity requires floating-point operations but no float/double type found")
+        
+        # 9. Check for specific algorithms or patterns
+        if any(word in activity_lower for word in ['sort', 'bubble', 'insertion', 'selection']):
+            if not any(word in code_lower for word in ['sort', 'bubble', 'insertion', 'selection']):
+                score -= 50
+                logger.info("Activity requires sorting but no sorting logic found")
+        
+        if any(word in activity_lower for word in ['search', 'find', 'linear', 'binary']):
+            if not any(word in code_lower for word in ['search', 'find', 'linear', 'binary']):
+                score -= 50
+                logger.info("Activity requires searching but no search logic found")
+        
+        # 10. Check for memory operations if pointers mentioned
+        if any(word in activity_lower for word in ['pointer', 'malloc', 'memory', 'dynamic']):
+            if '*' not in code and 'malloc' not in code:
+                score -= 50
+                logger.info("Activity requires pointers/memory operations but none found")
+        
+        # 11. Check for file operations
+        if any(word in activity_lower for word in ['file', 'fopen', 'read file', 'write file']):
+            if 'fopen' not in code and 'FILE' not in code:
+                score -= 50
+                logger.info("Activity requires file operations but none found")
+        
+        # 12. Check for structure operations
+        if any(word in activity_lower for word in ['struct', 'structure', 'record']):
+            if 'struct ' not in code:
+                score -= 50
+                logger.info("Activity requires structures but none found")
+        
+        # 13. Check for specific keywords from activity title/description
+        # Extract meaningful nouns and verbs from activity text that aren't programming keywords
+        programming_keywords = {'program', 'code', 'write', 'create', 'implement', 'using', 'with', 'the', 'and', 'or', 'not'}
+        activity_words = set(re.findall(r'\b[a-z]{4,}\b', activity_lower))
+        meaningful_words = activity_words - programming_keywords
+        
+        # Check if code contains any of these meaningful activity-specific words
+        activity_specific_found = any(word in code_lower for word in meaningful_words)
+        if not activity_specific_found and len(meaningful_words) > 0:
+            score -= 20
+            logger.info(f"Code doesn't contain activity-specific keywords: {meaningful_words}")
+        
+        # 14. Check for basic program structure
+        if 'int main(' not in code:
+            score -= 30
+            logger.info("Missing main function")
+        
+        if '#include' not in code:
+            score -= 20
+            logger.info("No include statements found")
+        
+        # 15. Check if code is too trivial for the activity
+        lines = [line.strip() for line in code.split('\n') if line.strip() and not line.strip().startswith('//')]
+        if len(lines) < 5:
+            score -= 40
+            logger.info("Code appears too trivial/short for meaningful activity implementation")
+        
+        logger.info(f"Activity implementation score: {score}")
+        return max(0, score)
+
+    def analyze_c_code_logic(self, code, requirements=None, activity_text=""):
+        """Analyze C code logic complexity and flow with enhanced criteria and activity context."""
         score = 50  # Increased base score for better baseline
 
         # Control Flow Complexity
@@ -574,8 +714,122 @@ class CodeGrader:
         memory_score = self.check_memory_safety(code)
         score += memory_score * 1.5  # Higher multiplier for memory safety
 
+        # NEW: Check if logic actually matches activity requirements
+        activity_logic_score = self.check_activity_logic(code, activity_text)
+        score = score * 0.6 + activity_logic_score * 0.4  # Weight activity logic heavily
+
         return min(100, max(0, score))
 
+    def check_activity_logic(self, code, activity_text):
+        """
+        Check if the code logic actually matches what the activity requires.
+        Generic check that works for any activity type.
+        """
+        code_lower = code.lower()
+        activity_lower = activity_text.lower()
+        
+        score = 100  # Start with perfect score
+        
+        # Generic logic checks based on common programming activity patterns
+        
+        # 1. Check for calculation logic
+        if any(word in activity_lower for word in ['calculate', 'compute', 'sum', 'add', 'subtract', 'multiply', 'divide']):
+            has_calculation = False
+            lines = code.split('\n')
+            for line in lines:
+                if '=' in line and any(op in line for op in ['+', '-', '*', '/', '%']):
+                    has_calculation = True
+                    break
+            if not has_calculation:
+                score -= 60
+                logger.info("Activity requires calculations but no calculation logic found")
+        
+        # 2. Check for input processing logic
+        if any(word in activity_lower for word in ['input', 'enter', 'scanf', 'read']):
+            has_input_processing = False
+            # Check if input is actually used in the code
+            if 'scanf(' in code:
+                # Look for variables that are read and then used
+                scanf_pattern = r'scanf\s*\(\s*"[^"]*"\s*,\s*&(\w+)'
+                scanf_vars = re.findall(scanf_pattern, code)
+                if scanf_vars:
+                    for var in scanf_vars:
+                        if var in code.replace(f'scanf("", &{var})', ''):
+                            has_input_processing = True
+                            break
+            if not has_input_processing:
+                score -= 40
+                logger.info("Activity requires input processing but input not properly used")
+        
+        # 3. Check for conditional logic implementation
+        if any(word in activity_lower for word in ['if', 'else', 'condition', 'conditional']):
+            has_meaningful_conditions = False
+            lines = code.split('\n')
+            for line in lines:
+                if 'if (' in line or 'else if' in line:
+                    # Check if condition uses variables or expressions
+                    condition = re.search(r'if\s*\((.*)\)', line)
+                    if condition:
+                        cond_text = condition.group(1)
+                        if any(char in cond_text for char in ['<', '>', '==', '!=', '&&', '||']):
+                            has_meaningful_conditions = True
+                            break
+            if not has_meaningful_conditions:
+                score -= 40
+                logger.info("Activity requires conditional logic but no meaningful conditions found")
+        
+        # 4. Check for loop logic implementation
+        if any(word in activity_lower for word in ['loop', 'for', 'while', 'repeat']):
+            has_meaningful_loops = False
+            lines = code.split('\n')
+            for line in lines:
+                if 'for (' in line or 'while (' in line:
+                    # Check if loop has meaningful body (not just empty or trivial)
+                    has_meaningful_loops = True
+                    break
+            if not has_meaningful_loops:
+                score -= 40
+                logger.info("Activity requires loops but no meaningful loops found")
+        
+        # 5. Check for proper variable usage and scope
+        variables_declared = set()
+        variables_used = set()
+        
+        # Find variable declarations
+        decl_pattern = r'\b(int|float|double|char)\s+(\w+)\s*[;=]'
+        declarations = re.findall(decl_pattern, code)
+        for decl in declarations:
+            variables_declared.add(decl[1])
+        
+        # Find variable usage (excluding declarations)
+        usage_pattern = r'\b([a-z_][a-z0-9_]*)\s*[=+\-*/]'
+        usages = re.findall(usage_pattern, code_lower)
+        for usage in usages:
+            if usage not in ['if', 'for', 'while', 'main', 'printf', 'scanf']:
+                variables_used.add(usage)
+        
+        # Check if declared variables are actually used
+        unused_vars = variables_declared - variables_used
+        if len(unused_vars) > len(variables_declared) * 0.5:  # More than 50% unused
+            score -= 20
+            logger.info(f"High percentage of unused variables: {unused_vars}")
+        
+        # 6. Check for meaningful output
+        if 'printf(' in code:
+            printf_count = code.count('printf(')
+            # Check if printf shows results or just static text
+            result_printf = 0
+            lines = code.split('\n')
+            for line in lines:
+                if 'printf(' in line and '%' in line:
+                    result_printf += 1
+            
+            if result_printf == 0 and printf_count > 0:
+                score -= 30
+                logger.info("printf used but no result formatting found")
+        
+        logger.info(f"Activity logic score: {score}")
+        return max(0, score)
 
     def check_nesting_structure(self, code):
         """Check for proper nesting of control structures."""
@@ -868,9 +1122,14 @@ class CodeGrader:
 
         return max(-10, min(10, score))
 
-    def analyze_c_code_detailed_feedback(self, code, requirements=None):
-        """Provide detailed feedback on C code analysis."""
+    def analyze_c_code_detailed_feedback(self, code, requirements=None, activity_text=""):
+        """Provide detailed feedback on C code analysis with activity context."""
         feedback_parts = []
+
+        # NEW: Check if code actually fulfills the activity purpose
+        activity_check = self.check_activity_fulfillment(code, activity_text)
+        if activity_check:
+            feedback_parts.append(activity_check)
 
         # Analyze code length based on activity requirements
         lines = [line for line in code.split('\n') if line.strip()]
@@ -927,6 +1186,53 @@ class CodeGrader:
             feedback_parts.append("Areas for improvement: " + ", ".join(issues))
 
         return ". ".join(feedback_parts) if feedback_parts else "Code structure analysis complete."
+
+    def check_activity_fulfillment(self, code, activity_text):
+        """Check if the code actually fulfills the activity's purpose."""
+        code_lower = code.lower()
+        activity_lower = activity_text.lower()
+        
+        # Generic activity fulfillment checks
+        issues = []
+        
+        # Check for calculation activities
+        if any(word in activity_lower for word in ['calculate', 'compute', 'sum', 'add', 'subtract', 'multiply', 'divide']):
+            has_calculation = False
+            lines = code.split('\n')
+            for line in lines:
+                if '=' in line and any(op in line for op in ['+', '-', '*', '/', '%']):
+                    has_calculation = True
+                    break
+            if not has_calculation:
+                issues.append("CRITICAL: Code does not perform calculations as required by the activity.")
+        
+        # Check for input activities
+        if any(word in activity_lower for word in ['input', 'enter', 'scanf', 'read']):
+            if 'scanf(' not in code:
+                issues.append("CRITICAL: Code does not read user input as required by the activity.")
+        
+        # Check for output activities
+        if any(word in activity_lower for word in ['output', 'display', 'print', 'show', 'result']):
+            if 'printf(' not in code:
+                issues.append("CRITICAL: Code does not display results as required by the activity.")
+        
+        # Check for conditional activities
+        if any(word in activity_lower for word in ['if', 'else', 'condition', 'conditional']):
+            if 'if ' not in code and 'switch ' not in code:
+                issues.append("CRITICAL: Code does not implement conditional logic as required by the activity.")
+        
+        # Check for loop activities
+        if any(word in activity_lower for word in ['loop', 'for', 'while', 'repeat']):
+            if 'for ' not in code and 'while ' not in code:
+                issues.append("CRITICAL: Code does not implement loops as required by the activity.")
+        
+        # Check for basic program structure
+        if 'int main(' not in code:
+            issues.append("CRITICAL: Code is missing the main function.")
+        
+        if len(issues) > 0:
+            return " | ".join(issues)
+        return None
 
     def extract_activity_requirements(self, activity_text):
         """Extract programming requirements from activity content."""
@@ -1068,7 +1374,7 @@ class CodeGrader:
         found_keywords = [kw for kw in keywords if kw in code_lower]
         return len(found_keywords) > 0, len(found_keywords), f"specific content keywords: {', '.join(found_keywords)}"
 
-    def check_activity_requirements(self, code, requirements):
+    def check_activity_requirements(self, code, requirements, activity_text):
         """Check if the submitted code meets the specific activity requirements."""
         met_points = 0
         total_required_points = 0
