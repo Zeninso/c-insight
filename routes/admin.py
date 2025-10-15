@@ -170,8 +170,7 @@ def deleteUser(user_id):
 
         # Delete the user
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
-        mysql.connection.commit()
-        print("User deleted and committed")
+        print("User deleted")
 
         # Notify admins about user deletion
         message = f"User deleted: {first_name} {last_name} ({username}), Role: {role}."
@@ -184,7 +183,9 @@ def deleteUser(user_id):
                 INSERT INTO notifications (user_id, role, type, message, is_read, created_at)
                 VALUES (%s, 'admin', 'user_deleted', %s, FALSE, NOW())
             """, (admin_id, message))
+
         mysql.connection.commit()
+        print("User deleted and notifications created successfully.")
 
         return jsonify({'success': True})
     except Exception as e:
