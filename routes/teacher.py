@@ -884,12 +884,12 @@ def create_activity():
             INSERT INTO activities (
                 teacher_id, class_id, title, description, instructions,
                 starter_code, due_date, correctness_weight,
-                syntax_weight, logic_weight, similarity_weight, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                syntax_weight, logic_weight, similarity_weight, created_at, notified_finished
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             teacher_id, class_id, title, description, instructions,
             starter_code, due_date, correctness_weight,
-            syntax_weight, logic_weight, similarity_weight, created_at
+            syntax_weight, logic_weight, similarity_weight, created_at, False
         ))
 
         # Get the last inserted activity ID
@@ -1366,7 +1366,7 @@ def delete_enrolled_students(class_id):
         for student_id in student_ids:
             message = f'You have been removed from class {class_name} by your teacher.'
             link = url_for('student.studentClasses')  # or any relevant link
-            cur.execute(notification_query, (student_id, 'student', 'removed_from_class', message, link, False))
+            cur.execute(notification_query, (int(student_id), 'student', 'removed_from_class', message, link, False))
 
         mysql.connection.commit()
         flash(f'Successfully deleted {len(student_ids)} student(s) from the class.', 'success')
@@ -1606,7 +1606,7 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
         cur.execute("""
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, 'student', 'new_activity', %s, %s, %s, NOW())
-        """, (student_id, message, link, False))
+        """, (int(student_id), message, link, False))
     mysql.connection.commit()
     cur.close()
 
