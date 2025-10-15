@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 text: data.message,
                                 icon: 'success',
                                 showConfirmButton: false,
-                                timer: 2000
+                                timer: 1500
                             }).then(() => {
                                 window.location.href = window.location.pathname + '?tab=students';
                             });
