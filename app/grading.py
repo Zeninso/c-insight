@@ -1240,54 +1240,91 @@ class CodeGrader:
         return max(0, requirement_score), '. '.join(feedback_parts)
 
     def normalize_code(self, code):
-        """Normalize code by removing comments, normalizing whitespace, replacing literals, and user-defined identifiers with VAR to detect similarity despite variable renaming."""
+        """Normalize code while preserving logical structure and algorithm differences."""
         # Remove single-line comments
         code = re.sub(r'//.*', '', code)
         # Remove multi-line comments
         code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
-
-        # Remove preprocessor directives
-        code = re.sub(r'#.*', '', code)
-
-        # Normalize whitespace: replace multiple spaces/tabs with single space, strip lines
+        
+        # Remove preprocessor directives but keep includes for structure
+        code = re.sub(r'#\s*(define|ifdef|ifndef|endif|pragma).*', '', code)
+        
+        # Normalize whitespace but preserve basic structure
         lines = code.split('\n')
         normalized_lines = []
         for line in lines:
             line = re.sub(r'\s+', ' ', line.strip())
-            if line:
+            if line and not line.startswith('# '):  # Keep includes for structure
                 normalized_lines.append(line)
         code = '\n'.join(normalized_lines)
-
-        # Replace string literals with STR_LITERAL
+        
+        # Replace string literals but keep their presence
         code = re.sub(r'"[^"]*"', 'STR_LITERAL', code)
-
-        # Replace character literals with CHAR_LITERAL
+        
+        # Replace character literals
         code = re.sub(r"'[^']'", 'CHAR_LITERAL', code)
-
-        # Replace numeric literals with NUM_LITERAL (including floats)
-        code = re.sub(r'\b\d+\.?\d*\b', 'NUM_LITERAL', code)
-
+        
+        # Replace numeric literals but keep their type (int vs float)
+        def replace_numeric(match):
+            num = match.group(0)
+            if '.' in num:
+                return 'FLOAT_LITERAL'
+            else:
+                return 'INT_LITERAL'
+        code = re.sub(r'\b\d+\.?\d*\b', replace_numeric, code)
+        
         # C keywords and common library functions to preserve
         c_keywords = {
-            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
-            'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 
+            'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if', 'int', 
+            'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
             'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
         }
-        library_functions = {
-            'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
-            'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
-            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp', 'ceil', 'floor'
+        
+        # Algorithm-specific functions to PRESERVE (don't replace with VAR)
+        algorithm_functions = {
+            'sort', 'search', 'bubble', 'insertion', 'selection', 'merge', 'quick', 'heap',
+            'binary', 'linear', 'recursive', 'fibonacci', 'factorial', 'prime', 'gcd',
+            'reverse', 'palindrome', 'matrix', 'transpose', 'determinant'
         }
-
+        
+        library_functions = {
+            'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 
+            'fopen', 'fclose', 'fprintf', 'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 
+            'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand', 'time', 'exit', 'abs', 
+            'sqrt', 'pow', 'sin', 'cos', 'tan', 'log', 'exp', 'ceil', 'floor'
+        }
+        
+        # PRESERVE control flow patterns and algorithm structure
+        control_flow_patterns = [
+            (r'for\s*\(\s*[^;]*;\s*[^;]*;\s*[^)]*\)', 'FOR_LOOP'),
+            (r'while\s*\(\s*[^)]*\)', 'WHILE_LOOP'),
+            (r'do\s*\{', 'DO_LOOP'),
+            (r'switch\s*\(\s*[^)]*\)', 'SWITCH_STMT'),
+            (r'if\s*\(\s*[^)]*\)', 'IF_STMT'),
+            (r'else\s*if\s*\(\s*[^)]*\)', 'ELSE_IF_STMT'),
+        ]
+        
+        # Apply control flow pattern preservation
+        for pattern, replacement in control_flow_patterns:
+            code = re.sub(pattern, replacement, code, flags=re.IGNORECASE)
+        
         # Find all words in the code
         words = set(re.findall(r'\b\w+\b', code))
-
-        # Replace user-defined identifiers with VAR
+        
+        # Replace user-defined identifiers with VAR, but PRESERVE:
+        # 1. Standard library functions
+        # 2. Algorithm-related function names  
+        # 3. Control flow keywords (already handled above)
         normalized = code
         for word in words:
-            if word not in c_keywords and word not in library_functions and word not in ['STR_LITERAL', 'CHAR_LITERAL', 'NUM_LITERAL']:
+            if (word not in c_keywords and 
+                word not in library_functions and 
+                word not in algorithm_functions and
+                word not in ['STR_LITERAL', 'CHAR_LITERAL', 'INT_LITERAL', 'FLOAT_LITERAL',
+                            'FOR_LOOP', 'WHILE_LOOP', 'DO_LOOP', 'SWITCH_STMT', 'IF_STMT', 'ELSE_IF_STMT']):
                 normalized = re.sub(r'\b' + re.escape(word) + r'\b', 'VAR', normalized)
-
+        
         return normalized
 
     def check_similarity(self, activity_id, code, student_id):
@@ -1353,14 +1390,19 @@ class CodeGrader:
 
             max_sim_percent = max_similarity * 100
             score = max(0, 100 - max_sim_percent)
-
-            if max_sim_percent > 80: similarity_level = "very high"
-            elif max_sim_percent > 60: similarity_level = "high"
-            elif max_sim_percent > 40: similarity_level = "moderate"
-            elif max_sim_percent > 20: similarity_level = "low"
+            
+            # HIGHER thresholds to avoid false positives for similar structures
+            if max_sim_percent > 90: similarity_level = "very high"
+            elif max_sim_percent > 75: similarity_level = "high" 
+            elif max_sim_percent > 60: similarity_level = "moderate"
+            elif max_sim_percent > 40: similarity_level = "low"
             else: similarity_level = "very low"
-
-            feedback = f"Similarity with other submissions: {similarity_level} ({max_sim_percent:.1f}%)."
+            
+            # Only flag concerning levels
+            if max_sim_percent > 75:
+                feedback = f"⚠️ High similarity detected with other submissions: {similarity_level} ({max_sim_percent:.1f}%). Please ensure this is your own work."
+            else:
+                feedback = f"Similarity with other submissions: {similarity_level} ({max_sim_percent:.1f}%)."
 
             return score, feedback
 
