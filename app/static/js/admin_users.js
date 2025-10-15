@@ -5,7 +5,7 @@
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete it!',
-            showConfirmButton: '#d33',
+            showConfirmButton: '#d33'
         }).then((result) => {
             if (result.isConfirmed) {
                 fetch(`/admin/user/${userId}/delete`, { method: 'POST' })
