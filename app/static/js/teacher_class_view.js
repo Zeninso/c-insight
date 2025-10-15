@@ -92,7 +92,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Yes, remove them!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    deleteStudentsForm.submit();
+                    // Send AJAX request
+                    const formData = new FormData(deleteStudentsForm);
+                    fetch(deleteStudentsForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 2000
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', data.error || 'An error occurred', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error', 'An error occurred while removing students', 'error');
+                    });
                 }
             });
         });

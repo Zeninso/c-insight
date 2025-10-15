@@ -1378,7 +1378,11 @@ def delete_enrolled_students(class_id):
 
     session['unread_notifications_count'] = unread_notifications_count
 
-    return redirect(url_for('teacher.view_class', class_id=class_id, tab='students'))
+    # Check if request is AJAX
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': f'Successfully deleted {len(student_ids)} student(s) from the class.'})
+    else:
+        return redirect(url_for('teacher.view_class', class_id=class_id, tab='students'))
     
     
 
