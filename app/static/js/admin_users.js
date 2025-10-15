@@ -3,9 +3,9 @@
             title: 'Are you sure?',
             text: 'This will permanently delete the user.',
             icon: 'warning',
+            comfirmButtonColor: '#d33',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete it!',
-            comfirmButtonColor: '#d33'
+            confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {
                 fetch(`/admin/user/${userId}/delete`, { method: 'POST' })
