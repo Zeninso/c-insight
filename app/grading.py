@@ -91,8 +91,16 @@ class CodeGrader:
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
+            # Check for major requirement failures - if activity not implemented properly, set all scores to zero
+            if requirement_score < 30:
+                correctness_score = 0
+                syntax_score = 0
+                logic_score = 0
+                similarity_score = 0
+                ast_feedback = f"Activity requirements not met (score: {requirement_score:.1f}%); submission appears incomplete or incorrect - all scores set to zero."
+                sim_feedback = "Similarity check skipped due to major requirement failures."
             # If syntax score is below threshold, assign zero to all scores and skip further checks
-            if syntax_score < 85:
+            elif syntax_score < 85:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
@@ -105,7 +113,7 @@ class CodeGrader:
                     code, requirements, requirement_score
                 )
 
-                # Apply requirement penalty to correctness score for unmet requirements
+                # Apply requirement penalty to correctness score for moderate requirement issues
                 if requirement_score < 70:
                     penalty_factor = requirement_score / 100
                     correctness_score = correctness_score * penalty_factor
@@ -1169,8 +1177,8 @@ class CodeGrader:
         }
 
         # First, check explicitly required elements from activity description
-        for req_name, req_data in requirements.items():
-            if isinstance(req_data, dict) and not req_data['required']:
+        for req_name, req_value in requirements.items():
+            if not req_value:
                 continue
 
             total_required_points += points_map[req_name]
@@ -1202,19 +1210,16 @@ class CodeGrader:
                 met_points += points_map[req_name]
                 met_requirements.append(feedback_str)
 
-        # Calculate requirement score - zero if any required element is missing
+        # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
-            if missing_requirements:
-                requirement_score = 0  # Zero score if any required element is missing
-            else:
-                requirement_score = (met_points / total_required_points) * 100
+            requirement_score = (met_points / total_required_points) * 100
         else:
             requirement_score = 100  # No requirements detected, no penalty
 
         # Generate feedback
         feedback_parts = []
         if missing_requirements:
-            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}. Since required elements are missing, all grading scores will be set to zero.")
+            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}.")
         if met_requirements:
             feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}.")
         if not missing_requirements and not met_requirements:
