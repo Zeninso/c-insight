@@ -6,70 +6,6 @@
     <title>Admin Dashboard - C-Insight</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <style>
-        .filter-section {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .main-content {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        /* Fix for sidebar scrolling issue */
-        .dashboard {
-            display: flex !important;
-            min-height: 100vh;
-        }
-        .sidebar {
-            position: sticky !important;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-        .main-content {
-            overflow-y: auto !important;
-            flex: 1;
-        }
-        /* Activity List */
-        .activity-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .activity-list li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-        }
-        .activity-list li:last-child {
-            border-bottom: none;
-        }
-        .activity-list i {
-            width: 16px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        /* Charts Container */
-        .charts-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-top: 0.5rem;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .charts-container .card {
-            padding: 1rem;
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -83,19 +19,19 @@
                 <li><a href="{{ url_for('admin.adminDashboard') }}" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('admin.adminUsers') }}"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="{{ url_for('admin.adminSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
-        </ul>
-    </div>
+            </ul>
+        </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="header">
-            <h1>Welcome back, {{ first_name }}</h1>
-            <div class="user-profile">
-                <a href="{{ url_for('auth.user_profile') }}">
-                    <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
-                </a>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="notification-icon">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Welcome back, {{ first_name }}</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ session.first_name }}+{{ session.last_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="notification-icon">
                             <a href="{{ url_for('admin.admin_notifications') }}" class="notification-icon" title="Notifications" style="position: relative; display: inline-block; color: inherit; text-decoration: none;">
                                 <i class="fas fa-bell"></i>
                                 {% if unread_notifications_count > 0 %}
@@ -103,262 +39,266 @@
                                 {% endif %}
                             </a>
                         </div>
-                    <a href="#" onclick="confirmLogout()" class="btn-logout">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dashboard Content -->
-        <div class="grid-container">
-            <!-- Welcome Summary Card -->
-            <div class="card welcome-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h3>
-                </div>
-                <div class="stats-summary">
-                    <div class="stat-item">
-                        <span class="stat-number">{{ stats.teachers + stats.students }}</span>
-                        <span class="stat-label">Total Users</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ stats.teachers }}</span>
-                        <span class="stat-label">Teachers</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ stats.students }}</span>
-                        <span class="stat-label">Students</span>
-                    </div>
-                </div>
-                <p>Welcome to C-Insight Admin Panel. Manage users, settings, and monitor system activity.</p>
-            </div>
-
-            <!-- Teachers Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chalkboard-teacher"></i> Teachers</h3>
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <p>Total Teachers: <strong>{{ stats.teachers }}</strong></p>
-                <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Teachers</a>
-            </div>
-
-            <!-- Students Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-user-graduate"></i> Students</h3>
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <p>Total Students: <strong>{{ stats.students }}</strong></p>
-                <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Students</a>
-            </div>
-
-            <!-- Quick Actions Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-                </div>
-                <div class="quick-actions">
-                    <a href="{{ url_for('admin.adminSettings') }}" class="btn btn-outline">Settings</a>
-                    <a href="{{ url_for('admin.admin_notifications') }}" class="btn btn-outline">Notifications</a>
-                </div>
-            </div>
-
-            <!-- System Status Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-server"></i> System Status</h3>
-                </div>
-                <div class="status-indicators">
-                    <div class="status-item">
-                        <i class="fas fa-database" style="color: #28a745;"></i>
-                        <span>Database: Online</span>
-                    </div>
-                    <div class="status-item">
-                        <i class="fas fa-users" style="color: #007bff;"></i>
-                        <span>Active Users: {{ stats.teachers + stats.students }}</span>
-                    </div>
-                    <div class="status-item">
-                        <i class="fas fa-bell" style="color: #ffc107;"></i>
-                        <span>Notifications: {{ unread_notifications_count }}</span>
+                        <a href="#" onclick="confirmLogout()" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Activity Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
-                </div>
-                <ul class="activity-list">
-                    {% for activity in recent_activities %}
-                    <li>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; margin-left: 1rem;">
-                            {% if activity['type'] == 'user_deleted' %}
-                                <i class="fas fa-trash" style="color: #dc3545; width: 16px;"></i>
-                            {% elif activity['type'] == 'user_registered' %}
-                                <i class="fas fa-user-plus" style="color: #28a745; width: 16px;"></i>
-                            {% else %}
-                                <i class="fas fa-info-circle" style="color: #6f42c1; width: 16px;"></i>
-                            {% endif %}
-                            <span style="flex: 1; word-break: break-word;">{{ activity['message'] }}</span>
+            <!-- Dashboard Content -->
+            <div class="grid-container fade-in">
+                <!-- Welcome Summary Card -->
+                <div class="card welcome-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h3>
+                    </div>
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-number">{{ stats.teachers + stats.students }}</span>
+                            <span class="stat-label">Total Users</span>
                         </div>
-                        <small style="color: #999; white-space: nowrap; flex-shrink: 0;">{{ activity['created_at'].strftime('%Y-%m-%d %H:%M') }}</small>
-                    </li>
-                    {% else %}
-                    <li style="text-align: center; color: #999; padding: 1rem;">
-                        <i class="fas fa-clock" style="margin-right: 0.5rem;"></i> No recent activity
-                    </li>
-                    {% endfor %}
-                </ul>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ stats.teachers }}</span>
+                            <span class="stat-label">Teachers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ stats.students }}</span>
+                            <span class="stat-label">Students</span>
+                        </div>
+                    </div>
+                    <p>Welcome to C-Insight Admin Panel. Manage users, settings, and monitor system activity.</p>
+                </div>
+
+                <!-- Teachers Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chalkboard-teacher"></i> Teachers</h3>
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <p>Total Teachers: <strong>{{ stats.teachers }}</strong></p>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Teachers</a>
+                </div>
+
+                <!-- Students Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-graduate"></i> Students</h3>
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <p>Total Students: <strong>{{ stats.students }}</strong></p>
+                    <a href="{{ url_for('admin.adminUsers') }}" class="btn btn-gradient">Manage Students</a>
+                </div>
+
+                <!-- Quick Actions Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    </div>
+                    <div class="quick-actions">
+                        <a href="{{ url_for('admin.adminSettings') }}" class="btn btn-outline">Settings</a>
+                        <a href="{{ url_for('admin.admin_notifications') }}" class="btn btn-outline">Notifications</a>
+                    </div>
+                </div>
+
+                <!-- System Status Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-server"></i> System Status</h3>
+                    </div>
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <i class="fas fa-database" style="color: #28a745;"></i>
+                            <span>Database: Online</span>
+                        </div>
+                        <div class="status-item">
+                            <i class="fas fa-users" style="color: #007bff;"></i>
+                            <span>Active Users: {{ stats.teachers + stats.students }}</span>
+                        </div>
+                        <div class="status-item">
+                            <i class="fas fa-bell" style="color: #ffc107;"></i>
+                            <span>Notifications: {{ unread_notifications_count }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                    </div>
+                    <ul class="activity-list">
+                        {% for activity in recent_activities %}
+                        <li>
+                            <div class="activity-content">
+                                <div class="activity-icon">
+                                    {% if activity['type'] == 'user_deleted' %}
+                                        <i class="fas fa-trash" style="color: #dc3545;"></i>
+                                    {% elif activity['type'] == 'user_registered' %}
+                                        <i class="fas fa-user-plus" style="color: #28a745;"></i>
+                                    {% else %}
+                                        <i class="fas fa-info-circle" style="color: #6f42c1;"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="activity-message">{{ activity['message'] }}</div>
+                            </div>
+                            <small class="activity-time">{{ activity['created_at'].strftime('%Y-%m-%d %H:%M') }}</small>
+                        </li>
+                        {% else %}
+                        <li style="text-align: center; color: #999; padding: 1rem;">
+                            <i class="fas fa-clock" style="margin-right: 0.5rem;"></i> No recent activity
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-container fade-in">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> User Growth Over Time</h3>
+                    </div>
+                    <canvas id="userGrowthChart" width="300" height="100"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-pie"></i> User Distribution</h3>
+                    </div>
+                    <canvas id="userDistributionChart" width="300" height="100"></canvas>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Charts Section -->
-        <div class="charts-container">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chart-line"></i> User Growth Over Time</h3>
-                </div>
-                <canvas id="userGrowthChart" width="300" height="100"></canvas>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chart-pie"></i> User Distribution</h3>
-                </div>
-                <canvas id="userDistributionChart" width="300" height="100"></canvas>
-            </div>
-        </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    var initialUnreadCount = parseInt('{{ unread_notifications_count }}');
+        var initialUnreadCount = parseInt('{{ unread_notifications_count }}');
 
-    function confirmLogout() {
-        Swal.fire({
-            title: 'Logout?',
-            text: "Are you sure you want to logout?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: ' #6f42c1',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, logout!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = "{{ url_for('auth.logout') }}";
-            }
-        });
-    }
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Logout?',
+                text: "Are you sure you want to logout?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#6f42c1',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{{ url_for('auth.logout') }}";
+                }
+            });
+        }
 
-    // Render User Growth Chart
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/admin/stats/monthly')
-            .then(response => response.json())
-            .then(data => {
-                const ctx = document.getElementById('userGrowthChart').getContext('2d');
-                const labels = data.map(item => item.month);
-                const counts = data.map(item => item.count);
+        // Render User Growth Chart
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/admin/stats/monthly')
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('userGrowthChart').getContext('2d');
+                    const labels = data.map(item => item.month);
+                    const counts = data.map(item => item.count);
 
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'New Users',
-                            data: counts,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'New Users',
+                                data: counts,
+                                borderColor: 'rgba(111, 66, 193, 1)',
+                                backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                                tension: 0.1,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
                             }
                         }
-                    }
-                });
-            })
-            .catch(error => console.error('Error fetching chart data:', error));
+                    });
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
 
-        // Render User Distribution Chart
-        const ctx2 = document.getElementById('userDistributionChart').getContext('2d');
-        const teacherCount = parseInt('{{ stats.teachers }}');
-        const studentCount = parseInt('{{ stats.students }}');
-        new Chart(ctx2, {
-            type: 'pie',
-            data: {
-                labels: ['Teachers', 'Students'],
-                datasets: [{
-                    data: [teacherCount, studentCount],
-                    backgroundColor: ['#FF6384', '#36A2EB'],
-                    hoverBackgroundColor: ['#FF6384', '#36A2EB']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+            // Render User Distribution Chart
+            const ctx2 = document.getElementById('userDistributionChart').getContext('2d');
+            const teacherCount = parseInt('{{ stats.teachers }}');
+            const studentCount = parseInt('{{ stats.students }}');
+            new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: ['Teachers', 'Students'],
+                    datasets: [{
+                        data: [teacherCount, studentCount],
+                        backgroundColor: ['#6f42c1', '#d63384'],
+                        hoverBackgroundColor: ['#5a32a3', '#b52a6f']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        // Real-Time Notifications
-        let lastNotificationCount = initialUnreadCount;
-        let notificationToastShown = false;
+            // Real-Time Notifications
+            let lastNotificationCount = initialUnreadCount;
+            let notificationToastShown = false;
 
-        function checkNotifications() {
-            fetch('/admin/notifications/count')
-                .then(response => response.json())
-                .then(data => {
-                    const currentCount = data.count;
-                    const badge = document.querySelector('.notification-badge');
-                    if (badge) {
-                        if (currentCount > 0) {
-                            badge.textContent = currentCount;
-                            badge.style.display = 'inline';
-                        } else {
-                            badge.style.display = 'none';
+            function checkNotifications() {
+                fetch('/admin/notifications/count')
+                    .then(response => response.json())
+                    .then(data => {
+                        const currentCount = data.count;
+                        const badge = document.querySelector('.notification-badge');
+                        if (badge) {
+                            if (currentCount > 0) {
+                                badge.textContent = currentCount;
+                                badge.style.display = 'inline';
+                            } else {
+                                badge.style.display = 'none';
+                            }
                         }
-                    }
 
-                    if (currentCount > lastNotificationCount && !notificationToastShown) {
-                        // Show toast for new notification
-                        Swal.fire({
-                            title: 'New Notification!',
-                            text: 'You have new notifications.',
-                            icon: 'info',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-                        notificationToastShown = true;
-                        setTimeout(() => notificationToastShown = false, 10000); // Reset after 10s
-                    }
-                    lastNotificationCount = currentCount;
-                })
-                .catch(error => console.error('Error checking notifications:', error));
-        }
+                        if (currentCount > lastNotificationCount && !notificationToastShown) {
+                            // Show toast for new notification
+                            Swal.fire({
+                                title: 'New Notification!',
+                                text: 'You have new notifications.',
+                                icon: 'info',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                            notificationToastShown = true;
+                            setTimeout(() => notificationToastShown = false, 10000); // Reset after 10s
+                        }
+                        lastNotificationCount = currentCount;
+                    })
+                    .catch(error => console.error('Error checking notifications:', error));
+            }
 
-        // Poll every 30 seconds
-        setInterval(checkNotifications, 30000);
-    });
+            // Poll every 30 seconds
+            setInterval(checkNotifications, 30000);
+        });
     </script>
 </body>
 </html>
