@@ -108,10 +108,9 @@
         }
 
         .grid-container {
-            display: flex;
-            flex-direction:row;
-            flex-wrap: wrap;
-            gap: 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
@@ -157,13 +156,13 @@
         }
 
         .card-header h3 {
-            font-size: 2rem;
+            font-size: 1.5rem;
             color: var(--dark);
         }
 
         .card-header i {
             color: var(--dark);
-            font-size: 3rem;
+            font-size: 2rem;
         }
 
 
