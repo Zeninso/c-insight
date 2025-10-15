@@ -13,14 +13,14 @@ def adminDashboard():
         flash('Unauthorized access', 'error')
         return redirect(url_for('auth.login'))
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get user statistics
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='teacher'")
-    teacher_count = cur.fetchone()['COUNT(*)']
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='teacher'")
+    teacher_count = cur.fetchone()['count']
 
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
-    student_count = cur.fetchone()['COUNT(*)']
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='student'")
+    student_count = cur.fetchone()['count']
 
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
@@ -62,9 +62,6 @@ def adminUsers():
     cur.execute("SELECT id, username, first_name, last_name, email, role FROM users WHERE role != 'admin' ORDER BY role, first_name")
     users = cur.fetchall()
 
-    cur.close()
-
-    cur = mysql.connection.cursor()
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
@@ -196,9 +193,7 @@ def adminSettings():
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("SELECT * FROM settings WHERE id=1")
     settings = cur.fetchone()
-    cur.close()
 
-    cur = mysql.connection.cursor()
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
@@ -218,10 +213,10 @@ def adminSettings():
 
     # Get user statistics for status display
     cur = mysql.connection.cursor()
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='teacher'")
-    teacher_count = cur.fetchone()['COUNT(*)']
-    cur.execute("SELECT COUNT(*) FROM users WHERE role='student'")
-    student_count = cur.fetchone()['COUNT(*)']
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='teacher'")
+    teacher_count = cur.fetchone()['count']
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='student'")
+    student_count = cur.fetchone()['count']
     cur.close()
 
     stats = {
@@ -256,29 +251,30 @@ def add_admin_notification(message, notif_type='info', link=None):
     print(f"add_admin_notification called: {message}")
     cur = None
     try:
-        cur = mysql.connection.cursor()
-        
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
         # Get all admin users
         cur.execute("SELECT id FROM users WHERE role='admin'")
         admins = cur.fetchall()
         print(f"Found {len(admins)} admin users")
-        
+
         if not admins:
             print("No admin users found!")
             return False
-            
+
         # Insert notification for each admin
-        for (admin_id,) in admins:
+        for admin in admins:
+            admin_id = admin['id']
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
                 INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
                 VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
             """, (admin_id, notif_type, message, link))
-        
+
         mysql.connection.commit()
         print("Notifications successfully saved to database")
         return True
-        
+
     except Exception as e:
         print(f"Error in add_admin_notification: {str(e)}")
         import traceback
@@ -291,12 +287,12 @@ def add_admin_notification(message, notif_type='info', link=None):
             cur.close()
 
 def get_admin_unread_notifications_count(admin_id):
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("""
-        SELECT COUNT(*) FROM notifications
+        SELECT COUNT(*) as count FROM notifications
         WHERE user_id = %s AND role = 'admin' AND is_read = FALSE
     """, (admin_id,))
-    count = cur.fetchone()['COUNT(*)']
+    count = cur.fetchone()['count']
     cur.close()
     return count
 
@@ -362,7 +358,7 @@ def notificationsCount():
     if 'username' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Get admin id
     cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
     user = cur.fetchone()
