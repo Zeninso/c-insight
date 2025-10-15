@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showConfirmButton: false,
                                 timer: 2000
                             }).then(() => {
-                                window.location.reload();
+                                window.location.href = window.location.pathname + '?tab=students';
                             });
                         } else {
                             Swal.fire('Error', data.error || 'An error occurred', 'error');
