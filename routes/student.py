@@ -1073,6 +1073,7 @@ def notify_students_activity_deadline():
         students = cur.fetchall()
 
         for (student_id,) in students:
+
             # Compose notification message
             if due_date < now:
                 message = f"Deadline passed for activity '{title}'. Please submit as soon as possible."
