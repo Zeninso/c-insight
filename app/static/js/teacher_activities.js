@@ -354,7 +354,7 @@ function confirmLogout() {
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: ' #6f42c1',
-        cancelButtonColor: '#6c757d',
+        cancelButtonColor:  '#d33',
         confirmButtonText: 'Yes, logout!'
     }).then((result) => {
         if (result.isConfirmed) {
