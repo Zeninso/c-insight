@@ -1210,9 +1210,12 @@ class CodeGrader:
                 met_points += points_map[req_name]
                 met_requirements.append(feedback_str)
 
-        # Calculate requirement score as percentage of met requirements
+        # Calculate requirement score - zero if any required element is missing
         if total_required_points > 0:
-            requirement_score = (met_points / total_required_points) * 100
+            if missing_requirements:
+                requirement_score = 0  # Zero score if any required element is missing
+            else:
+                requirement_score = (met_points / total_required_points) * 100
         else:
             requirement_score = 100  # No requirements detected, no penalty
 
