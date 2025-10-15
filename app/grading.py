@@ -1222,7 +1222,7 @@ class CodeGrader:
         # Generate feedback
         feedback_parts = []
         if missing_requirements:
-            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}.")
+            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}. Since required elements are missing, all grading scores will be set to zero.")
         if met_requirements:
             feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}.")
         if not missing_requirements and not met_requirements:
