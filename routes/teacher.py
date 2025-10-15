@@ -1322,6 +1322,13 @@ def delete_enrolled_students(class_id):
         flash('No students selected for deletion.', 'error')
         return redirect(url_for('teacher.view_class', class_id=class_id))
 
+    # Convert to integers
+    try:
+        student_ids = [int(sid) for sid in student_ids]
+    except ValueError:
+        flash('Invalid student IDs.', 'error')
+        return redirect(url_for('teacher.view_class', class_id=class_id))
+
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Get unread notifications count
