@@ -4,6 +4,7 @@ from flask_dance.contrib.google import make_google_blueprint
 import os
 from dotenv import load_dotenv
 import time
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables from .env
 load_dotenv()
@@ -59,5 +60,8 @@ def create_app():
     app.register_blueprint(teacher_bp, url_prefix="/teacher")
     app.register_blueprint(student_bp, url_prefix="/student")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+
+    # Apply ProxyFix for Railway deployment
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
     return app
