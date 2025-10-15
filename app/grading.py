@@ -716,7 +716,7 @@ class CodeGrader:
         score += memory_score * 1.5  # Higher multiplier for memory safety
 
         # NEW: Check if logic actually matches activity requirements
-        activity_logic_score = self.check_activity_logic(code, activity_text)
+        activity_logic_score, _ = self.check_activity_logic(code, activity_text)
         score = score * 0.6 + activity_logic_score * 0.4  # Weight activity logic heavily
 
         return min(100, max(0, score))
