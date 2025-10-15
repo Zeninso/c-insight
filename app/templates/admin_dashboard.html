@@ -190,16 +190,16 @@
                     {% for activity in recent_activities %}
                     <li>
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; margin-left: 1rem;">
-                            {% if activity[0] == 'user_deleted' %}
+                            {% if activity['type'] == 'user_deleted' %}
                                 <i class="fas fa-trash" style="color: #dc3545; width: 16px;"></i>
-                            {% elif activity[0] == 'user_registered' %}
+                            {% elif activity['type'] == 'user_registered' %}
                                 <i class="fas fa-user-plus" style="color: #28a745; width: 16px;"></i>
                             {% else %}
                                 <i class="fas fa-info-circle" style="color: #6f42c1; width: 16px;"></i>
                             {% endif %}
-                            <span style="flex: 1; word-break: break-word;">{{ activity[1] }}</span>
+                            <span style="flex: 1; word-break: break-word;">{{ activity['message'] }}</span>
                         </div>
-                        <small style="color: #999; white-space: nowrap; flex-shrink: 0;">{{ activity[2].strftime('%Y-%m-%d %H:%M') }}</small>
+                        <small style="color: #999; white-space: nowrap; flex-shrink: 0;">{{ activity['created_at'].strftime('%Y-%m-%d %H:%M') }}</small>
                     </li>
                     {% else %}
                     <li style="text-align: center; color: #999; padding: 1rem;">
