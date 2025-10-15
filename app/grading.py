@@ -85,39 +85,45 @@ class CodeGrader:
             activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
             requirements = self.extract_activity_requirements(activity_text)
 
-            # Check if code meets specific activity requirements - THIS IS CRITICAL
-            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements, activity_text)
+            # CRITICAL: Check if code actually implements what the activity requires
+            activity_implementation_score, implementation_feedback = self.check_activity_implementation(code, activity_text)
 
-            # Syntax check using GCC
-            syntax_score, syntax_feedback = self.check_syntax(code)
-
-            # MAJOR CHANGE: If code doesn't meet basic activity requirements, assign zero to all scores
-            if requirement_score < 50:  # Less than 50% on requirements
+            # If code doesn't meet activity implementation requirements, assign zero to ALL scores
+            if activity_implementation_score < 50:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
                 similarity_score = 0
-                ast_feedback = f"Submission does not meet basic activity requirements: {requirement_feedback}. All scores set to zero."
-                sim_feedback = "Similarity check skipped due to failed requirements."
-            # If syntax score is below threshold, also assign zero to all scores
-            elif syntax_score < 85:
-                correctness_score = 0
-                syntax_score = 0
-                logic_score = 0
-                similarity_score = 0
-                ast_feedback = "Submission has critical syntax errors; grading scores set to zero."
-                sim_feedback = "Similarity check skipped due to syntax errors."
+                requirement_score = activity_implementation_score
+                ast_feedback = f"CRITICAL: Code does not implement the activity requirements: {implementation_feedback}. All scores set to zero."
+                sim_feedback = "Similarity check skipped due to failed activity implementation."
             else:
-                # Correctness and Logic analysis
-                correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
-                    code, requirements, requirement_score, activity_text
-                )
+                # Code meets activity requirements - proceed with normal grading
+                correctness_score = 100  # Perfect correctness score if activity is implemented
 
-                # Apply requirement penalty to correctness score
-                correctness_score = correctness_score * (requirement_score / 100)
+                # Check if code meets specific activity requirements
+                requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements, activity_text)
 
-                # Similarity check
-                similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
+                # Syntax check using GCC
+                syntax_score, syntax_feedback = self.check_syntax(code)
+
+                # If syntax score is below threshold, assign zero to all scores
+                if syntax_score < 85:
+                    correctness_score = 0
+                    syntax_score = 0
+                    logic_score = 0
+                    similarity_score = 0
+                    ast_feedback = "Submission has critical syntax errors; grading scores set to zero."
+                    sim_feedback = "Similarity check skipped due to syntax errors."
+                else:
+                    # Logic analysis (correctness is already 100 if activity implemented)
+                    logic_score, logic_feedback = self.analyze_c_code_logic(code, requirements, activity_text), ""
+
+                    # Similarity check
+                    similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
+
+                    # Compile feedback
+                    ast_feedback = f"Correctness: {correctness_score:.1f}%, Logic: {logic_score:.1f}%. Activity implementation verified."
 
             # Check for overdue penalty
             overdue_penalty = 0
