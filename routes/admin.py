@@ -89,6 +89,13 @@ def editUser(user_id):
         update_fields = []
         params = []
 
+        # Fetch current user data to check for role change
+        cur.execute("SELECT role FROM users WHERE id=%s", (user_id,))
+        current_user = cur.fetchone()
+        if not current_user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        current_role = current_user['role']
+
         if 'username' in request.form:
             update_fields.append('username = %s')
             params.append(request.form['username'])
@@ -106,14 +113,26 @@ def editUser(user_id):
             update_fields.append('email = %s')
             params.append(email_val)
 
+        new_role = None
         if 'role' in request.form:
+            new_role = request.form['role']
             update_fields.append('role = %s')
-            params.append(request.form['role'])
+            params.append(new_role)
 
         if not update_fields:
             return jsonify({'success': False, 'error': 'No fields to update'}), 400
 
         try:
+            # Handle role change: remove conflicting data
+            if new_role and new_role != current_role:
+                if current_role == 'teacher' and new_role == 'student':
+                    # Delete classes for the teacher (this will cascade to enrollments, activities, submissions)
+                    cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
+                elif current_role == 'student' and new_role == 'teacher':
+                    # Delete submissions and enrollments for the student
+                    cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
+                    cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
+
             query = "UPDATE users SET " + ', '.join(update_fields) + " WHERE id = %s"
             params.append(user_id)
             cur.execute(query, params)
