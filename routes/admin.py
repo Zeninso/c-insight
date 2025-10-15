@@ -141,7 +141,7 @@ def deleteUser(user_id):
     if 'username' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'error': 'Unauthorized access'}), 403
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     try:
         # Get user info before deletion for notification
@@ -150,7 +150,10 @@ def deleteUser(user_id):
         if not user:
             return jsonify({'success': False, 'error': 'User not found'}), 404
 
-        username, first_name, last_name, role = user
+        username = user['username']
+        first_name = user['first_name']
+        last_name = user['last_name']
+        role = user['role']
         print(f"Deleting user: {username}, role: {role}")
 
         # Manually delete related records in the correct order to avoid CASCADE issues
@@ -292,9 +295,9 @@ def get_admin_unread_notifications_count(admin_id):
         SELECT COUNT(*) as count FROM notifications
         WHERE user_id = %s AND role = 'admin' AND is_read = FALSE
     """, (admin_id,))
-    count = cur.fetchone()['count']
+    result = cur.fetchone()
     cur.close()
-    return count
+    return result['count'] if result else 0
 
 
 @admin_bp.route('/notifications')
