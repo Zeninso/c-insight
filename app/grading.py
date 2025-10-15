@@ -1179,7 +1179,12 @@ class CodeGrader:
 
         # First, check explicitly required elements from activity description
         for req_name, req_value in requirements.items():
-            if not req_value:
+            # Skip if this requirement is not actually required or if it's the specific_content list
+            if not req_value or req_name == 'specific_content':
+                continue
+
+            # For specific_content, check if there are actual keywords to look for
+            if req_name == 'specific_content' and not requirements['specific_content']:
                 continue
 
             total_required_points += points_map[req_name]
@@ -1217,18 +1222,22 @@ class CodeGrader:
         else:
             requirement_score = 100  # No requirements detected, no penalty
 
-        # Generate feedback
+        # Generate feedback - FIXED: Only show missing requirements if there are actually any
         feedback_parts = []
+        
+        # Only show missing requirements if there are any
         if missing_requirements:
-            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}.")
+            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}")
+        
+        # Only show met requirements if there are any
         if met_requirements:
-            feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}.")
+            feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}")
+        
+        # If nothing was found at all
         if not missing_requirements and not met_requirements:
-            feedback_parts.append("No specific requirements detected in activity description.")
+            feedback_parts.append("No specific requirements detected in activity description")
 
-        # Remove trailing dots from each feedback part to avoid double dots when joining
-        cleaned_feedback_parts = [part.rstrip('. ') for part in feedback_parts]
-        return max(0, requirement_score), '. '.join(cleaned_feedback_parts)
+        return max(0, requirement_score), '. '.join(feedback_parts)
 
     def normalize_code(self, code):
         """Normalize code by removing comments, normalizing whitespace, replacing literals, and user-defined identifiers with VAR to detect similarity despite variable renaming."""
@@ -1462,4 +1471,3 @@ def check_syntax(code):
 
 def train_ml_grading_model():
     return code_grader.train_ml_grading_model()
-
