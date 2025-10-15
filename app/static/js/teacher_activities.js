@@ -190,7 +190,8 @@ function deleteActivity(activityId) {
         text: 'This will permanently delete the activity.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete it!'
+        confirmButtonText: 'Yes, delete it!',
+        confirmButtonColor: '#d33'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/teacher/activity/${activityId}`, { method: 'DELETE' })
