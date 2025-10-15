@@ -1170,7 +1170,7 @@ class CodeGrader:
 
         # First, check explicitly required elements from activity description
         for req_name, req_data in requirements.items():
-            if not req_data['required']:
+            if isinstance(req_data, dict) and not req_data['required']:
                 continue
 
             total_required_points += points_map[req_name]
