@@ -4,7 +4,8 @@
             text: 'This will permanently delete the user.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, delete it!',
+            showConfirmButton: '#d33',
         }).then((result) => {
             if (result.isConfirmed) {
                 fetch(`/admin/user/${userId}/delete`, { method: 'POST' })
@@ -92,7 +93,6 @@
                     text: 'User has been updated.',
                     icon: 'success',
                     showConfirmButton: false,
-                    showConfirmButton: '#d33',
                     timer: 1500
                 }).then(() => location.reload());
             } else {
