@@ -1378,7 +1378,7 @@ def delete_enrolled_students(class_id):
 
     session['unread_notifications_count'] = unread_notifications_count
 
-    return redirect(url_for('teacher.view_class', class_id=class_id))
+    return redirect(url_for('teacher.view_class', class_id=class_id, tab='students'))
     
     
 
