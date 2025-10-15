@@ -1360,7 +1360,7 @@ def delete_enrolled_students(class_id):
 
         # Insert notifications for each removed student
         notification_query = """
-            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            INSERT INTO notifications (user_id, role, `type`, message, link, is_read, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
         for student_id in student_ids:
