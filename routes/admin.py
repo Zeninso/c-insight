@@ -49,8 +49,8 @@ def adminDashboard():
     }
 
     return render_template('admin_dashboard.html', stats=stats, first_name=session['first_name'],
-                           unread_notifications_count=unread_notifications_count,
-                           recent_activities=recent_activities)
+                            unread_notifications_count=unread_notifications_count,
+                            recent_activities=recent_activities)
 
 @admin_bp.route('/users')
 def adminUsers():
@@ -170,22 +170,14 @@ def deleteUser(user_id):
 
         # Delete the user
         cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
-        print("User deleted")
+        mysql.connection.commit()
+        print("User deleted and committed")
 
         # Notify admins about user deletion
         message = f"User deleted: {first_name} {last_name} ({username}), Role: {role}."
-        # Get all admin users
-        cur.execute("SELECT id FROM users WHERE role='admin'")
-        admins = cur.fetchall()
-        # Insert notification for each admin
-        for (admin_id,) in admins:
-            cur.execute("""
-                INSERT INTO notifications (user_id, role, type, message, is_read, created_at)
-                VALUES (%s, 'admin', 'user_deleted', %s, FALSE, NOW())
-            """, (admin_id, message))
-
-        mysql.connection.commit()
-        print("User deleted and notifications created successfully.")
+        print(f"About to add notification: {message}")
+        add_admin_notification(message, notif_type='user_deleted')
+        print("Notification added successfully.")
 
         return jsonify({'success': True})
     except Exception as e:
@@ -279,8 +271,8 @@ def add_admin_notification(message, notif_type='info', link=None):
         for (admin_id,) in admins:
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
-                INSERT INTO notifications (user_id, role, type, message, link, is_read)
-                VALUES (%s, 'admin', %s, %s, %s, FALSE)
+                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
             """, (admin_id, notif_type, message, link))
         
         mysql.connection.commit()
