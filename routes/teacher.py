@@ -285,7 +285,7 @@ def teacherGrades():
     # Query submissions with grades and code for teacher's activities
     base_query = """
         SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
-               a.title as activity_title, a.class_id, c.name as class_name,
+               a.id as activity_id, a.title as activity_title, a.class_id, c.name as class_name,
                s.code, s.submitted_at,
                s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
                a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
@@ -335,10 +335,10 @@ def teacherGrades():
                         submission['group_submissions'] = group
                 display_submissions.extend(group)
         else:
-            # Show submissions with low similarity scores (high actual similarity - potential copying)
+            # Show submissions with high similarity scores (potential copying)
             display_submissions = [
                 s for s in submissions
-                if s.get('similarity_score') is not None and s['similarity_score'] <= 60
+                if s.get('similarity_score') is not None and s['similarity_score'] >= 80
             ]
 
     # Get unread notifications count
@@ -897,10 +897,14 @@ def create_activity():
         activity_id_row = cur.fetchone()
         activity_id = activity_id_row['LAST_INSERT_ID()']
 
-        # Notify students about the new activity
-        notify_students_activity_assigned(class_id, activity_id, title, due_date)
-
         mysql.connection.commit()
+
+        # Notify students about the new activity (non-critical, so ignore errors)
+        try:
+            notify_students_activity_assigned(class_id, activity_id, title, due_date)
+        except Exception as e:
+            # Log the error if needed, but don't fail the activity creation
+            pass
 
         return jsonify({'success': 'Activity created successfully'}), 201
 
@@ -1324,59 +1328,54 @@ def delete_enrolled_students(class_id):
 
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Get unread notifications count
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()['id']
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
-
-    # Verify the teacher owns this class
-    cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
-    class_info = cur.fetchone()
-    if not class_info:
-        flash('Class not found', 'error')
-        cur.close()
-        return redirect(url_for('teacher.teacherClasses'))
-
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()['id']
-
-    if class_info['teacher_id'] != teacher_id:
-        flash('Unauthorized access', 'error')
-        cur.close()
-        return redirect(url_for('teacher.teacherClasses'))
-    
-    cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
-    class_name_row = cur.fetchone()
-    if class_name_row:
-        class_name = class_name_row['name']
-    else:
-        class_name = "the class"
-
     try:
+        # Get teacher ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_row = cur.fetchone()
+        if not teacher_row:
+            flash('Teacher not found', 'error')
+            return redirect(url_for('auth.login'))
+        teacher_id = teacher_row['id']
+
+        # Verify the teacher owns this class
+        cur.execute("SELECT teacher_id, name FROM classes WHERE id=%s", (class_id,))
+        class_info = cur.fetchone()
+        if not class_info:
+            flash('Class not found', 'error')
+            return redirect(url_for('teacher.teacherClasses'))
+
+        if class_info['teacher_id'] != teacher_id:
+            flash('Unauthorized access', 'error')
+            return redirect(url_for('teacher.teacherClasses'))
+
+        class_name = class_info['name']
+
+        # Convert student_ids to integers
+        student_ids_int = [int(sid) for sid in student_ids]
+
         # Delete enrollments for selected students in this class
-        format_strings = ','.join(['%s'] * len(student_ids))
+        format_strings = ','.join(['%s'] * len(student_ids_int))
         query = f"DELETE FROM enrollments WHERE class_id=%s AND student_id IN ({format_strings})"
-        cur.execute(query, [class_id] + student_ids)
+        cur.execute(query, [class_id] + student_ids_int)
 
         # Insert notifications for each removed student
         notification_query = """
             INSERT INTO notifications (user_id, role, `type`, message, link, is_read, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """
-        for student_id in student_ids:
-            message = f'You have been removed from class {class_name} by your teacher.'
-            link = url_for('student.studentClasses')  # or any relevant link
+        for student_id in student_ids_int:
+            message = f'You have been removed from class "{class_name}" by your teacher.'
+            link = url_for('student.studentClasses')
             cur.execute(notification_query, (student_id, 'student', 'removed_from_class', message, link, False))
 
         mysql.connection.commit()
         flash(f'Successfully deleted {len(student_ids)} student(s) from the class.', 'success')
+
     except Exception as e:
         mysql.connection.rollback()
         flash(f'Failed to delete students: {str(e)}', 'error')
     finally:
         cur.close()
-
-    session['unread_notifications_count'] = unread_notifications_count
 
     # Check if request is AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1385,7 +1384,6 @@ def delete_enrolled_students(class_id):
         return redirect(url_for('teacher.view_class', class_id=class_id, tab='students'))
     
     
-
 
 @teacher_bp.route('/delete_class/<int:class_id>', methods=['POST'])
 def delete_class(class_id):
@@ -1396,7 +1394,7 @@ def delete_class(class_id):
 
     try:
         # Verify the teacher owns this class
-        cur.execute("SELECT teacher_id FROM classes WHERE id=%s", (class_id,))
+        cur.execute("SELECT teacher_id, name FROM classes WHERE id=%s", (class_id,))
         class_info = cur.fetchone()
         if not class_info:
             return jsonify({'error': 'Class not found'}), 404
@@ -1406,16 +1404,13 @@ def delete_class(class_id):
 
         if class_info['teacher_id'] != teacher_id:
             return jsonify({'error': 'Unauthorized access'}), 403
-        
+
+        class_name = class_info['name']
+
         # Get all students enrolled in the class
         cur.execute("SELECT student_id FROM enrollments WHERE class_id=%s", (class_id,))
         students = cur.fetchall()
-        student_ids = [row[0] for row in students]
-
-        # Get class name
-        cur.execute("SELECT name FROM classes WHERE id=%s", (class_id,))
-        class_name_row = cur.fetchone()
-        class_name = class_name_row['name'] if class_name_row else "the class"
+        student_ids = [row['student_id'] for row in students]  # Fixed: use dict access
 
         # Notify students about class deletion
         notification_query = """
@@ -1427,20 +1422,21 @@ def delete_class(class_id):
             link = url_for('student.studentClasses')
             cur.execute(notification_query, (student_id, 'student', 'class_deleted', message, link, False))
 
-        # Delete submissions for activities in this class
+        # Delete in correct order to handle foreign key constraints
+        # 1. First delete submissions for activities in this class
         cur.execute("""
             DELETE s FROM submissions s
             INNER JOIN activities a ON s.activity_id = a.id
             WHERE a.class_id = %s
         """, (class_id,))
 
-        # Delete activities for this class
+        # 2. Delete activities for this class
         cur.execute("DELETE FROM activities WHERE class_id=%s", (class_id,))
 
-        # Delete enrollments for this class
+        # 3. Delete enrollments for this class
         cur.execute("DELETE FROM enrollments WHERE class_id=%s", (class_id,))
 
-        # Delete the class
+        # 4. Finally delete the class
         cur.execute("DELETE FROM classes WHERE id=%s", (class_id,))
 
         mysql.connection.commit()
@@ -1597,16 +1593,19 @@ def add_notification(user_id, role, notif_type, message, link=None):
     cur.close()
 
 def notify_students_activity_assigned(class_id, activity_id, activity_title, due_date):
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Use DictCursor
     cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
     students = cur.fetchall()
-    for (student_id,) in students:
+    
+    for student in students:
+        student_id = student['student_id']  # Get the actual student ID
         message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
         link = url_for('student.viewActivity', activity_id=activity_id)
         cur.execute("""
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, 'student', 'new_activity', %s, %s, %s, NOW())
         """, (student_id, message, link, False))
+    
     mysql.connection.commit()
     cur.close()
 
