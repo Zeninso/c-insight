@@ -91,16 +91,8 @@ class CodeGrader:
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
-            # Check for major requirement failures - if activity not implemented properly, set all scores to zero
-            if requirement_score < 30:
-                correctness_score = 0
-                syntax_score = 0
-                logic_score = 0
-                similarity_score = 0
-                ast_feedback = f"Activity requirements not met (score: {requirement_score:.1f}%); submission appears incomplete or incorrect - all scores set to zero."
-                sim_feedback = "Similarity check skipped due to major requirement failures."
             # If syntax score is below threshold, assign zero to all scores and skip further checks
-            elif syntax_score < 85:
+            if syntax_score < 85:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
@@ -113,7 +105,7 @@ class CodeGrader:
                     code, requirements, requirement_score
                 )
 
-                # Apply requirement penalty to correctness score for moderate requirement issues
+                # Apply requirement penalty to correctness score for unmet requirements
                 if requirement_score < 70:
                     penalty_factor = requirement_score / 100
                     correctness_score = correctness_score * penalty_factor
@@ -1177,8 +1169,8 @@ class CodeGrader:
         }
 
         # First, check explicitly required elements from activity description
-        for req_name, req_value in requirements.items():
-            if not req_value:
+        for req_name, req_data in requirements.items():
+            if not req_data['required']:
                 continue
 
             total_required_points += points_map[req_name]
