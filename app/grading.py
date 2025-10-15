@@ -115,9 +115,10 @@ class CodeGrader:
 
                 # Apply requirement penalty to correctness score for moderate requirement issues
                 if requirement_score < 70:
-                    penalty_factor = requirement_score / 100
+                    penalty_factor = (requirement_score / 100) ** 2
                     correctness_score = correctness_score * penalty_factor
-                    ast_feedback += f" Correctness score reduced by {100 - requirement_score:.1f}% due to unmet requirements."
+                    reduction_percent = 100 - (penalty_factor * 100)
+                    ast_feedback += f" Correctness score reduced by {reduction_percent:.1f}% due to unmet requirements."
 
                 # Similarity check
                 similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
