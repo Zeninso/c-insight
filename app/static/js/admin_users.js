@@ -92,6 +92,7 @@
                     text: 'User has been updated.',
                     icon: 'success',
                     showConfirmButton: false,
+                    showConfirmButton: '#d33',
                     timer: 1500
                 }).then(() => location.reload());
             } else {
@@ -164,7 +165,8 @@
             text: `This will permanently delete ${selectedIds.length} user(s).`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete them!'
+            confirmButtonText: 'Yes, delete them!',
+            showConfirmButton:'#d33'
         }).then((result) => {
             if (result.isConfirmed) {
                 // Delete one by one or send bulk request
