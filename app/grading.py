@@ -145,7 +145,6 @@ class CodeGrader:
 
             # Compile feedback
             feedback_parts = [
-                f"Requirement Analysis: {requirement_feedback}",
                 f"Syntax Check: {syntax_feedback}",
                 f"Code Analysis: {ast_feedback}",
                 f"Similarity Check: {sim_feedback}"
