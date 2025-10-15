@@ -271,9 +271,9 @@ def add_admin_notification(message, notif_type='info', link=None):
         for (admin_id,) in admins:
             print(f"Inserting notification for admin_id: {admin_id}")
             cur.execute("""
-                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
-                VALUES (%s, 'admin', %s, %s, %s, FALSE, NOW())
-            """, (admin_id, notif_type, message, link))
+                INSERT INTO notifications (user_id, role, type, message, is_read, created_at)
+                VALUES (%s, 'admin', %s, %s, FALSE, NOW())
+            """, (admin_id, notif_type, message))
         
         mysql.connection.commit()
         print("Notifications successfully saved to database")
