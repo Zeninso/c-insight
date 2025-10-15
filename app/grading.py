@@ -1094,7 +1094,7 @@ class CodeGrader:
         return logic_count > 0, logic_count, f"logical operators ({logic_count} found)"
 
     def check_loops(self, code):
-        loop_count = code.count('for ') + code.count('while ') + code.count('do ')
+        loop_count = len(re.findall(r'\bfor\b|\bwhile\b|\bdo\b', code))
         return loop_count > 0, loop_count, f"loops ({loop_count} found)"
 
     def check_functions(self, code):
@@ -1195,21 +1195,8 @@ class CodeGrader:
             else:
                 missing_requirements.append(req_name.replace('_', ' '))
 
-        # Additionally, check for basic programming elements that are typically expected
-        # If the code uses certain features, consider them as requirements
-        basic_requirements = ['input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
-
-        for req_name in basic_requirements:
-            if req_name in requirements and requirements[req_name]:
-                continue  # Already checked above
-
-            # Check if code has this element
-            met, count, feedback_str = checkers[req_name](code)
-            if met:
-                # If code has this element, consider it required and met
-                total_required_points += points_map[req_name]
-                met_points += points_map[req_name]
-                met_requirements.append(feedback_str)
+        # Only consider explicitly required elements from activity description
+        # Do not add basic programming elements to requirements unless explicitly mentioned
 
         # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
@@ -1221,9 +1208,9 @@ class CodeGrader:
         feedback_parts = []
         if missing_requirements:
             feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}.")
-        if met_requirements:
-            feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}.")
-        if not missing_requirements and not met_requirements:
+        elif met_requirements:
+            feedback_parts.append("All detected requirements have been successfully implemented.")
+        else:
             feedback_parts.append("No specific requirements detected in activity description.")
 
         # Remove trailing dots from each feedback part to avoid double dots when joining
