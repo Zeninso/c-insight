@@ -1176,7 +1176,7 @@ class CodeGrader:
             'specific_content': lambda code: self.check_specific_content(code, requirements['specific_content'])
         }
 
-        # First, check explicitly required elements from activity description
+        # Only check explicitly required elements
         for req_name, req_value in requirements.items():
             # Skip if this requirement is not actually required or if it's the specific_content list
             if not req_value or req_name == 'specific_content':
@@ -1199,45 +1199,26 @@ class CodeGrader:
             else:
                 missing_requirements.append(req_name.replace('_', ' '))
 
-        # Additionally, check for basic programming elements that are typically expected
-        # If the code uses certain features, consider them as requirements
-        basic_requirements = ['input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
-
-        for req_name in basic_requirements:
-            if req_name in requirements and requirements[req_name]:
-                continue  # Already checked above
-
-            # Check if code has this element
-            met, count, feedback_str = checkers[req_name](code)
-            if met:
-                # If code has this element, consider it required and met
-                total_required_points += points_map[req_name]
-                met_points += points_map[req_name]
-                met_requirements.append(feedback_str)
-
         # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
             requirement_score = (met_points / total_required_points) * 100
         else:
             requirement_score = 100  # No requirements detected, no penalty
 
-        # Generate feedback - FIXED: Only show missing requirements if there are actually any
+        # Generate feedback
         feedback_parts = []
         
-        # Only show missing requirements if there are any
         if missing_requirements:
             feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}")
         
-        # Only show met requirements if there are any
         if met_requirements:
             feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}")
         
-        # If nothing was found at all
         if not missing_requirements and not met_requirements:
             feedback_parts.append("No specific requirements detected in activity description")
 
         return max(0, requirement_score), '. '.join(feedback_parts)
-
+    
     def normalize_code(self, code):
         """Normalize code while preserving logical structure and algorithm differences."""
         # Remove single-line comments
