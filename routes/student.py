@@ -1050,7 +1050,7 @@ def notifications():
 
 
 def notify_students_activity_deadline():
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Define threshold for "near deadline" (e.g., 24 hours)
     now = datetime.now()
@@ -1067,12 +1067,17 @@ def notify_students_activity_deadline():
 
     activities = cur.fetchall()
 
-    for activity_id, title, due_date, class_id in activities:
+    for activity in activities:
+        activity_id = activity['id']
+        title = activity['title']
+        due_date = activity['due_date']
+        class_id = activity['class_id']
         # Get students enrolled in the class
         cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
         students = cur.fetchall()
 
-        for (student_id,) in students:
+        for student in students:
+            student_id = student['student_id']
 
             # Compose notification message
             if due_date < now:
