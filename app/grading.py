@@ -395,7 +395,7 @@ class CodeGrader:
 
     def analyze_c_code_correctness(self, code):
         """Analyze C code correctness with enhanced criteria."""
-        score = 50  # Base score
+        score = 70  # Base score
 
         lines = code.split('\n')
         total_lines = len([line for line in lines if line.strip()])
