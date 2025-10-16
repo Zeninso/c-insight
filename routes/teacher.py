@@ -315,72 +315,31 @@ def teacherGrades():
 
     submissions = cur.fetchall()
     
-    # Handle similarity filtering - FIXED LOGIC
+    # Handle similarity filtering
     display_submissions = submissions
     grouped_submissions = []
 
     if show_similar:
-        if submissions:
-            # For "All Activities" view, we need to group by activity first
-            if not activity_id:
-                # Group submissions by activity and then find similar ones within each activity
-                activities_submissions = {}
-                for submission in submissions:
-                    act_id = submission['activity_id']
-                    if act_id not in activities_submissions:
-                        activities_submissions[act_id] = []
-                    activities_submissions[act_id].append(submission)
-                
-                # Process each activity's submissions for similarity
-                all_grouped = []
-                all_high_similarity = []
-                
-                for act_id, act_submissions in activities_submissions.items():
-                    if len(act_submissions) > 1:  # Only check similarity if multiple submissions exist
-                        activity_groups = group_similar_submissions(act_submissions, similarity_threshold=80)
-                        all_grouped.extend([group for group in activity_groups if len(group) > 1])
-                        
-                        # Also include individual high-similarity submissions
-                        high_sim_subs = [
-                            s for s in act_submissions 
-                            if s.get('similarity_score') is not None and s['similarity_score'] >= 80
-                        ]
-                        all_high_similarity.extend(high_sim_subs)
-                
-                # Combine grouped and individual high-similarity submissions
-                if all_grouped:
-                    grouped_submissions = all_grouped
-                    display_submissions = []
-                    for group in grouped_submissions:
-                        # Mark submissions as part of a similar group
-                        for submission in group:
-                            submission['is_similar_group'] = True
-                            submission['group_members'] = len(group)
-                            submission['group_submissions'] = group
-                        display_submissions.extend(group)
-                elif all_high_similarity:
-                    # Fall back to individual high similarity submissions
-                    display_submissions = all_high_similarity
-                else:
-                    # No similar submissions found
-                    display_submissions = []
-            else:
-                # Specific activity selected - use existing logic
-                grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
-                display_submissions = []
-                for group in grouped_submissions:
-                    if len(group) > 1:
-                        # Mark submissions as part of a similar group
-                        for submission in group:
-                            submission['is_similar_group'] = True
-                            submission['group_members'] = len(group)
-                            submission['group_submissions'] = group
-                    display_submissions.extend(group)
-        else:
+        if activity_id and submissions:
+            # Group submissions with high structural similarity for side-by-side comparison
+            grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
+
+            # Prepare display submissions with group metadata
             display_submissions = []
-    else:
-        # Not showing similar submissions - show all
-        display_submissions = submissions
+            for group in grouped_submissions:
+                if len(group) > 1:
+                    # Mark submissions as part of a similar group
+                    for submission in group:
+                        submission['is_similar_group'] = True
+                        submission['group_members'] = len(group)
+                        submission['group_submissions'] = group
+                display_submissions.extend(group)
+        else:
+            # Show submissions with high similarity scores (potential copying)
+            display_submissions = [
+                s for s in submissions
+                if s.get('similarity_score') is not None and s['similarity_score'] >= 80
+            ]
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(teacher_id)
@@ -416,13 +375,10 @@ def group_similar_submissions(submissions, similarity_threshold=70):
         for j, submission2 in enumerate(submissions):
             if (submission2['submission_id'] not in processed_ids and 
                 i != j and 
-                submission1['activity_id'] == submission2['activity_id']):  # Only compare within same activity
+                calculate_code_similarity(submission1['code'], submission2['code']) >= similarity_threshold):
                 
-                similarity = calculate_code_similarity(submission1['code'], submission2['code'])
-                
-                if similarity >= similarity_threshold:
-                    current_group.append(submission2)
-                    processed_ids.add(submission2['submission_id'])
+                current_group.append(submission2)
+                processed_ids.add(submission2['submission_id'])
         
         if len(current_group) > 1:  # Only add groups with multiple submissions
             groups.append(current_group)
@@ -433,6 +389,7 @@ def group_similar_submissions(submissions, similarity_threshold=70):
             groups.append([submission])
     
     return groups
+
 
 def calculate_code_similarity(code1, code2):
     """Calculate similarity between two code snippets, accounting for variable renaming"""
