@@ -151,7 +151,7 @@
                 <div class="grades-container">
                     {% set grouped = show_similar and grouped_submissions %}
                     
-                    {% if grouped %}
+                    {% if grouped and grouped_submissions %}
                         {% for group in grouped_submissions %}
                             {% if group|length > 1 %}
                             <!-- Similar submissions group -->
@@ -163,7 +163,7 @@
                                         <span class="similarity-percentage">{{ group|length }} students</span>
                                     </h4>
                                     <p style="margin: 5px 0 0 0; color: #721c24; font-size: 14px;">
-                                        These submissions show high similarity to each other
+                                        These submissions for "{{ group[0].activity_title }}" show high similarity to each other
                                     </p>
                                 </div>
 
@@ -171,7 +171,19 @@
                                     {% for submission in group %}
                                     <div class="group-member">
                                         <div class="grade-card high-similarity">
-                                            <!-- Student info and grades -->
+                                            <div class="grade-header">
+                                                <div class="grade-title">
+                                                    <h3>{{ submission.activity_title }}</h3>
+                                                    <span class="grade-class">{{ submission.class_name }}</span>
+                                                </div>
+                                                <div class="grade-right">
+                                                    <div class="grade-date">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                        {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="student-info">
                                                 <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
                                             </div>
@@ -190,16 +202,20 @@
                                             </div>
                                             {% endif %}
 
-                                            <!-- Code comparison button -->
                                             <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                                <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
+                                                    <i class="fas fa-code"></i> View Code
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
+                                                    <i class="fas fa-trash"></i> Delete Submission
+                                                </button>
                                             </div>
 
-                                            <!-- Hidden delete form (for POST action reference in JS) -->
+                                            <!-- Hidden delete form -->
                                             <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
                                             </form>
 
-                                            <!-- Individual code container -->
-                                            <div id="group-code-{{ group[0].submission_id }}-{{ submission.submission_id }}" class="code-container" style="display:none;">
+                                            <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
                                                 <pre><code>{{ submission.code }}</code></pre>
                                             </div>
                                         </div>
@@ -213,7 +229,7 @@
                                         {% set submission = group[i] %}
                                     <div class="code-comparison">
                                         <div class="code-comparison-header">
-                                            {{ submission.first_name }} {{ submission.last_name }}
+                                            {{ submission.first_name }} {{ submission.last_name }} - {{ submission.activity_title }}
                                         </div>
                                         <div class="code-comparison-content">
                                             <pre><code>{{ submission.code }}</code></pre>
@@ -225,210 +241,13 @@
                             {% else %}
                             <!-- Single submission (not grouped) -->
                             {% set submission = group[0] %}
-                            <div class="grade-card">
-                                <div class="grade-header">
-                                    <div class="grade-title">
-                                        <h3>{{ submission.activity_title }}</h3>
-                                        <span class="grade-class">{{ submission.class_name }}</span>
-                                    </div>
-                                    <div class="grade-right">
-                                        <div class="grade-date">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
-                                        </div>
-                                        {% if submission.total_score is not none %}
-                                            {% if submission.total_score > 74 %}
-                                                <div class="grade-label passed">Passed</div>
-                                            {% else %}
-                                                <div class="grade-label failed">Failed</div>
-                                            {% endif %}
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <div class="student-info">
-                                    <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
-                                </div>
-
-                                {% if submission.correctness_score is not none %}
-                                <div class="grade-scores">
-                                    <div class="score-grid">
-                                        <div class="score-item">
-                                            <div class="score-label">Correctness</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Syntax</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Logic</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Similarity</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                            <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                                (Raw: {{ submission.similarity_score }}%)
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="total-score">
-                                        <div class="total-label">Total Score</div>
-                                        <div class="total-value">
-                                            {% if submission.total_score is not none %}
-                                                {{ "%.1f"|format(submission.total_score) }}%
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                                <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                                    <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
-                                        <i class="fas fa-code"></i> View Code
-                                    </button>
-                                    {% if submission.feedback %}
-                                    <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
-                                        <i class="fas fa-comment"></i> View Feedback
-                                    </button>
-                                    {% endif %}
-                                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
-                                        <i class="fas fa-trash"></i> Delete Submission
-                                    </button>
-                                </div>
-
-                                <!-- Hidden delete form (for POST action reference in JS) -->
-                                <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
-                                </form>
-
-                                <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
-                                    <pre><code>{{ submission.code }}</code></pre>
-                                </div>
-
-                                {% if submission.feedback %}
-                                <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
-                                    <div class="feedback-text">
-                                        {% for sentence in submission.feedback.split('. ') %}
-                                            {% set parts = sentence.split(': ', 1) %}
-                                            <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </div>
+                            {% include '_submission_card.html' %}
                             {% endif %}
                         {% endfor %}
                     {% else %}
-                        <!-- Original individual display when not showing similar -->
+                        <!-- Individual display when not showing similar or no groups found -->
                         {% for submission in submissions %}
-                            <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
-                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
-                            <!-- Add similarity warning if applicable -->
-                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
-                            <div class="similarity-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
-                            </div>
-                            {% endif %}
-
-                            <div class="grade-header">
-                                <div class="grade-title">
-                                    <h3>{{ submission.activity_title }}</h3>
-                                    <span class="grade-class">{{ submission.class_name }}</span>
-                                </div>
-                                <div class="grade-right">
-                                    <div class="grade-date">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') if submission.submitted_at else 'N/A' }}
-                                    </div>
-                                    {% if submission.total_score is not none %}
-                                        {% if submission.total_score > 74 %}
-                                            <div class="grade-label passed">Passed</div>
-                                        {% else %}
-                                            <div class="grade-label failed">Failed</div>
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="student-info">
-                                <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
-                            </div>
-
-                            {% if submission.correctness_score is not none %}
-                            <div class="grade-scores">
-                                <div class="score-grid">
-                                    <div class="score-item">
-                                        <div class="score-label">Correctness</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
-                                    </div>
-                                    <div class="score-item">
-                                        <div class="score-label">Syntax</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
-                                    </div>
-                                    <div class="score-item">
-                                        <div class="score-label">Logic</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
-                                    </div>
-                                    <div class="score-item">
-                                        <div class="score-label">Similarity</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                            (Raw: {{ submission.similarity_score }}%)
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="total-score">
-                                    <div class="total-label">Total Score</div>
-                                    <div class="total-value">
-                                        {% if submission.total_score is not none %}
-                                            {{ "%.1f"|format(submission.total_score) }}%
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                                <button class="btn btn-info btn-sm" onclick="toggleCode('code-{{ submission.submission_id }}')">
-                                    <i class="fas fa-code"></i> View Code
-                                </button>
-                                {% if submission.feedback %}
-                                <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ submission.submission_id }}')">
-                                    <i class="fas fa-comment"></i> View Feedback
-                                </button>
-                                {% endif %}
-                                <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubmission('{{ submission.submission_id }}')">
-                                    <i class="fas fa-trash"></i> Delete Submission
-                                </button>
-                            </div>
-
-                            <!-- Hidden delete form (for POST action reference in JS) -->
-                            <form id="delete-form-{{ submission.submission_id }}" method="POST" action="{{ url_for('teacher.delete_submission', submission_id=submission.submission_id) }}" style="display: none;">
-                            </form>
-
-                            <div id="code-{{ submission.submission_id }}" class="code-container" style="display:none;">
-                                <pre><code>{{ submission.code }}</code></pre>
-                            </div>
-
-                            {% if submission.feedback %}
-                            <div id="feedback-{{ submission.submission_id }}" class="feedback-content" style="display:none;">
-                                <div class="feedback-text">
-                                    {% for sentence in submission.feedback.split('. ') %}
-                                        {% set parts = sentence.split(': ', 1) %}
-                                        <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
+                            {% include '_submission_card.html' %}
                         {% endfor %}
                     {% endif %}
                 </div>
@@ -438,8 +257,8 @@
                     <!-- Empty state for when filtering for similar submissions but none found -->
                     <div class="empty-state no-similarity-state">
                         <i class="fas fa-check-circle"></i>
-                        <h3>NO ACTIVITY SUBMISSION IS POTENTIALLY COPIED</h3>
-                        <p>Great news! No submissions for this activity show signs of potential copying.</p>
+                        <h3>NO POTENTIALLY COPIED SUBMISSIONS FOUND</h3>
+                        <p>Great news! No submissions show signs of potential copying for the selected filters.</p>
                     </div>
                     {% else %}
                     <!-- Default empty state for no submissions at all -->

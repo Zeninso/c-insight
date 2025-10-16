@@ -145,7 +145,6 @@ class CodeGrader:
 
             # Compile feedback
             feedback_parts = [
-                f"Requirements Check: {requirement_score:.1f}% - {requirement_feedback}",
                 f"Syntax Check: {syntax_feedback}",
                 f"Code Analysis: {ast_feedback}",
                 f"Similarity Check: {sim_feedback}"
@@ -1136,7 +1135,6 @@ class CodeGrader:
         total_required_points = 0
         missing_requirements = []
         met_requirements = []
-        well_met_requirements = []
 
         # Define points for each requirement
         points_map = {
@@ -1178,46 +1176,44 @@ class CodeGrader:
             'specific_content': lambda code: self.check_specific_content(code, requirements['specific_content'])
         }
 
-        # FIXED: Only check requirements that are explicitly marked as required
-        for req_name, checker in checkers.items():
-            # Skip specific_content if there are no keywords to check
-            if req_name == 'specific_content' and not requirements.get('specific_content'):
+        # First, check explicitly required elements from activity description
+        for req_name, req_value in requirements.items():
+            # Skip if this requirement is not actually required or if it's the specific_content list
+            if not req_value or req_name == 'specific_content':
                 continue
-                
-            # Check if this requirement is actually required in the activity
-            is_required = False
-            
-            if req_name in requirements:
-                req_data = requirements[req_name]
-                if isinstance(req_data, dict):
-                    # For requirements with semantic data
-                    is_required = req_data.get('required', False)
-                else:
-                    # For simple boolean requirements
-                    is_required = bool(req_data)
-            
-            # Only check and score requirements that are explicitly required
-            if is_required:
+
+            # For specific_content, check if there are actual keywords to look for
+            if req_name == 'specific_content' and not requirements['specific_content']:
+                continue
+
+            total_required_points += points_map[req_name]
+
+            if req_name == 'specific_content':
+                met, count, feedback_str = checkers[req_name](code)
+            else:
+                met, count, feedback_str = checkers[req_name](code)
+
+            if met:
+                met_requirements.append(feedback_str)
+                met_points += points_map[req_name]
+            else:
+                missing_requirements.append(req_name.replace('_', ' '))
+
+        # Additionally, check for basic programming elements that are typically expected
+        # If the code uses certain features, consider them as requirements
+        basic_requirements = ['input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
+
+        for req_name in basic_requirements:
+            if req_name in requirements and requirements[req_name]:
+                continue  # Already checked above
+
+            # Check if code has this element
+            met, count, feedback_str = checkers[req_name](code)
+            if met:
+                # If code has this element, consider it required and met
                 total_required_points += points_map[req_name]
-
-                if req_name == 'specific_content':
-                    met, count, feedback_str = checker(code)
-                else:
-                    met, count, feedback_str = checker(code)
-
-                if met:
-                    # Check if requirement is exceptionally well met
-                    if req_name in ['if_else', 'loops', 'functions', 'arrays'] and count > 2:
-                        well_met_requirements.append(f"{feedback_str} - excellent implementation!")
-                    elif req_name == 'comments' and count > 3:
-                        well_met_requirements.append(f"{feedback_str} - great documentation!")
-                    elif req_name == 'specific_content' and count >= len(requirements['specific_content']) * 0.7:
-                        well_met_requirements.append(f"{feedback_str} - good coverage of required content!")
-                    else:
-                        met_requirements.append(f"{feedback_str} - requirement met")
-                    met_points += points_map[req_name]
-                else:
-                    missing_requirements.append(req_name.replace('_', ' '))
+                met_points += points_map[req_name]
+                met_requirements.append(feedback_str)
 
         # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
@@ -1225,43 +1221,22 @@ class CodeGrader:
         else:
             requirement_score = 100  # No requirements detected, no penalty
 
-        # Enhanced feedback generation with positive reinforcement
+        # Generate feedback - FIXED: Only show missing requirements if there are actually any
         feedback_parts = []
-        
-        # Show exceptionally well-met requirements first
-        if well_met_requirements:
-            feedback_parts.append(f"🌟 Excellent work: {', '.join(well_met_requirements)}")
-        
-        # Show regularly met requirements
-        if met_requirements:
-            feedback_parts.append(f"✅ Requirements met: {', '.join(met_requirements)}")
         
         # Only show missing requirements if there are any
         if missing_requirements:
-            feedback_parts.append(f"❌ Missing required elements: {', '.join(missing_requirements)}")
+            feedback_parts.append(f"Missing required elements: {', '.join(missing_requirements)}")
+        
+        # Only show met requirements if there are any
+        if met_requirements:
+            feedback_parts.append(f"Successfully implemented: {', '.join(met_requirements)}")
         
         # If nothing was found at all
-        if not missing_requirements and not met_requirements and not well_met_requirements:
+        if not missing_requirements and not met_requirements:
             feedback_parts.append("No specific requirements detected in activity description")
 
-        # Add overall requirement achievement feedback
-        if requirement_score >= 90:
-            achievement_feedback = "Outstanding! All requirements perfectly met."
-        elif requirement_score >= 80:
-            achievement_feedback = "Great job! Most requirements successfully implemented."
-        elif requirement_score >= 70:
-            achievement_feedback = "Good work! Requirements generally met with minor gaps."
-        elif requirement_score >= 50:
-            achievement_feedback = "Fair attempt. Some requirements met but significant gaps remain."
-        else:
-            achievement_feedback = "Needs improvement. Many requirements not yet implemented."
-        
-        if feedback_parts:
-            final_feedback = f"{achievement_feedback} {' '.join(feedback_parts)}"
-        else:
-            final_feedback = achievement_feedback
-
-        return max(0, requirement_score), final_feedback
+        return max(0, requirement_score), '. '.join(feedback_parts)
 
     def normalize_code(self, code):
         """Normalize code while preserving logical structure and algorithm differences."""
