@@ -133,7 +133,7 @@ class CodeGrader:
                 logic_score = max(0, logic_score - penalty_per)
 
             # Update feedback with final scores after penalty
-            ast_feedback = f"Correctness: {correctness_score:.1f}%. Logic: {logic_score:.1f}%. Syntax: {syntax_score:.1f}%. {ast_feedback}"
+            ast_feedback = f"Correctness: {correctness_score:.1f}%, Logic: {logic_score:.1f}%, Syntax: {syntax_score:.1f}%. {ast_feedback}"
 
             # Calculate weighted scores
             total_score = (
