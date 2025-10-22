@@ -250,29 +250,38 @@
                                     <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
                                 </div>
 
-                                {% if submission.correctness_score is not none %}
-                                <div class="grade-scores">
-                                    <div class="score-grid">
-                                        <div class="score-item">
-                                            <div class="score-label">Correctness</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Syntax</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Logic</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
-                                        </div>
-                                        <div class="score-item">
-                                            <div class="score-label">Similarity</div>
-                                            <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                            <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                                (Raw: {{ submission.similarity_score }}%)
-                                            </div>
+                            {% if submission.correctness_score is not none %}
+                            <div class="grade-scores">
+                                <div class="score-grid">
+                                    <div class="score-item">
+                                        <div class="score-label">Correctness</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}/{{ "%.0f"|format(submission.correctness_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}%)
                                         </div>
                                     </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Syntax</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}/{{ "%.0f"|format(submission.syntax_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}%)
+                                        </div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Logic</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}/{{ "%.0f"|format(submission.logic_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}%)
+                                        </div>
+                                    </div>
+                                    <div class="score-item">
+                                        <div class="score-label">Similarity</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}/{{ "%.0f"|format(submission.similarity_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}%)
+                                        </div>
+                                    </div>
+                                </div>
 
                                     <div class="total-score">
                                         <div class="total-label">Total Score</div>
@@ -364,21 +373,30 @@
                                 <div class="score-grid">
                                     <div class="score-item">
                                         <div class="score-label">Correctness</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}/{{ "%.0f"|format(submission.correctness_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.correctness_score * submission.correctness_weight / 100) }}%)
+                                        </div>
                                     </div>
                                     <div class="score-item">
                                         <div class="score-label">Syntax</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}/{{ "%.0f"|format(submission.syntax_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.syntax_score * submission.syntax_weight / 100) }}%)
+                                        </div>
                                     </div>
                                     <div class="score-item">
                                         <div class="score-label">Logic</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}/{{ "%.0f"|format(submission.logic_weight) }}</div>
+                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
+                                            (Weighted: {{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}%)
+                                        </div>
                                     </div>
                                     <div class="score-item">
                                         <div class="score-label">Similarity</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
+                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}/{{ "%.0f"|format(submission.similarity_weight) }}</div>
                                         <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                            (Raw: {{ submission.similarity_score }}%)
+                                            (Weighted: {{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}%)
                                         </div>
                                     </div>
                                 </div>
