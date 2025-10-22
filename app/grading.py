@@ -22,16 +22,17 @@ logger = logging.getLogger(__name__)
 class CodeGrader:
     def __init__(self):
         self.ml_models = None
-        # Attempt to load pre-trained ML models
+        self.load_ml_models()
+    
+    def load_ml_models(self):
+        """Load ML models if available"""
         try:
             if os.path.exists('ml_grading_models.pkl'):
                 with open('ml_grading_models.pkl', 'rb') as f:
                     self.ml_models = pickle.load(f)
-                logger.info("ML grading models loaded successfully")
-            else:
-                logger.info("No ML grading models found, using rule-based analysis only")
+                logger.info("ML models loaded successfully")
         except Exception as e:
-            logger.warning(f"Failed to load ML grading models: {str(e)}. Using rule-based analysis only")
+            logger.error(f"Error loading ML models: {str(e)}")
             self.ml_models = None
 
     def parse_test_cases(self, activity_id):
@@ -1495,7 +1496,7 @@ class CodeGrader:
             
             # Only flag concerning levels
             if max_sim_percent > 75:
-                feedback = f" High similarity detected with other submissions: {similarity_level} ({max_sim_percent:.1f}%). Please ensure this is your own work."
+                feedback = f"⚠️ High similarity detected with other submissions: {similarity_level} ({max_sim_percent:.1f}%). Please ensure this is your own work."
             else:
                 feedback = f"Similarity with other submissions: {similarity_level} ({max_sim_percent:.1f}%)."
 
