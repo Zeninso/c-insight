@@ -4,6 +4,7 @@ from app import mysql
 from datetime import datetime, timedelta
 import MySQLdb
 import time
+import json
 
 student_bp = Blueprint('student', __name__)
 
@@ -564,7 +565,8 @@ def viewActivity(activity_id):
                 CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
                 s.code, s.submitted_at, a.correctness_weight, a.syntax_weight,
                 a.logic_weight, a.similarity_weight, s.correctness_score,
-                s.syntax_score, s.logic_score, s.similarity_score, s.feedback
+                s.syntax_score, s.logic_score, s.similarity_score, s.feedback,
+                a.test_cases_json AS test_cases
         FROM activities a
         JOIN users u ON a.teacher_id = u.id
         JOIN classes c ON a.class_id = c.id
@@ -579,6 +581,14 @@ def viewActivity(activity_id):
     if not activity:
         flash('Activity not found or you are not enrolled in this class', 'error')
         return redirect(url_for('student.studentActivities'))
+
+    # Parse test_cases if available
+    test_cases = []
+    if activity['test_cases']:
+        try:
+            test_cases = json.loads(activity['test_cases'])
+        except json.JSONDecodeError:
+            test_cases = []
 
     # Convert to dict
     activity_dict = {
@@ -605,7 +615,8 @@ def viewActivity(activity_id):
         'syntax_score': activity['syntax_score'],
         'logic_score': activity['logic_score'],
         'similarity_score': activity['similarity_score'],
-        'feedback': activity['feedback']
+        'feedback': activity['feedback'],
+        'test_cases': test_cases
     }
 
     return render_template('student_activity_view.html', activity=activity_dict, first_name=session.get('first_name', ''), last_name=session.get('last_name', ''),
@@ -763,7 +774,7 @@ def un_enroll(class_id):
     return redirect(url_for('student.studentClasses'))
 
 def get_unread_notifications_count(user_id):
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("""
         SELECT COUNT(*) FROM notifications
         WHERE user_id = %s AND role = 'student' AND is_read = FALSE
@@ -1103,7 +1114,6 @@ def notify_students_activity_deadline():
 
     mysql.connection.commit()
     cur.close()
-
 
 
 

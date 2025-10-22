@@ -12,6 +12,7 @@ import MySQLdb
 from io import BytesIO
 from flask import send_file
 import pandas as pd
+import json
 
 
 
@@ -839,7 +840,34 @@ def create_activity():
         description = request.form['description']
         instructions = request.form['instructions']
         starter_code = request.form.get('starter_code', '')
+
+        # Collect test cases from form arrays
+        test_case_inputs = request.form.getlist('test_case_input[]')
+        test_case_outputs = request.form.getlist('test_case_output[]')
+
+        # Validate test cases are in pairs
+        if len(test_case_inputs) != len(test_case_outputs):
+            return jsonify({'error': 'Test case inputs and outputs must be in pairs'}), 400
+
+        # Validate at least one test case is provided
+        if not test_case_inputs or not any(inp.strip() for inp in test_case_inputs):
+            return jsonify({'error': 'At least one test case is required'}), 400
+
+        # Create test cases list of dicts
+        test_cases = []
+        for inp, out in zip(test_case_inputs, test_case_outputs):
+            if inp.strip() or out.strip():  # Only add non-empty pairs
+                test_cases.append({'input': inp.strip(), 'output': out.strip()})
+
+        # Store as JSON string
+        test_cases_json = json.dumps(test_cases)
+
         due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
+
+        # Validate due date is in the future
+        if due_date <= datetime.now():
+            return jsonify({'error': 'Due date must be set to a future date and time'}), 400
+
         created_at = datetime.now()
 
         # Get rubrics arrays from form
@@ -884,12 +912,12 @@ def create_activity():
             INSERT INTO activities (
                 teacher_id, class_id, title, description, instructions,
                 starter_code, due_date, correctness_weight,
-                syntax_weight, logic_weight, similarity_weight, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                syntax_weight, logic_weight, similarity_weight, test_cases_json, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             teacher_id, class_id, title, description, instructions,
             starter_code, due_date, correctness_weight,
-            syntax_weight, logic_weight, similarity_weight, created_at
+            syntax_weight, logic_weight, similarity_weight, test_cases_json, created_at
         ))
 
         # Get the last inserted activity ID
@@ -937,7 +965,7 @@ def manage_activity(activity_id):
                 SELECT a.id, a.teacher_id, a.class_id, a.title, a.description, a.instructions,
                         a.starter_code, a.due_date, a.correctness_weight, a.syntax_weight,
                         a.logic_weight, a.similarity_weight, a.created_at,
-                        COUNT(s.id) AS submission_count, c.name AS class_name
+                        COUNT(s.id) AS submission_count, c.name AS class_name, a.test_cases_json
                 FROM activities a
                 LEFT JOIN submissions s ON a.id = s.activity_id
                 LEFT JOIN classes c ON a.class_id = c.id
@@ -949,6 +977,13 @@ def manage_activity(activity_id):
             if not activity:
                 return jsonify({'error': 'Activity not found'}), 404
 
+            # Parse test_cases if available
+            test_cases = []
+            if activity.get('test_cases_json'):
+                try:
+                    test_cases = json.loads(activity['test_cases_json'])
+                except json.JSONDecodeError:
+                    test_cases = []
 
             class_name = activity['class_name']
             if activity['class_id'] is None:
@@ -974,7 +1009,8 @@ def manage_activity(activity_id):
                 'similarity_weight': activity['similarity_weight'],
                 'created_at': activity['created_at'].strftime('%Y-%m-%d %H:%M:%S') if activity['created_at'] else None,
                 'submission_count': activity['submission_count'],
-                'class_name': class_name
+                'class_name': class_name,
+                'test_cases': test_cases
             }
 
             return jsonify(activity_dict)
@@ -986,7 +1022,33 @@ def manage_activity(activity_id):
             description = request.form['description']
             instructions = request.form['instructions']
             starter_code = request.form.get('starter_code', '')
+
+            # Collect test cases from form arrays
+            test_case_inputs = request.form.getlist('test_case_input[]')
+            test_case_outputs = request.form.getlist('test_case_output[]')
+
+            # Validate test cases are in pairs
+            if len(test_case_inputs) != len(test_case_outputs):
+                return jsonify({'error': 'Test case inputs and outputs must be in pairs'}), 400
+
+            # Create test cases list of dicts
+            test_cases = []
+            for inp, out in zip(test_case_inputs, test_case_outputs):
+                if inp.strip() or out.strip():  # Only add non-empty pairs
+                    test_cases.append({'input': inp.strip(), 'output': out.strip()})
+
+            # Validate at least one test case is provided
+            if not test_cases:
+                return jsonify({'error': 'At least one test case is required'}), 400
+
+            # Store as JSON string
+            test_cases_json = json.dumps(test_cases)
+
             due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
+
+            # Validate due date is in the future
+            if due_date <= datetime.now():
+                return jsonify({'error': 'Due date must be set to a future date and time'}), 400
 
             # Get rubrics arrays from form
             rubric_names = request.form.getlist('rubric_name[]')
@@ -1027,11 +1089,11 @@ def manage_activity(activity_id):
                     UPDATE activities
                     SET class_id=%s, title=%s, description=%s, instructions=%s, starter_code=%s,
                         due_date=%s, correctness_weight=%s, syntax_weight=%s,
-                        logic_weight=%s, similarity_weight=%s
+                        logic_weight=%s, similarity_weight=%s, test_cases_json=%s
                     WHERE id=%s AND teacher_id=%s
                 """, (
                     class_id, title, description, instructions, starter_code, due_date,
-                    correctness_weight, syntax_weight, logic_weight, similarity_weight,
+                    correctness_weight, syntax_weight, logic_weight, similarity_weight, test_cases_json,
                     activity_id, teacher_id
                 ))
             else:
@@ -1039,11 +1101,11 @@ def manage_activity(activity_id):
                     UPDATE activities
                     SET class_id=NULL, title=%s, description=%s, instructions=%s, starter_code=%s,
                         due_date=%s, correctness_weight=%s, syntax_weight=%s,
-                        logic_weight=%s, similarity_weight=%s
+                        logic_weight=%s, similarity_weight=%s, test_cases_json=%s
                     WHERE id=%s AND teacher_id=%s
                 """, (
                     title, description, instructions, starter_code, due_date,
-                    correctness_weight, syntax_weight, logic_weight, similarity_weight,
+                    correctness_weight, syntax_weight, logic_weight, similarity_weight, test_cases_json,
                     activity_id, teacher_id
                 ))
 
@@ -1573,7 +1635,7 @@ def teacherSettings():
                             unread_notifications_count=unread_notifications_count)
 
 def get_unread_notifications_count(user_id):
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cur.execute("""
         SELECT COUNT(*) FROM notifications
         WHERE user_id = %s AND role = 'teacher' AND is_read = FALSE
@@ -1615,7 +1677,7 @@ def notify_teacher_activity_finished(teacher_id, activity_title, class_name, tot
     add_notification(teacher_id, 'teacher', 'activity_finished', message)
 
 def notify_finished_activities():
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Find activities where:
     # - due date passed OR all students submitted
@@ -1751,4 +1813,3 @@ def delete_submission(submission_id):
         return jsonify({'error': str(e)}), 500
     finally:
         cur.close()
-

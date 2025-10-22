@@ -4,6 +4,8 @@
 function showCreateActivityModal() {
     document.getElementById('createActivityForm').reset();
     updateTotalWeight();
+    // Clear test cases container
+    document.getElementById('test-cases-container').innerHTML = '';
     document.getElementById('createActivityModal').style.display = 'block';
 }
 
@@ -76,7 +78,24 @@ function formatActivityView(activity) {
             <h4>Due Date</h4>
             <p>${new Date(activity.due_date).toLocaleString()}</p>
         </div>
-        
+
+        ${activity.test_cases && activity.test_cases.length > 0 ? `
+        <div class="test-cases-section">
+            <h3>Test Cases</h3>
+            <div class="test-cases-list">
+                ${activity.test_cases.map((testCase, index) => `
+                    <div class="test-case">
+                        <h4>Test Case ${index + 1}</h4>
+                        <p><strong>Input:</strong></p>
+                        <pre>${testCase.input}</pre>
+                        <p><strong>Expected Output:</strong></p>
+                        <pre>${testCase.output}</pre>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+
         <div class="activity-section">
             <h4>Rubrics</h4>
             <table class="rubrics-table">
@@ -139,7 +158,17 @@ function populateEditForm(activity) {
     const dueDate = new Date(activity.due_date);
     const formattedDate = dueDate.toISOString().slice(0, 16);
     document.getElementById('edit_due_date').value = formattedDate;
-    
+
+    // Clear and populate test cases
+    const editTestCasesContainer = document.getElementById('edit-test-cases-container');
+    editTestCasesContainer.innerHTML = '';
+
+    if (activity.test_cases && Array.isArray(activity.test_cases)) {
+        activity.test_cases.forEach(testCase => {
+            addEditTestCase(testCase);
+        });
+    }
+
     const rubricsContainer = document.getElementById('edit-rubrics-container');
     rubricsContainer.innerHTML = `
         <div class="rubric-item">
@@ -256,17 +285,21 @@ updateTotalWeight();
 // Form submission (create activity)
 document.getElementById('createActivityForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const totalWeight = Array.from(document.querySelectorAll('.weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-    
+
     if (totalWeight !== 100) {
         Swal.fire('Error', 'Total weights must equal 100%', 'error');
         return;
     }
-    
+
+    if (!validateTestCases()) {
+        return;
+    }
+
     const formData = new FormData(this);
-    
+
     fetch(this.action, {
         method: 'POST',
         body: formData,
@@ -305,18 +338,22 @@ document.getElementById('createActivityForm').addEventListener('submit', functio
 // Form submission (edit activity)
 document.getElementById('editActivityForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const totalWeight = Array.from(document.querySelectorAll('#edit-rubrics-container .weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
-    
+
     if (totalWeight !== 100) {
         Swal.fire('Error', 'Total weights must equal 100%', 'error');
         return;
     }
-    
+
+    if (!validateTestCases()) {
+        return;
+    }
+
     const formData = new FormData(this);
     const activityId = document.getElementById('edit_activity_id').value;
-    
+
     fetch(`/teacher/activity/${activityId}`, {
         method: 'PUT',
         body: formData,
@@ -346,6 +383,59 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
     });
 });
 
+
+// Test case functions
+function addTestCase(existingTestCase = null) {
+    const container = document.getElementById('test-cases-container');
+    const testCaseDiv = document.createElement('div');
+    testCaseDiv.className = 'test-case-item';
+    testCaseDiv.innerHTML = `
+        <label>Input:</label>
+        <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
+        <label>Expected Output:</label>
+        <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeTestCase(this)">Remove</button>
+    `;
+    container.appendChild(testCaseDiv);
+}
+
+function addEditTestCase(existingTestCase = null) {
+    const container = document.getElementById('edit-test-cases-container');
+    const testCaseDiv = document.createElement('div');
+    testCaseDiv.className = 'test-case-item';
+    testCaseDiv.innerHTML = `
+        <label>Input:</label>
+        <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
+        <label>Expected Output:</label>
+        <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeTestCase(this)">Remove</button>
+    `;
+    container.appendChild(testCaseDiv);
+}
+
+function removeTestCase(button) {
+    button.parentElement.remove();
+}
+
+// Form validation for test cases
+function validateTestCases() {
+    const inputs = document.querySelectorAll('textarea[name="test_case_input[]"]');
+    const outputs = document.querySelectorAll('textarea[name="test_case_output[]"]');
+
+    if (inputs.length !== outputs.length) {
+        Swal.fire('Error', 'Test case inputs and outputs must be paired', 'error');
+        return false;
+    }
+
+    for (let i = 0; i < inputs.length; i++) {
+        if (!inputs[i].value.trim() || !outputs[i].value.trim()) {
+            Swal.fire('Error', 'All test case inputs and outputs must be filled', 'error');
+            return false;
+        }
+    }
+
+    return true;
+}
 
 // Logout confirmation
 function confirmLogout() {

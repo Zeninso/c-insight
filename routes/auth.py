@@ -17,7 +17,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        cur = mysql.connection.cursor()
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
         # Check for case-insensitive username match
         cur.execute("SELECT username FROM users WHERE LOWER(username) = LOWER(%s)", (username,))
@@ -266,4 +266,3 @@ def google_register():
         'theme': session.get('theme', 'light')
     }
     return render_template('google_register.html', data=data, user=user)
-

@@ -3,6 +3,7 @@ import tempfile
 import os
 import re
 import datetime
+import json
 from difflib import SequenceMatcher
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
@@ -34,13 +35,143 @@ class CodeGrader:
             logger.error(f"Error loading ML models: {str(e)}")
             self.ml_models = None
 
+    def parse_test_cases(self, activity_id):
+        """Parse test cases from activity data."""
+        try:
+            # Ensure activity_id is a valid integer
+            try:
+                activity_id = int(activity_id)
+            except (TypeError, ValueError):
+                logger.error(f"Invalid activity_id: {activity_id}")
+                return []
+
+            cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+            cur.execute("SELECT test_cases_json FROM activities WHERE id = %s", (activity_id,))
+            result = cur.fetchone()
+            cur.close()
+
+            if not result or not result['test_cases_json']:
+                return []
+
+            # Parse JSON test cases
+            test_cases = json.loads(result['test_cases_json'])
+            if not isinstance(test_cases, list):
+                return []
+
+            # Validate test case format
+            validated_cases = []
+            for case in test_cases:
+                if isinstance(case, dict) and 'input' in case and 'output' in case:
+                    validated_cases.append({
+                        'input': str(case['input']),
+                        'expected': str(case['output'])
+                    })
+
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.error(f"Error parsing test cases: {str(e)}")
+            return []
+        except Exception as e:
+            logger.error(f"Database error in parse_test_cases: {str(e)}")
+            return []
+
+        return validated_cases
+
+    def compile_and_run_code(self, code, test_input):
+        """Compile student's C code and run with test input."""
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Write code to file
+                code_file = os.path.join(temp_dir, 'student_code.c')
+                with open(code_file, 'w') as f:
+                    f.write(code)
+
+                # Compile the code
+                exe_file = os.path.join(temp_dir, 'student_code.exe')
+                compile_result = subprocess.run(
+                    ['gcc', code_file, '-o', exe_file],
+                    capture_output=True, text=True, timeout=10
+                )
+
+                if compile_result.returncode != 0:
+                    return None, f"Compilation failed: {compile_result.stderr[:200]}"
+
+                # Run with test input
+                run_result = subprocess.run(
+                    [exe_file],
+                    input=test_input,
+                    capture_output=True, text=True, timeout=5
+                )
+
+                if run_result.returncode != 0:
+                    return None, f"Runtime error: {run_result.stderr[:200]}"
+
+                return run_result.stdout.strip(), None
+
+        except subprocess.TimeoutExpired:
+            return None, "Execution timed out"
+        except Exception as e:
+            logger.error(f"Error in compile_and_run_code: {str(e)}")
+            return None, f"Execution error: {str(e)}"
+
+    def compare_outputs_flexible(self, actual, expected):
+        """Compare outputs with flexible pattern matching."""
+        if not actual or not expected:
+            return actual == expected
+
+        # Normalize whitespace
+        actual = actual.strip()
+        expected = expected.strip()
+
+        # Exact match first
+        if actual == expected:
+            return True
+
+        # Split into lines and compare line by line
+        actual_lines = [line.strip() for line in actual.split('\n') if line.strip()]
+        expected_lines = [line.strip() for line in expected.split('\n') if line.strip()]
+
+        if len(actual_lines) != len(expected_lines):
+            return False
+
+        # Compare each line with some flexibility
+        for actual_line, expected_line in zip(actual_lines, expected_lines):
+            if not self.compare_single_line(actual_line, expected_line):
+                return False
+
+        return True
+
+    def compare_single_line(self, actual, expected):
+        """Compare single lines with flexible matching."""
+        # Exact match
+        if actual == expected:
+            return True
+
+        # Numeric comparison with tolerance for floating point
+        try:
+            actual_num = float(actual)
+            expected_num = float(expected)
+            # Allow small tolerance for floating point comparisons
+            return abs(actual_num - expected_num) < 1e-6
+        except ValueError:
+            pass
+
+        # String comparison (case insensitive for some cases)
+        if actual.lower() == expected.lower():
+            return True
+
+        # Check if expected contains actual or vice versa (for partial matches)
+        if expected in actual or actual in expected:
+            return True
+
+        return False
+
     def grade_submission(self, activity_id, student_id, code):
         """
         Grade a student submission based on the activity's rubric.
         """
         try:
             # Get activity details
-            cur = mysql.connection.cursor()
+            cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
             cur.execute("""
                 SELECT title, description, instructions, starter_code, due_date,
                         correctness_weight, syntax_weight, logic_weight, similarity_weight
@@ -51,6 +182,19 @@ class CodeGrader:
 
             if not activity:
                 return {'error': 'Activity not found'}
+
+            # Get submission time
+            cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+            cur.execute("SELECT submitted_at FROM submissions WHERE activity_id = %s AND student_id = %s ORDER BY submitted_at DESC LIMIT 1", (activity_id, student_id))
+            submission = cur.fetchone()
+            cur.close()
+
+            if submission and submission['submitted_at']:
+                submitted_at = submission['submitted_at']
+                if isinstance(submitted_at, str):
+                    submitted_at = datetime.datetime.strptime(submitted_at, '%Y-%m-%d %H:%M:%S')
+            else:
+                submitted_at = datetime.datetime.now()
 
             title = activity['title']
             description = activity['description']
@@ -81,6 +225,21 @@ class CodeGrader:
                 except ValueError:
                     due_date = None
 
+            # Calculate overdue penalty
+            overdue_penalty = 0
+            if due_date and submitted_at and submitted_at > due_date:
+                # Calculate total seconds overdue
+                total_seconds_overdue = (submitted_at - due_date).total_seconds()
+    
+                # Calculate weeks overdue based on seconds (1 week = 604,800 seconds)
+                seconds_per_week = 7 * 24 * 3600  # 604,800
+                weeks_overdue = total_seconds_overdue // seconds_per_week
+                if total_seconds_overdue % seconds_per_week > 0:  # Partial week counts as full week
+                    weeks_overdue += 1
+    
+                overdue_penalty = weeks_overdue * 10
+            
+
             # Extract requirements from activity content
             activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
             requirements = self.extract_activity_requirements(activity_text)
@@ -91,16 +250,8 @@ class CodeGrader:
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
-            # Check for major requirement failures - if activity not implemented properly, set all scores to zero
-            if requirement_score < 30:
-                correctness_score = 0
-                syntax_score = 0
-                logic_score = 0
-                similarity_score = 0
-                ast_feedback = f"Activity requirements not met (score: {requirement_score:.1f}%); submission appears incomplete or incorrect - all scores set to zero."
-                sim_feedback = "Similarity check skipped due to major requirement failures."
             # If syntax score is below threshold, assign zero to all scores and skip further checks
-            elif syntax_score < 85:
+            if syntax_score < 85:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
@@ -108,32 +259,94 @@ class CodeGrader:
                 ast_feedback = "Submission has syntax errors; grading scores set to zero."
                 sim_feedback = "Similarity check skipped due to syntax errors."
             else:
+                # Dynamic testing with test cases
+                test_cases = self.parse_test_cases(activity_id)
+                test_correctness_score = 0
+                test_feedback = ""
+
+                if test_cases:
+                    passed_tests = 0
+                    total_tests = len(test_cases)
+                    test_details = []
+
+                    for i, test_case in enumerate(test_cases, 1):
+                        actual_output, error = self.compile_and_run_code(code, test_case['input'])
+
+                        if error:
+                            test_details.append(f"Test {i}: Failed - {error}")
+                        else:
+                            
+                            # Remove input prompt from output if present
+                            test_input = test_case['input'].rstrip()
+                            if actual_output.startswith(test_input):
+                                actual_output = actual_output[len(test_input):].lstrip()
+                                if actual_output.startswith('\n'):
+                                    actual_output = actual_output[1:].lstrip()
+                            
+                            if self.compare_outputs_flexible(actual_output, test_case['expected']):
+                                passed_tests += 1
+                                test_details.append(f"Test {i}: Passed")
+                            else:
+                                test_details.append(f"Test {i}: Failed")
+
+                    test_correctness_score = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
+                    test_feedback = f"Test Cases: {passed_tests}/{total_tests} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
+                else:
+                    test_feedback = "No test cases defined for this activity - using static analysis only."
+                    test_correctness_score = 50  # Neutral score when no tests available
+
                 # Correctness and Logic analysis
-                correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
+                static_correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
                     code, requirements, requirement_score
                 )
 
-                # Apply requirement penalty to correctness score for moderate requirement issues
-                if requirement_score < 70:
-                    penalty_factor = (requirement_score / 100) ** 2
-                    correctness_score = correctness_score * penalty_factor
-                    reduction_percent = 100 - (penalty_factor * 100)
-                    ast_feedback += f" Correctness score reduced by {reduction_percent:.1f}% due to unmet requirements."
+                # Adjust logic score based on requirement compliance if requirements exist
+                if requirement_score < 100 and requirements:
+                    # Calculate how many requirements are met vs total
+                    required_features = sum(1 for req in requirements.values() if req is True)
+                    if required_features > 0:
+                        # Reduce logic score proportionally to missing requirements
+                        # Missing 20% of requirements reduces logic score by 10-15%
+                        missing_percentage = (100 - requirement_score) / 100
+                        logic_penalty = min(15, missing_percentage * 50)  # Max 15% reduction
+                        logic_score = max(0, logic_score - logic_penalty)
+
+                        # Add requirement compliance note to feedback
+                        ast_feedback += f" Logic score adjusted for requirement compliance ({requirement_score:.1f}% requirements met)."
+
+                # Correctness is based entirely on test case results, Logic is based on AST analysis
+                correctness_score = test_correctness_score
+                ast_feedback = f"{test_feedback}, {ast_feedback}"
 
                 # Similarity check
                 similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
 
-            # Check for overdue penalty
-            overdue_penalty = 0
-            if due_date and datetime.datetime.now() > due_date:
-                overdue_penalty = 25
-                penalty_per = overdue_penalty / 3
-                correctness_score = max(0, correctness_score - penalty_per)
-                syntax_score = max(0, syntax_score - penalty_per)
-                logic_score = max(0, logic_score - penalty_per)
+            # Update feedback with final scores
+            ast_feedback = f"Correctness: {correctness_score:.1f}%, Semantic: {logic_score:.1f}%, Syntax: {syntax_score:.1f}%. {ast_feedback}"
 
-            # Update feedback with final scores after penalty
-            ast_feedback = f"Correctness: {correctness_score:.1f}%, Logic: {logic_score:.1f}%, Syntax: {syntax_score:.1f}%. {ast_feedback}"
+            # Apply overdue penalty to individual criteria
+            if overdue_penalty > 0:
+                total_weight = correctness_w + syntax_w + logic_w + similarity_w
+                if total_weight > 0:
+                    penalty_correctness = round(overdue_penalty * (correctness_w / total_weight), 1)
+                    penalty_syntax = round(overdue_penalty * (syntax_w / total_weight), 1)
+                    penalty_logic = round(overdue_penalty * (logic_w / total_weight), 1)
+                    penalty_similarity = round(overdue_penalty * (similarity_w / total_weight), 1)
+
+                    correctness_score = (correctness_score * correctness_w / 100)
+                    syntax_score = (syntax_score * syntax_w / 100)
+                    logic_score = (logic_score * logic_w / 100)
+                    similarity_score = (similarity_score * similarity_w / 100)
+
+                    correctness_score = max(0, correctness_score - penalty_correctness)
+                    syntax_score = max(0, syntax_score - penalty_syntax)
+                    logic_score = max(0, logic_score - penalty_logic)
+                    similarity_score = max(0, similarity_score - penalty_similarity)
+
+                    correctness_score = (correctness_score * 100 / correctness_w)
+                    syntax_score = (syntax_score * 100 / syntax_w)
+                    logic_score = (logic_score * 100 / logic_w)
+                    similarity_score = (similarity_score * 100 / similarity_w)
 
             # Calculate weighted scores
             total_score = (
@@ -149,8 +362,10 @@ class CodeGrader:
                 f"Code Analysis: {ast_feedback}",
                 f"Similarity Check: {sim_feedback}"
             ]
+
+            # Add overdue penalty to feedback if applicable
             if overdue_penalty > 0:
-                feedback_parts.append(f"Overdue Penalty: -{overdue_penalty} points distributed across correctness, syntax, and logic")
+                feedback_parts.append(f"Overdue Penalty: {overdue_penalty}% deducted")
 
             return {
                 'correctness_score': int(correctness_score),
@@ -441,149 +656,48 @@ class CodeGrader:
         return min(100, max(0, score))
 
     def analyze_c_code_logic(self, code, requirements=None):
-        """Analyze C code logic complexity and flow with enhanced criteria."""
-        score = 50  # Increased base score for better baseline
+        """Analyze C code logic complexity and flow with enhanced semantic criteria."""
+        score = 100  # Start with full score, deduct for errors only
 
-        # Control Flow Complexity
+        # Control Flow Complexity - Check for potential issues
         if_count = code.count('if ') + code.count('else if')
         loop_count = code.count('for ') + code.count('while ') + code.count('do ')
         switch_count = code.count('switch ')
         total_control = if_count + loop_count + switch_count
 
-        # Check if control flow is required
-        control_flow_required = False
-        if requirements:
-            control_flow_required = requirements.get('if_else', False) or requirements.get('loops', False) or requirements.get('switch', False)
+        # Check for potential infinite loops
+        infinite_loop_penalty = self.check_infinite_loops(code)
+        score -= infinite_loop_penalty
 
-        if total_control > 0:
-            # More generous scoring for control flow complexity - higher scores for proper logic
-            if total_control <= 3:
-                score += 30  # Increased from 25
-            elif total_control <= 7:
-                score += 25  # Increased from 20
-            elif total_control <= 12:
-                score += 20  # Increased from 15
-            else:
-                score += 15  # Increased from 10
-        else:
-            # Only penalize for missing control flow if it's explicitly required
-            if control_flow_required:
-                lines = [line.strip() for line in code.split('\n') if line.strip()]
-                if len(lines) > 5:
-                    score -= 5  # Reduced penalty
-            else:
-                # Bonus if control flow not required but code is simple and clear
-                score += 15  # Increased from 10
-
-        # Algorithm Indicators with improved detection - higher weights for proper algorithms
-        algorithm_indicators = 0
-        code_lower = code.lower()
-
-        # Basic algorithm patterns
-        if 'sort' in code_lower or 'search' in code_lower:
-            algorithm_indicators += 2  # Increased weight
-        if '%' in code:  # Modulo operations often used in algorithms
-            algorithm_indicators += 2
-        if 'sqrt' in code or 'pow' in code:  # Mathematical functions
-            algorithm_indicators += 2
-        if '&&' in code or '||' in code:  # Logical operations
-            algorithm_indicators += 1
-
-        # Specific algorithm implementations - higher bonuses for proper implementations
-        sorting_algorithms = ['bubble', 'insertion', 'selection', 'merge', 'quick', 'heap']
-        search_algorithms = ['binary', 'linear', 'sequential']
-        if any(alg in code_lower for alg in sorting_algorithms):
-            algorithm_indicators += 5  # Increased from 3
-        if any(alg in code_lower for alg in search_algorithms):
-            algorithm_indicators += 5  # Increased from 3
-        if 'recursion' in code_lower or 'recursive' in code_lower:
-            algorithm_indicators += 5  # Increased from 3
-
-        # Check for proper algorithm implementation patterns
-        algorithm_quality_score = self.check_algorithm_quality(code)
-        score += min(35, algorithm_indicators * 3 + algorithm_quality_score)  # Increased cap and multiplier
-
-        # Data Processing - higher scores for proper array usage
-        array_usage = code.count('[') + code.count(']')
-        if requirements and requirements.get('arrays', False):
-            score += 20 if array_usage > 0 else -5  # Increased bonus
-        elif array_usage > 0:
-            score += 20  # Increased bonus
-
-        # Error Handling (enhanced check for NULL, bounds checking, and conditional usage) - higher rewards
-        error_patterns = code.count('NULL') + code.count('if (') + code.count('else')
-        bounds_checks = code.count('if (') + code.count('while (') + code.count('< ') + code.count('> ') + code.count('<=') + code.count('>=')
-        error_handling_score = min(30, error_patterns * 3 + bounds_checks * 2)  # Increased multipliers and cap
-        score += error_handling_score
-
-        # Code Efficiency (nested loops and complexity analysis) - higher rewards for good efficiency
-        if loop_count > 0:
-            nested_loops = max(0, code.count('for (') + code.count('while (') - 1)
-            efficiency_score = 0
-            if nested_loops == 0:
-                efficiency_score = 30  # Increased from 25
-            elif nested_loops <= 2:
-                efficiency_score = 25  # Increased from 20
-            elif nested_loops <= 4:
-                efficiency_score = 20  # Increased from 15
-            else:
-                efficiency_score = 10  # Increased from 5
-
-            # Check for potential infinite loops
-            infinite_loop_penalty = self.check_infinite_loops(code)
-            efficiency_score -= infinite_loop_penalty
-
-            score += efficiency_score
-
-        # Check for use of break/continue for loop control - higher bonus for proper control
-        if loop_count > 0 and ('break;' in code or 'continue;' in code):
-            score += 15  # Increased from 12
-
-        # Additional logic checks for better variation
-        # Check for proper loop initialization and bounds - higher scores for good loops
+        # Check for proper loop initialization and bounds
         if loop_count > 0:
             loop_quality_score = self.check_loop_quality(code)
-            score += loop_quality_score * 1.5  # Multiplier for better loop quality
+            score += loop_quality_score  # This can be negative, so it deducts
 
-        # Check for function calls within logic - higher bonus when functions are properly used
-        if requirements and requirements.get('functions', False):
-            func_in_logic = code.count('if (') + code.count('while (') + code.count('for (')
-            if func_in_logic > 0:
-                score += min(20, func_in_logic * 3)  # Increased weight
-        else:
-            # If functions not required, bonus for clean simple code
-            score += 5
-
-        # Reduced penalty for missing logic in simple programs
-        lines = code.split('\n')
-        code_lines = [line.strip() for line in lines if line.strip()]
-        if len(code_lines) > 5 and total_control == 0 and control_flow_required:
-            score -= 5  # Reduced from 10
-
-        # Enhanced logic checks - higher weights for good practices
+        # Enhanced logic checks for semantic practices
         # Check for proper variable initialization and usage
         var_logic_score = self.check_variable_logic(code)
-        score += var_logic_score * 1.2  # Multiplier for variable logic
+        score += var_logic_score  # This can be negative, so it deducts
 
         # Check for logical consistency and potential errors
         logic_consistency_score = self.check_enhanced_logical_consistency(code)
-        score += logic_consistency_score * 1.3  # Higher multiplier for consistency
+        score += logic_consistency_score  # This can be negative, so it deducts
 
         # Check for proper nesting and structure
         nesting_score = self.check_nesting_structure(code)
-        score += nesting_score * 1.5  # Higher multiplier for good structure
+        score += nesting_score  # This can be negative, so it deducts
 
-        # Check for unreachable code patterns - less penalty for good code
+        # Check for unreachable code patterns
         unreachable_score = self.check_unreachable_code(code)
-        score += unreachable_score * 1.2  # Reduced penalty impact
+        score += unreachable_score  # This can be negative, so it deducts
 
         # Check for proper operator usage
         operator_score = self.check_operator_usage(code)
-        score += operator_score * 1.4  # Higher multiplier for operator usage
+        score += operator_score  # This can be negative, so it deducts
 
-        # Check for memory safety - higher bonus for safe code
+        # Check for memory safety
         memory_score = self.check_memory_safety(code)
-        score += memory_score * 1.5  # Higher multiplier for memory safety
+        score += memory_score  # This can be negative, so it deducts
 
         return min(100, max(0, score))
 
@@ -917,16 +1031,12 @@ class CodeGrader:
         else:
             feedback_parts.append("Code length is appropriate for the activity")
 
-        # Check for specific C programming patterns
-        patterns_found = []
-        if 'printf(' in code: patterns_found.append("Uses output functions")
-        if 'scanf(' in code: patterns_found.append("Uses input functions")
-        if '#include <stdio.h>' in code: patterns_found.append("Includes standard I/O library")
-        if 'int main(' in code: patterns_found.append("Has main function")
-        if '{' in code and '}' in code: patterns_found.append("Proper code blocks")
-
-        if patterns_found:
-            feedback_parts.append("Positive patterns: " + ", ".join(patterns_found))
+        # Requirement analysis - always visible
+        if requirements and any(req.get('required', False) for req in requirements.values() if isinstance(req, dict)):
+            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
+            feedback_parts.append(f"Requirement Analysis: {requirement_feedback}")
+        else:
+            feedback_parts.append("No specific requirements needed for this activity")
 
         # Check for potential issues
         issues = []
@@ -1179,11 +1289,11 @@ class CodeGrader:
         # First, check explicitly required elements from activity description
         for req_name, req_value in requirements.items():
             # Skip if this requirement is not actually required or if it's the specific_content list
-            if not req_value or req_name == 'specific_content':
-                continue
-
-            # For specific_content, check if there are actual keywords to look for
-            if req_name == 'specific_content' and not requirements['specific_content']:
+            if req_name == 'specific_content':
+                # For specific_content, check if there are actual keywords to look for
+                if not requirements['specific_content']:
+                    continue
+            elif not req_value.get('required', False):
                 continue
 
             total_required_points += points_map[req_name]
@@ -1199,21 +1309,8 @@ class CodeGrader:
             else:
                 missing_requirements.append(req_name.replace('_', ' '))
 
-        # Additionally, check for basic programming elements that are typically expected
-        # If the code uses certain features, consider them as requirements
-        basic_requirements = ['input_output', 'variables', 'main_function', 'include_stdio', 'return_statement']
-
-        for req_name in basic_requirements:
-            if req_name in requirements and requirements[req_name]:
-                continue  # Already checked above
-
-            # Check if code has this element
-            met, count, feedback_str = checkers[req_name](code)
-            if met:
-                # If code has this element, consider it required and met
-                total_required_points += points_map[req_name]
-                met_points += points_map[req_name]
-                met_requirements.append(feedback_str)
+        # Only check explicitly required elements from activity description
+        # Basic programming elements are not automatically required unless mentioned
 
         # Calculate requirement score as percentage of met requirements
         if total_required_points > 0:
@@ -1334,7 +1431,7 @@ class CodeGrader:
 
             # Database query with error handling
             try:
-                cur = mysql.connection.cursor()
+                cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
                 cur.execute("""
                     SELECT code FROM submissions
                     WHERE activity_id = %s AND code IS NOT NULL AND LENGTH(code) > 10
@@ -1415,7 +1512,7 @@ class CodeGrader:
             logger.info("Starting ML model training...")
 
             # Get historical graded submissions
-            cur = mysql.connection.cursor()
+            cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
             cur.execute("""
                 SELECT code, correctness_score, syntax_score, logic_score
                 FROM submissions

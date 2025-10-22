@@ -220,6 +220,23 @@
                         <pre>{{ activity.instructions }}</pre>
                     </div>
 
+                    {% if activity.test_cases %}
+                    <div class="test-cases-section">
+                        <h3>Test Cases</h3>
+                        <div class="test-cases-list">
+                            {% for test_case in activity.test_cases %}
+                            <div class="test-case">
+                                <h4>Test Case {{ loop.index }}</h4>
+                                <p><strong>Input:</strong></p>
+                                <pre>{{ test_case.input }}</pre>
+                                <p><strong>Expected Output:</strong></p>
+                                <pre>{{ test_case.output }}</pre>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="rubrics-section">
                         <h3>Rubrics</h3>
                         <table class="rubrics-table">

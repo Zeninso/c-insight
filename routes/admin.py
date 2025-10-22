@@ -126,7 +126,13 @@ def editUser(user_id):
             # Handle role change: remove conflicting data
             if new_role and new_role != current_role:
                 if current_role == 'teacher' and new_role == 'student':
-                    # Delete classes for the teacher (this will cascade to enrollments, activities, submissions)
+                    # Delete submissions for activities created by the teacher
+                    cur.execute("DELETE FROM submissions WHERE activity_id IN (SELECT id FROM activities WHERE teacher_id=%s)", (user_id,))
+                    # Delete activities for the teacher (including those not assigned to classes)
+                    cur.execute("DELETE FROM activities WHERE teacher_id=%s", (user_id,))
+                    # Delete enrollments for classes created by the teacher
+                    cur.execute("DELETE FROM enrollments WHERE class_id IN (SELECT id FROM classes WHERE teacher_id=%s)", (user_id,))
+                    # Delete classes for the teacher
                     cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
                 elif current_role == 'student' and new_role == 'teacher':
                     # Delete submissions and enrollments for the student
@@ -176,13 +182,19 @@ def deleteUser(user_id):
         print(f"Deleting user: {username}, role: {role}")
 
         # Manually delete related records in the correct order to avoid CASCADE issues
-        if role == 'student':
-            # Delete submissions and enrollments for student
-            cur.execute("DELETE FROM submissions WHERE student_id=%s", (user_id,))
-            cur.execute("DELETE FROM enrollments WHERE student_id=%s", (user_id,))
-        elif role == 'teacher':
-            # Delete classes for teacher (this will cascade to enrollments, activities, submissions)
-            cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
+        # Delete all possible related records regardless of current role, as old data may remain from previous roles
+
+        # Delete all submissions (both as student and for activities created by user)
+        cur.execute("DELETE FROM submissions WHERE student_id=%s OR activity_id IN (SELECT id FROM activities WHERE teacher_id=%s)", (user_id, user_id))
+
+        # Delete activities created by the user
+        cur.execute("DELETE FROM activities WHERE teacher_id=%s", (user_id,))
+
+        # Delete all enrollments (both as student and for classes created by user)
+        cur.execute("DELETE FROM enrollments WHERE student_id=%s OR class_id IN (SELECT id FROM classes WHERE teacher_id=%s)", (user_id, user_id))
+
+        # Delete classes created by the user
+        cur.execute("DELETE FROM classes WHERE teacher_id=%s", (user_id,))
 
         # Delete notifications for the user
         cur.execute("DELETE FROM notifications WHERE user_id=%s", (user_id,))

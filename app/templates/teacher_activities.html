@@ -189,6 +189,15 @@
                 <label for="due_date">Due Date:</label>
                 <input type="datetime-local" id="due_date" name="due_date" required>
 
+                <!-- Test Cases Section -->
+                <div class="test-cases-section">
+                    <h3>Test Cases</h3>
+                    <div id="test-cases-container" class="test-cases-list">
+                        <!-- Test cases will be added here dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addTestCase()">Add Test Case</button>
+                </div>
+
                 <!-- Rubrics Section -->
                 <h3>Rubrics</h3>
                 <div id="rubrics-container">
@@ -278,7 +287,16 @@
                     <label for="edit_due_date">Due Date:</label>
                     <input type="datetime-local" id="edit_due_date" name="due_date" required>
                 </div>
-                
+
+                <!-- Test Cases Section -->
+                <div class="test-cases-section">
+                    <h3>Test Cases</h3>
+                    <div id="edit-test-cases-container" class="test-cases-list">
+                        <!-- Test cases will be added here dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addEditTestCase()">Add Test Case</button>
+                </div>
+
                 <h3>Rubrics</h3>
                 <div id="edit-rubrics-container">
                 </div>
