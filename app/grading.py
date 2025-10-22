@@ -21,7 +21,18 @@ logger = logging.getLogger(__name__)
 
 class CodeGrader:
     def __init__(self):
-        pass
+        self.ml_models = None
+        # Attempt to load pre-trained ML models
+        try:
+            if os.path.exists('ml_grading_models.pkl'):
+                with open('ml_grading_models.pkl', 'rb') as f:
+                    self.ml_models = pickle.load(f)
+                logger.info("ML grading models loaded successfully")
+            else:
+                logger.info("No ML grading models found, using rule-based analysis only")
+        except Exception as e:
+            logger.warning(f"Failed to load ML grading models: {str(e)}. Using rule-based analysis only")
+            self.ml_models = None
 
     def parse_test_cases(self, activity_id):
         """Parse test cases from activity data."""
