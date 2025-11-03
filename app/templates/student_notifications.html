@@ -7,6 +7,18 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_class_view.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student_profile.css') }}">
+    <style>
+        .notifications-list {
+            max-height: 70vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .notifications-list::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">

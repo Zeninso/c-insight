@@ -570,64 +570,103 @@
         document.getElementById('generateReportForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // Show loading indicator
+            // Get current filter values
+            const classId = this.querySelector('input[name="class_id"]').value;
+            const activityId = this.querySelector('input[name="activity_id"]').value;
+
+            // Check if both filters are empty (All Classes and All Activities)
+            if (!classId && !activityId) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Pick a class you want to generate a report first.',
+                    icon: 'error',
+                    confirmButtonColor: '#6f42c1'
+                });
+                return;
+            }
+
+            // Determine report scope message
+            let scopeMessage = '';
+            if (classId && activityId) {
+                scopeMessage = 'This report will include grades for the selected activity in the selected class only.';
+            } else if (classId) {
+                scopeMessage = 'This report will include grades for all activities in the selected class.';
+            } else if (activityId) {
+                scopeMessage = 'This report will include grades for the selected activity across all your classes.';
+            }
+
+            // Show confirmation dialog
             Swal.fire({
-                title: 'Generating Report',
-                text: 'Please wait while we generate your grade report...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading()
-                }
-            });
-
-            // Collect form data
-            const formData = new FormData(this);
-
-            // Use fetch API to submit the request
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                } else {
-                    return response.text().then(text => {
-                        try {
-                            const err = JSON.parse(text);
-                            throw new Error(err.error || 'Unknown error');
-                        } catch {
-                            throw new Error(text || 'Network response was not ok.');
+                title: 'Generate Grade Report',
+                text: scopeMessage,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#6f42c1',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Generate Report',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading indicator
+                    Swal.fire({
+                        title: 'Generating Report',
+                        text: 'Please wait while we generate your grade report...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading()
                         }
                     });
+
+                    // Collect form data
+                    const formData = new FormData(this);
+
+                    // Use fetch API to submit the request
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.blob();
+                        } else {
+                            return response.text().then(text => {
+                                try {
+                                    const err = JSON.parse(text);
+                                    throw new Error(err.error || 'Unknown error');
+                                } catch {
+                                    throw new Error(text || 'Network response was not ok.');
+                                }
+                            });
+                        }
+                    })
+                    .then(blob => {
+                        // Create a download link and trigger click
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `grade_report_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Report Generated',
+                            text: 'Your grade report has been downloaded successfully!',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to generate report: ' + error.message
+                        });
+                    });
                 }
-            })
-            .then(blob => {
-                // Create a download link and trigger click
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `grade_report_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Report Generated',
-                    text: 'Your grade report has been downloaded successfully!',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to generate report: ' + error.message
-                });
             });
         });
         // New: Confirm and delete submission

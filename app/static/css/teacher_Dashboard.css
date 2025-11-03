@@ -105,6 +105,13 @@
             gap: 10px;
         }
 
+        .user-profile > div {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
         .user-profile img {
             width: 40px;
             height: 40px;
@@ -275,12 +282,12 @@
             overflow: hidden;
         }
 
-.progress-fill {
-    height: 10px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
-    transition: width 0.4s ease;
-}
+        .progress-fill {
+            height: 10px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+            transition: width 0.4s ease;
+        }
 
         .progress-text {
             font-size: 0.9rem;

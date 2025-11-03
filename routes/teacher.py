@@ -1114,16 +1114,26 @@ def manage_activity(activity_id):
             
         elif request.method == 'DELETE':
             # Check if activity exists and belongs to teacher
-            cur.execute("SELECT id FROM activities WHERE id=%s AND teacher_id=%s", (activity_id, teacher_id))
+            cur.execute("SELECT id, title, class_id FROM activities WHERE id=%s AND teacher_id=%s", (activity_id, teacher_id))
             activity = cur.fetchone()
-            
+
             if not activity:
                 return jsonify({'error': 'Activity not found'}), 404
-            
+
+            title = activity['title']
+            class_id = activity['class_id']
+
+            # Delete submissions for this activity
+            cur.execute("DELETE FROM submissions WHERE activity_id=%s", (activity_id,))
+
             # Delete activity
             cur.execute("DELETE FROM activities WHERE id=%s", (activity_id,))
             mysql.connection.commit()
-            
+
+            # Notify students about activity deletion (if activity belongs to a class)
+            if class_id:
+                notify_students_activity_deleted(class_id, title)
+
             return jsonify({'success': 'Activity deleted successfully'})
             
     except Exception as e:
@@ -1474,7 +1484,6 @@ def delete_class(class_id):
         students = cur.fetchall()
         student_ids = [row['student_id'] for row in students]  # Fixed: use dict access
 
-        # Notify students about class deletion
         notification_query = """
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW())
@@ -1484,21 +1493,20 @@ def delete_class(class_id):
             link = url_for('student.studentClasses')
             cur.execute(notification_query, (student_id, 'student', 'class_deleted', message, link, False))
 
-        # Delete in correct order to handle foreign key constraints
-        # 1. First delete submissions for activities in this class
+ 
         cur.execute("""
             DELETE s FROM submissions s
             INNER JOIN activities a ON s.activity_id = a.id
             WHERE a.class_id = %s
         """, (class_id,))
 
-        # 2. Delete activities for this class
+
         cur.execute("DELETE FROM activities WHERE class_id=%s", (class_id,))
 
-        # 3. Delete enrollments for this class
+     
         cur.execute("DELETE FROM enrollments WHERE class_id=%s", (class_id,))
 
-        # 4. Finally delete the class
+
         cur.execute("DELETE FROM classes WHERE id=%s", (class_id,))
 
         mysql.connection.commit()
@@ -1658,7 +1666,7 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Use DictCursor
     cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
     students = cur.fetchall()
-    
+
     for student in students:
         student_id = student['student_id']  # Get the actual student ID
         message = f"New activity assigned: '{activity_title}' in your class. Deadline: {due_date.strftime('%b').upper()} {due_date.strftime('%d, %Y')}."
@@ -1667,7 +1675,24 @@ def notify_students_activity_assigned(class_id, activity_id, activity_title, due
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, 'student', 'new_activity', %s, %s, %s, NOW())
         """, (student_id, message, link, False))
-    
+
+    mysql.connection.commit()
+    cur.close()
+
+def notify_students_activity_deleted(class_id, activity_title):
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT student_id FROM enrollments WHERE class_id = %s", (class_id,))
+    students = cur.fetchall()
+
+    for student in students:
+        student_id = student['student_id']
+        message = f"The activity '{activity_title}' has been deleted by your teacher."
+        link = url_for('student.studentClasses')
+        cur.execute("""
+            INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+            VALUES (%s, 'student', 'activity_deleted', %s, %s, %s, NOW())
+        """, (student_id, message, link, False))
+
     mysql.connection.commit()
     cur.close()
 

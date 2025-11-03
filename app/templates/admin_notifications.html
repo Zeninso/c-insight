@@ -36,6 +36,18 @@
             flex: 1;
         }
 
+        /* Hide scrollbar for notifications list */
+        .notifications-list {
+            max-height: 70vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .notifications-list::-webkit-scrollbar {
+            display: none;
+        }
+
         /* Mobile responsiveness fixes */
         @media (max-width: 768px) {
             .sidebar {
