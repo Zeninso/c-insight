@@ -88,9 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Are you sure?',
                 text: 'This will permanently Remove the selected students from the class.',
                 icon: 'warning',
+                confirmButtonColor: '#d33',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, remove them!',
-                showConfirmButton: '#d33'
+                confirmButtonText: 'Yes, remove them!'
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Send AJAX request

@@ -3,7 +3,7 @@
             title: 'Are you sure?',
             text: 'This will permanently delete the user.',
             icon: 'warning',
-            comfirmButtonColor: '#d33',
+            confirmButtonColor: '#d33',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
@@ -164,9 +164,9 @@
             title: 'Are you sure?',
             text: `This will permanently delete ${selectedIds.length} user(s).`,
             icon: 'warning',
+            confirmButtonColor: '#d33',
             showCancelButton: true,
-            confirmButtonText: 'Yes, delete them!',
-            showConfirmButton:'#d33'
+            confirmButtonText: 'Yes, delete them!'
         }).then((result) => {
             if (result.isConfirmed) {
                 // Delete one by one or send bulk request
