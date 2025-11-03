@@ -235,7 +235,76 @@
             }
         }
         
-/* Hide scrollbar */
+        /* Account Removal Section */
+        .account-removal {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border: 1px solid #e57373;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 12px rgba(229, 115, 115, 0.2);
+        }
+
+        .account-removal h3 {
+            color: #c62828;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .warning-box {
+            display: flex;
+            align-items: flex-start;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ef5350;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .warning-box i {
+            color: #f44336;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            margin-top: 0.2rem;
+        }
+
+        .warning-box p {
+            color: #d32f2f;
+            font-weight: 500;
+            line-height: 1.6;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .account-removal .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        .account-removal .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+        }
+
+        .account-removal .btn-danger i {
+            font-size: 1rem;
+        }
+
+        /* Hide scrollbar */
 ::-webkit-scrollbar {
     display: none;
 }

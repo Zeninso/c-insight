@@ -1820,7 +1820,7 @@ def delete_submission(submission_id):
 
         # Delete the submission
         cur.execute("DELETE FROM submissions WHERE id = %s", (submission_id,))
-        
+
         # Send notification to the student
         message = f"Your submission for '{activity_title}' has been deleted by your teacher. You can now resubmit it."
         link = url_for('student.viewActivity', activity_id=activity_id)  # Internal URL for link
@@ -1828,10 +1828,81 @@ def delete_submission(submission_id):
             INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """, (student_id, 'student', 'submission_deleted', message, link, False))
-        
+
         mysql.connection.commit()
 
         return jsonify({'message': 'Submission deleted successfully. The activity is now available for resubmission.'})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+
+
+@teacher_bp.route('/remove_account', methods=['POST'])
+def remove_account():
+    if 'username' not in session or session.get('role') != 'teacher':
+        return jsonify({'error': 'Unauthorized access'}), 401
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    try:
+        # Get teacher ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        teacher_row = cur.fetchone()
+        if not teacher_row:
+            return jsonify({'error': 'Teacher not found'}), 404
+        teacher_id = teacher_row['id']
+
+        # Get all classes and students for notifications
+        cur.execute("SELECT id, name FROM classes WHERE teacher_id=%s", (teacher_id,))
+        classes = cur.fetchall()
+
+        student_ids = set()
+        for class_item in classes:
+            cur.execute("SELECT student_id FROM enrollments WHERE class_id=%s", (class_item['id'],))
+            enrollments = cur.fetchall()
+            for enrollment in enrollments:
+                student_ids.add(enrollment['student_id'])
+
+        # Notify all students about teacher account removal
+        for student_id in student_ids:
+            message = "Your teacher has removed their account. All classes and activities associated with this teacher have been deleted."
+            link = url_for('student.studentClasses')
+            cur.execute("""
+                INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            """, (student_id, 'student', 'teacher_account_removed', message, link, False))
+
+        # Delete all submissions for teacher's activities
+        cur.execute("""
+            DELETE s FROM submissions s
+            INNER JOIN activities a ON s.activity_id = a.id
+            WHERE a.teacher_id = %s
+        """, (teacher_id,))
+
+        # Delete all activities
+        cur.execute("DELETE FROM activities WHERE teacher_id=%s", (teacher_id,))
+
+        # Delete all enrollments in teacher's classes
+        cur.execute("DELETE FROM enrollments WHERE class_id IN (SELECT id FROM classes WHERE teacher_id=%s)", (teacher_id,))
+
+        # Delete all classes
+        cur.execute("DELETE FROM classes WHERE teacher_id=%s", (teacher_id,))
+
+        # Delete all notifications for the teacher
+        cur.execute("DELETE FROM notifications WHERE user_id=%s AND role='teacher'", (teacher_id,))
+
+        # Finally, delete the teacher account
+        cur.execute("DELETE FROM users WHERE id=%s", (teacher_id,))
+
+        mysql.connection.commit()
+
+        # Clear session
+        session.clear()
+
+        return jsonify({'success': 'Account removed successfully'})
 
     except Exception as e:
         mysql.connection.rollback()

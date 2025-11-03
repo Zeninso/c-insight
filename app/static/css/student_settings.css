@@ -235,11 +235,42 @@
             }
         }
         
-/* Hide scrollbar */
-::-webkit-scrollbar {
-    display: none;
-}
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
 
-body {
-    scrollbar-width: none;
-}
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .warning-box i {
+            color: #856404;
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .warning-box p {
+            color: #856404;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* Hide scrollbar */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            scrollbar-width: none;
+        }

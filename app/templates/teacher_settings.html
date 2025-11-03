@@ -116,6 +116,18 @@
                     <button type="submit" class="btn btn-custom">Save Changes</button>
                 </form>
 
+                <!-- Account Removal -->
+                <div class="settings-section account-removal">
+                    <h3>Account Removal</h3>
+                    <div class="warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Warning: This action is irreversible. Deleting your account will remove all your classes, activities, and associated data. Students will be notified.</p>
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="confirmRemoveAccount()">
+                        <i class="fas fa-trash-alt"></i> Remove Account
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -177,6 +189,46 @@
             Swal.fire('Error', 'Failed to update settings', 'error');
         });
     });
+
+    function confirmRemoveAccount() {
+        Swal.fire({
+            title: 'Remove Account?',
+            text: 'This action is irreversible. All your classes, activities, and data will be permanently deleted. Students will be notified.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, remove my account!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/teacher/remove_account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Account Removed',
+                            text: 'Your account has been successfully removed.',
+                            icon: 'success',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            window.location.href = '/';
+                        });
+                    } else {
+                        Swal.fire('Error', data.error || 'Failed to remove account', 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'An error occurred while removing the account', 'error');
+                });
+            }
+        });
+    }
     </script>
 
 </body>

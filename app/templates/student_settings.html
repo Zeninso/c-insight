@@ -3,9 +3,37 @@
 <head>
     <meta charset="UTF-8" />
     <title>Settings</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_classes.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_Dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_settings.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_classes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_settings.css') }}">
+    <style>
+        .filter-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .content-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        /* Fix for sidebar scrolling issue */
+        .dashboard {
+            display: flex !important;
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: sticky !important;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .main-content {
+            overflow-y: auto !important;
+            flex: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -87,6 +115,19 @@
 
                     <button type="submit" class="btn btn-custom">Save Changes</button>
                 </form>
+
+                <!-- Account Removal -->
+                <div class="settings-section account-removal">
+                    <h3>Account Removal</h3>
+                    <div class="warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Warning: This action is irreversible. Deleting your account will remove all your classes, activities, and associated data. Teachers will be notified.</p>
+                    </div>
+                    <button type="button" class="btn btn-danger" onclick="confirmRemoveAccount()">
+                        <i class="fas fa-trash-alt"></i> Remove Account
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -105,6 +146,46 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        });
+    }
+
+    function confirmRemoveAccount() {
+        Swal.fire({
+            title: 'Remove Account?',
+            text: 'This action is irreversible. Your account, enrollments, and submissions will be permanently deleted. Teachers will be notified.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, remove my account!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("{{ url_for('student.remove_account') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Account Removed',
+                            text: 'Your account has been successfully removed.',
+                            icon: 'success',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            window.location.href = '/';
+                        });
+                    } else {
+                        Swal.fire('Error', data.error || 'Failed to remove account', 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'An error occurred while removing the account', 'error');
+                });
             }
         });
     }

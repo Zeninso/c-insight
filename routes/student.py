@@ -1060,6 +1060,67 @@ def notifications():
     return render_template('student_notifications.html', notifications=notifications, username=session['username'])
 
 
+@student_bp.route('/remove_account', methods=['POST'])
+def remove_account():
+    if 'username' not in session or session.get('role') != 'student':
+        return jsonify({'error': 'Unauthorized access'}), 401
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    try:
+        # Get student ID
+        cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+        student_row = cur.fetchone()
+        if not student_row:
+            return jsonify({'error': 'Student not found'}), 404
+        student_id = student_row['id']
+
+        # Get all classes the student is enrolled in to notify teachers
+        cur.execute("SELECT class_id FROM enrollments WHERE student_id=%s", (student_id,))
+        enrollments = cur.fetchall()
+        class_ids = [e['class_id'] for e in enrollments]
+
+        # Notify teachers about student account removal
+        for class_id in class_ids:
+            cur.execute("SELECT teacher_id, name FROM classes WHERE id=%s", (class_id,))
+            class_info = cur.fetchone()
+            if class_info:
+                teacher_id = class_info['teacher_id']
+                class_name = class_info['name']
+                student_name = f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
+                message = f"Student {student_name} has removed their account. They were enrolled in your class '{class_name}'."
+                link = url_for('teacher.view_class', class_id=class_id)
+                cur.execute("""
+                    INSERT INTO notifications (user_id, role, type, message, link, is_read, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                """, (teacher_id, 'teacher', 'student_account_removed', message, link, False))
+
+        # Delete all submissions by the student
+        cur.execute("DELETE FROM submissions WHERE student_id=%s", (student_id,))
+
+        # Delete all enrollments
+        cur.execute("DELETE FROM enrollments WHERE student_id=%s", (student_id,))
+
+        # Delete all notifications for the student
+        cur.execute("DELETE FROM notifications WHERE user_id=%s AND role='student'", (student_id,))
+
+        # Finally, delete the student account
+        cur.execute("DELETE FROM users WHERE id=%s", (student_id,))
+
+        mysql.connection.commit()
+
+        # Clear session
+        session.clear()
+
+        return jsonify({'success': 'Account removed successfully'})
+
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+
+
 def notify_students_activity_deadline():
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
