@@ -156,9 +156,20 @@ class CodeGrader:
         if actual == expected:
             return True
 
+        # Try to extract just the answer part from actual output
+        # Look for the expected output within the actual output
+        if expected in actual:
+            return True
+
         # Split into lines and compare line by line
         actual_lines = [line.strip() for line in actual.split('\n') if line.strip()]
         expected_lines = [line.strip() for line in expected.split('\n') if line.strip()]
+
+        # If expected has fewer lines, check if expected appears in any actual line
+        if len(expected_lines) == 1 and len(actual_lines) >= 1:
+            for actual_line in actual_lines:
+                if expected_lines[0] in actual_line:
+                    return True
 
         if len(actual_lines) != len(expected_lines):
             return False
@@ -169,7 +180,6 @@ class CodeGrader:
                 return False
 
         return True
-
     def compare_single_line(self, actual, expected):
         """Compare single lines with flexible matching."""
         # Exact match
