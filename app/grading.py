@@ -555,23 +555,39 @@ class CodeGrader:
             feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
         
         # 4. SIMILARITY CHECK
+        # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
+        # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
         feedback['similarity'] = {
-            'score': f"{similarity_score:.0f}%",
+            'assigned_score': f"{similarity_score:.0f}/100",
         }
         
         if 'Insufficient' in similarity_msg:
             feedback['similarity']['status'] = 'Insufficient Data'
             feedback['similarity']['message'] = 'Not enough submissions yet to check similarity.'
-        elif similarity_score > 75:
-            feedback['similarity']['status'] = 'High Similarity Detected'
-            feedback['similarity']['message'] = similarity_msg
-            feedback['similarity']['warning'] = 'Please ensure this is your own original work.'
-        elif similarity_score > 50:
-            feedback['similarity']['status'] = 'Moderate Similarity'
-            feedback['similarity']['message'] = similarity_msg
         else:
-            feedback['similarity']['status'] = 'Low Similarity'
-            feedback['similarity']['message'] = 'Your submission appears to be original.'
+            # Interpret assigned score correctly: LOWER values indicate HIGHER similarity
+            if similarity_score <= 10:
+                feedback['similarity']['status'] = 'Plagiarism Detected'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '🚨 Code appears to be copied from another submission. This is a serious academic integrity concern.'
+            elif similarity_score <= 20:
+                feedback['similarity']['status'] = 'Highly Suspicious'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '⚠️ Code structure is nearly identical to another submission. Please verify originality.'
+            elif similarity_score <= 40:
+                feedback['similarity']['status'] = 'Suspicious'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '⚠️ Your code shows high similarity to other submissions. Please review for originality.'
+            elif similarity_score >= 95:
+                feedback['similarity']['status'] = 'Unique Solution'
+                feedback['similarity']['message'] = similarity_msg or 'Your solution is unique and original.'
+            elif similarity_score >= 90:
+                feedback['similarity']['status'] = 'Low Similarity (Natural)'
+                feedback['similarity']['message'] = similarity_msg or 'Natural similarity for this activity type.'
+            else:
+                # Covers 41–89: acceptable range
+                feedback['similarity']['status'] = 'Acceptable Similarity'
+                feedback['similarity']['message'] = similarity_msg or 'Similarity level is within acceptable bounds.'
         
         # Add overdue penalty if applicable
         if overdue_penalty > 0:
