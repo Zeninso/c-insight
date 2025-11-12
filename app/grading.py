@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 class CodeGrader:
     def __init__(self):
         self.ml_models = None
-        self.additional_keywords = []
         self.load_ml_models()
     
     def load_ml_models(self):
@@ -114,31 +113,6 @@ class CodeGrader:
             logger.error(f"Error in compile_and_run_code: {str(e)}")
             return None, f"Execution error: {str(e)}"
 
-    def clean_prompts(self, output, additional_keywords=None):
-        """Remove common prompt lines from output."""
-        lines = output.split('\n')
-        cleaned_lines = []
-        prompt_keywords = [
-            'enter', 'input:', 'please enter', 'output:', 'result:', 'enter name', 'enter age', 'input',
-            'please', 'type', 'enter value', 'enter number', 'enter a number', 'enter the number',
-            'enter your', 'enter an', 'enter the', 'input value', 'input number', 'input a number',
-            'input the number', 'input your', 'input an', 'input the', 'prompt:', 'enter:', 'input:',
-            'output:', 'result:', 'answer:', 'response:', 'reply:', 'enter here', 'type here'
-        ]
-
-        if additional_keywords:
-            if isinstance(additional_keywords, str):
-                additional_keywords = [kw.strip() for kw in additional_keywords.split(',')]
-            prompt_keywords.extend(additional_keywords)
-
-        for line in lines:
-            line_lower = line.strip().lower()
-            # Remove lines that contain prompt keywords (regardless of length)
-            if not any(keyword in line_lower for keyword in prompt_keywords):
-                cleaned_lines.append(line)
-
-        return '\n'.join(cleaned_lines)
-
     def compare_outputs_flexible(self, actual, expected):
         """Compare outputs with flexible pattern matching."""
         if not actual or not expected:
@@ -148,28 +122,13 @@ class CodeGrader:
         actual = actual.strip()
         expected = expected.strip()
 
-        # Clean prompts from both actual and expected output
-        actual = self.clean_prompts(actual, self.additional_keywords)
-        expected = self.clean_prompts(expected, self.additional_keywords)
-
         # Exact match first
         if actual == expected:
-            return True
-
-        # Try to extract just the answer part from actual output
-        # Look for the expected output within the actual output
-        if expected in actual:
             return True
 
         # Split into lines and compare line by line
         actual_lines = [line.strip() for line in actual.split('\n') if line.strip()]
         expected_lines = [line.strip() for line in expected.split('\n') if line.strip()]
-
-        # If expected has fewer lines, check if expected appears in any actual line
-        if len(expected_lines) == 1 and len(actual_lines) >= 1:
-            for actual_line in actual_lines:
-                if expected_lines[0] in actual_line:
-                    return True
 
         if len(actual_lines) != len(expected_lines):
             return False
@@ -180,6 +139,7 @@ class CodeGrader:
                 return False
 
         return True
+
     def compare_single_line(self, actual, expected):
         """Compare single lines with flexible matching."""
         # Exact match
@@ -280,8 +240,12 @@ class CodeGrader:
                 overdue_penalty = weeks_overdue * 10
             
 
-            requirements = None
-            requirement_score = 100
+            # Extract requirements from activity content
+            activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
+            requirements = self.extract_activity_requirements(activity_text)
+
+            # Check if code meets specific activity requirements
+            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
 
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
@@ -301,57 +265,32 @@ class CodeGrader:
                 test_feedback = ""
 
                 if test_cases:
-                    if len(test_cases) == 1:
-                        # Single test case, use original method
-                        passed_tests = 0
-                        total_tests = len(test_cases)
-                        test_details = []
+                    passed_tests = 0
+                    total_tests = len(test_cases)
+                    test_details = []
 
-                        for i, test_case in enumerate(test_cases, 1):
-                            actual_output, error = self.compile_and_run_code(code, test_case['input'])
-
-                            if error:
-                                test_details.append(f"Test {i}: Failed - {error}")
-                            else:
-                                
-                                # Remove input prompt from output if present
-                                test_input = test_case['input'].rstrip()
-                                if actual_output.startswith(test_input):
-                                    actual_output = actual_output[len(test_input):].lstrip()
-                                    if actual_output.startswith('\n'):
-                                        actual_output = actual_output[1:].lstrip()
-                                
-                                if self.compare_outputs_flexible(actual_output, test_case['expected']):
-                                    passed_tests += 1
-                                    test_details.append(f"Test {i}: Passed")
-                                else:
-                                    test_details.append(f"Test {i}: Failed")
-
-                        test_correctness_score = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
-                        test_feedback = f"Test Cases: {passed_tests}/{total_tests} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
-                    else:
-                        # Multiple test cases, run once with concatenated inputs
-                        all_input = '\n'.join([tc['input'] for tc in test_cases]) + '\n'
-                        actual_output, error = self.compile_and_run_code(code, all_input)
+                    for i, test_case in enumerate(test_cases, 1):
+                        actual_output, error = self.compile_and_run_code(code, test_case['input'])
 
                         if error:
-                            test_correctness_score = 0
-                            test_feedback = f"Compilation/Runtime error: {error}"
+                            test_details.append(f"Test {i}: Failed - {error}")
                         else:
-                            cleaned_output = self.clean_prompts(actual_output, self.additional_keywords)
-                            passed_tests = 0
-                            test_details = []
+                            
+                            # Remove input prompt from output if present
+                            test_input = test_case['input'].rstrip()
+                            if actual_output.startswith(test_input):
+                                actual_output = actual_output[len(test_input):].lstrip()
+                                if actual_output.startswith('\n'):
+                                    actual_output = actual_output[1:].lstrip()
+                            
+                            if self.compare_outputs_flexible(actual_output, test_case['expected']):
+                                passed_tests += 1
+                                test_details.append(f"Test {i}: Passed")
+                            else:
+                                test_details.append(f"Test {i}: Failed")
 
-                            for i, test_case in enumerate(test_cases, 1):
-                                expected = test_case['expected'].strip()
-                                if expected in cleaned_output:
-                                    passed_tests += 1
-                                    test_details.append(f"Test {i}: Passed")
-                                else:
-                                    test_details.append(f"Test {i}: Failed")
-
-                            test_correctness_score = (passed_tests / len(test_cases)) * 100
-                            test_feedback = f"Test Cases: {passed_tests}/{len(test_cases)} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
+                    test_correctness_score = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
+                    test_feedback = f"Test Cases: {passed_tests}/{total_tests} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
                 else:
                     test_feedback = "No test cases defined for this activity - using static analysis only."
                     test_correctness_score = 50  # Neutral score when no tests available
@@ -361,6 +300,19 @@ class CodeGrader:
                     code, requirements, requirement_score
                 )
 
+                # Adjust logic score based on requirement compliance if requirements exist
+                if requirement_score < 100 and requirements:
+                    # Calculate how many requirements are met vs total
+                    required_features = sum(1 for req in requirements.values() if req is True)
+                    if required_features > 0:
+                        # Reduce logic score proportionally to missing requirements
+                        # Missing 20% of requirements reduces logic score by 10-15%
+                        missing_percentage = (100 - requirement_score) / 100
+                        logic_penalty = min(15, missing_percentage * 50)  # Max 15% reduction
+                        logic_score = max(0, logic_score - logic_penalty)
+
+                        # Add requirement compliance note to feedback
+                        ast_feedback += f" Logic score adjusted for requirement compliance ({requirement_score:.1f}% requirements met)."
 
                 # Correctness is based entirely on test case results, Logic is based on AST analysis
                 correctness_score = test_correctness_score
@@ -1079,7 +1031,12 @@ class CodeGrader:
         else:
             feedback_parts.append("Code length is appropriate for the activity")
 
-        # Requirement analysis disabled
+        # Requirement analysis - always visible
+        if requirements and any(req.get('required', False) for req in requirements.values() if isinstance(req, dict)):
+            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
+            feedback_parts.append(f"Requirement Analysis: {requirement_feedback}")
+        else:
+            feedback_parts.append("No specific requirements needed for this activity")
 
         # Check for potential issues
         issues = []
