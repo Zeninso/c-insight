@@ -1,7 +1,7 @@
 -- Database schema for C-Insight Capstone Flask application
 
--- Use Railway database (Railway provides 'railway' as the default database)
-USE railway;
+-- Use local database
+USE c_insight_db;
 
 
 CREATE TABLE IF NOT EXISTS users (

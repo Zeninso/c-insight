@@ -390,11 +390,13 @@ function addTestCase(existingTestCase = null) {
     const testCaseDiv = document.createElement('div');
     testCaseDiv.className = 'test-case-item';
     testCaseDiv.innerHTML = `
-        <label>Input:</label>
-        <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
-        <label>Expected Output:</label>
-        <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
-        <button type="button" class="btn btn-danger btn-sm" onclick="removeTestCase(this)">Remove</button>
+        <div class="test-case-content">
+            <label>Input:</label>
+            <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
+            <label>Expected Output:</label>
+            <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this)">Remove</button>
     `;
     container.appendChild(testCaseDiv);
 }
@@ -404,11 +406,13 @@ function addEditTestCase(existingTestCase = null) {
     const testCaseDiv = document.createElement('div');
     testCaseDiv.className = 'test-case-item';
     testCaseDiv.innerHTML = `
-        <label>Input:</label>
-        <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
-        <label>Expected Output:</label>
-        <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
-        <button type="button" class="btn btn-danger btn-sm" onclick="removeTestCase(this)">Remove</button>
+        <div class="test-case-content">
+            <label>Input:</label>
+            <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
+            <label>Expected Output:</label>
+            <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this)">Remove</button>
     `;
     container.appendChild(testCaseDiv);
 }

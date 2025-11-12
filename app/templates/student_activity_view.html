@@ -326,11 +326,171 @@
                         <div class="feedback-section">
                             <h4>Feedback from C-INSIGHT:</h4>
                             <div class="feedback-content">
-                                {% for sentence in activity.feedback.split('. ') %}
-                                    {% set parts = sentence.split(': ', 1) %}
-                                    <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                {% endfor %}
+                                <div class="feedback-sections">
+                                    <!-- Syntax Check -->
+                                    <div class="feedback-section collapsed" id="syntax-section-{{ activity.id }}">
+                                        <div class="section-header" onclick="toggleSection('syntax-section-{{ activity.id }}')">
+                                            <i class="fas fa-code"></i>
+                                            <span class="section-title">Syntax Check</span>
+                                            <span class="section-status" id="syntax-status-{{ activity.id }}"></span>
+                                            <i class="fas fa-chevron-down toggle-icon"></i>
+                                        </div>
+                                        <div class="section-content" style="display:none;">
+                                            <p id="syntax-message-{{ activity.id }}"></p>
+                                            <p id="syntax-score-{{ activity.id }}" class="section-score"></p>
+                                            <div id="syntax-details-{{ activity.id }}" class="syntax-errors"></div>
+                                        </div>
+                                    </div>
+                                    <!-- Correctness -->
+                                    <div class="feedback-section collapsed" id="correctness-section-{{ activity.id }}">
+                                        <div class="section-header" onclick="toggleSection('correctness-section-{{ activity.id }}')">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span class="section-title">Correctness (Test Cases)</span>
+                                            <span class="section-status" id="correctness-status-{{ activity.id }}"></span>
+                                            <i class="fas fa-chevron-down toggle-icon"></i>
+                                        </div>
+                                        <div class="section-content" style="display:none;">
+                                            <p id="correctness-message-{{ activity.id }}"></p>
+                                            <p id="correctness-score-{{ activity.id }}" class="section-score"></p>
+                                            <div id="correctness-tests-{{ activity.id }}" class="test-results"></div>
+                                        </div>
+                                    </div>
+                                    <!-- Semantics -->
+                                    <div class="feedback-section collapsed" id="semantics-section-{{ activity.id }}">
+                                        <div class="section-header" onclick="toggleSection('semantics-section-{{ activity.id }}')">
+                                            <i class="fas fa-brain"></i>
+                                            <span class="section-title">Semantics/Logic Check</span>
+                                            <span class="section-status" id="semantics-status-{{ activity.id }}"></span>
+                                            <i class="fas fa-chevron-down toggle-icon"></i>
+                                        </div>
+                                        <div class="section-content" style="display:none;">
+                                            <p id="semantics-message-{{ activity.id }}"></p>
+                                            <p id="semantics-score-{{ activity.id }}" class="section-score"></p>
+                                            <ul id="semantics-details-{{ activity.id }}" class="details-list"></ul>
+                                        </div>
+                                    </div>
+                                    <!-- Similarity -->
+                                    <div class="feedback-section collapsed" id="similarity-section-{{ activity.id }}">
+                                        <div class="section-header" onclick="toggleSection('similarity-section-{{ activity.id }}')">
+                                            <i class="fas fa-copy"></i>
+                                            <span class="section-title">Similarity Check</span>
+                                            <span class="section-status" id="similarity-status-{{ activity.id }}"></span>
+                                            <i class="fas fa-chevron-down toggle-icon"></i>
+                                        </div>
+                                        <div class="section-content" style="display:none;">
+                                            <p id="similarity-message-{{ activity.id }}"></p>
+                                            <p id="similarity-score-{{ activity.id }}" class="section-score"></p>
+                                            <p id="similarity-warning-{{ activity.id }}" class="warning-text"></p>
+                                        </div>
+                                    </div>
+                                    <!-- Penalty -->
+                                    <div class="feedback-section" id="penalty-section-{{ activity.id }}" style="display:none;">
+                                        <div class="section-header penalty-header">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span class="section-title">Penalty</span>
+                                        </div>
+                                        <div class="section-content">
+                                            <p id="penalty-message-{{ activity.id }}"></p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            <script>
+                                (function() {
+                                    let feedbackData = {};
+                                    try {
+                                        const rawFeedback = {{ activity.feedback | tojson | safe }};
+                                        feedbackData = typeof rawFeedback === 'string' ? JSON.parse(rawFeedback) : rawFeedback;
+                                    } catch(e) { console.error('Failed to parse feedback JSON:', e); }
+
+                                    try {
+                                        const id = '{{ activity.id }}';
+                                        const fb = feedbackData;
+
+                                        function getStatusIcon(status) {
+                                            if (!status) return '<i class="fas fa-info-circle info"></i>';
+                                            if (status.includes('Correct') || status.includes('Good') || status.includes('Low') || status.includes('Passed')) return '<i class="fas fa-check-circle success"></i>';
+                                            if (status.includes('Issues') || status.includes('Error') || status.includes('High') || status.includes('Moderate')) return '<i class="fas fa-times-circle danger"></i>';
+                                            return '<i class="fas fa-info-circle info"></i>';
+                                        }
+
+                                        if (fb.syntax) {
+                                            const s = fb.syntax;
+                                            document.getElementById('syntax-status-' + id).innerHTML = getStatusIcon(s.status) + ' ' + s.status;
+                                            document.getElementById('syntax-message-' + id).textContent = s.message || '';
+                                            document.getElementById('syntax-score-' + id).innerHTML = '<strong>Score: ' + s.score + '</strong>';
+                                            if (s.details && s.details.length) {
+                                                const box = document.getElementById('syntax-details-' + id);
+                                                s.details.forEach(err => {
+                                                    const p = document.createElement('p');
+                                                    p.className = 'error-item';
+                                                    p.textContent = '• ' + err;
+                                                    box.appendChild(p);
+                                                });
+                                            }
+                                        }
+
+                                        if (fb.correctness) {
+                                            const c = fb.correctness;
+                                            document.getElementById('correctness-status-' + id).innerHTML = getStatusIcon(c.status) + ' ' + c.status;
+                                            if (c.message) document.getElementById('correctness-message-' + id).textContent = c.message;
+                                            document.getElementById('correctness-score-' + id).innerHTML = '<strong>Score: ' + c.score + '</strong>';
+                                            if (c.test_results && c.test_results.length) {
+                                                const tests = document.getElementById('correctness-tests-' + id);
+                                                c.test_results.forEach(t => {
+                                                    const div = document.createElement('div');
+                                                    div.className = 'test-item ' + (t.status === 'Passed' ? 'passed' : 'failed');
+                                                    let html = '<div class="test-header">';
+                                                    html += t.status === 'Passed' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                                                    html += ' <strong>Test ' + t.test_number + ':</strong> ' + t.status + '</div>';
+                                                    if (t.explanation) html += '<div class="test-explanation">' + t.explanation + '</div>';
+                                                    div.innerHTML = html;
+                                                    tests.appendChild(div);
+                                                });
+                                            }
+                                        }
+
+                                        if (fb.semantics) {
+                                            const m = fb.semantics;
+                                            document.getElementById('semantics-status-' + id).innerHTML = getStatusIcon(m.status) + ' ' + m.status;
+                                            if (m.message) document.getElementById('semantics-message-' + id).textContent = m.message;
+                                            document.getElementById('semantics-score-' + id).innerHTML = '<strong>Score: ' + m.score + '</strong>';
+                                            if (m.details && m.details.length) {
+                                                const ul = document.getElementById('semantics-details-' + id);
+                                                m.details.forEach(d => {
+                                                    const li = document.createElement('li');
+                                                    li.textContent = d;
+                                                    ul.appendChild(li);
+                                                });
+                                            }
+                                        }
+
+                                        if (fb.similarity) {
+                                            const si = fb.similarity;
+                                            document.getElementById('similarity-status-' + id).innerHTML = getStatusIcon(si.status) + ' ' + si.status;
+                                            if (si.message) document.getElementById('similarity-message-' + id).textContent = si.message;
+                                            document.getElementById('similarity-score-' + id).innerHTML = '<strong>Score: ' + si.score + '</strong>';
+                                            if (si.warning) document.getElementById('similarity-warning-' + id).textContent = '⚠️ ' + si.warning;
+                                        }
+
+                                        if (fb.penalty) {
+                                            const p = fb.penalty;
+                                            document.getElementById('penalty-section-' + id).style.display = 'block';
+                                            document.getElementById('penalty-message-' + id).innerHTML = '<strong>' + p.type + ' Penalty: ' + p.amount + '</strong><br>' + p.message;
+                                        }
+                                    } catch(e) {
+                                        console.error('Error rendering feedback:', e);
+                                    }
+                                })();
+
+                                function toggleSection(id) {
+                                    const section = document.getElementById(id);
+                                    if (!section) return;
+                                    section.classList.toggle('collapsed');
+                                    const content = section.querySelector('.section-content');
+                                    if (content) content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                                }
+                            </script>
                         </div>
                         {% endif %}
                     </div>

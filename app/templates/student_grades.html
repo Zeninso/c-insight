@@ -164,7 +164,7 @@
                             </button>
                             {% endif %}
                             {% if grade.feedback %}
-                            <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ grade.id }}')">
+                            <button class="btn btn-info btn-sm" onclick="toggleFeedback('feedback-{{ grade.id }}')" aria-expanded="false">
                                 <i class="fas fa-comment"></i> View Feedback
                             </button>
                             {% endif %}
@@ -178,12 +178,202 @@
 
                         {% if grade.feedback %}
                         <div id="feedback-{{ grade.id }}" class="feedback-content" style="display:none;">
-                            <div class="feedback-text">
-                                {% for sentence in grade.feedback.split('. ') %}
-                                    {% set parts = sentence.split(': ', 1) %}
-                                    <p>{% if parts|length > 1 %}<strong>{{ parts[0] }}:</strong> {{ parts[1] }}{% else %}{{ sentence }}{% endif %}{% if not loop.last %}.{% endif %}</p>
-                                {% endfor %}
+                            <div class="feedback-sections">
+                                
+                                <!-- Syntax Check Section -->
+                                <div class="feedback-section collapsed" id="syntax-section-{{ grade.id }}">
+                                    <div class="section-header" onclick="toggleSection('syntax-section-{{ grade.id }}')">
+                                        <i class="fas fa-code"></i>
+                                        <span class="section-title">Syntax Check</span>
+                                        <span class="section-status" id="syntax-status-{{ grade.id }}"></span>
+                                        <i class="fas fa-chevron-down toggle-icon"></i>
+                                    </div>
+                                    <div class="section-content" style="display:none;">
+                                        <p id="syntax-message-{{ grade.id }}"></p>
+                                        <p id="syntax-score-{{ grade.id }}" class="section-score"></p>
+                                        <div id="syntax-details-{{ grade.id }}" class="syntax-errors"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Correctness Section -->
+                                <div class="feedback-section collapsed" id="correctness-section-{{ grade.id }}">
+                                    <div class="section-header" onclick="toggleSection('correctness-section-{{ grade.id }}')">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span class="section-title">Correctness (Test Cases)</span>
+                                        <span class="section-status" id="correctness-status-{{ grade.id }}"></span>
+                                        <i class="fas fa-chevron-down toggle-icon"></i>
+                                    </div>
+                                    <div class="section-content" style="display:none;">
+                                        <p id="correctness-message-{{ grade.id }}"></p>
+                                        <p id="correctness-score-{{ grade.id }}" class="section-score"></p>
+                                        <div id="correctness-tests-{{ grade.id }}" class="test-results"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Semantics Section -->
+                                <div class="feedback-section collapsed" id="semantics-section-{{ grade.id }}">
+                                    <div class="section-header" onclick="toggleSection('semantics-section-{{ grade.id }}')">
+                                        <i class="fas fa-brain"></i>
+                                        <span class="section-title">Semantics/Logic Check</span>
+                                        <span class="section-status" id="semantics-status-{{ grade.id }}"></span>
+                                        <i class="fas fa-chevron-down toggle-icon"></i>
+                                    </div>
+                                    <div class="section-content" style="display:none;">
+                                        <p id="semantics-message-{{ grade.id }}"></p>
+                                        <p id="semantics-score-{{ grade.id }}" class="section-score"></p>
+                                        <ul id="semantics-details-{{ grade.id }}" class="details-list"></ul>
+                                    </div>
+                                </div>
+
+                                <!-- Similarity Section -->
+                                <div class="feedback-section collapsed" id="similarity-section-{{ grade.id }}">
+                                    <div class="section-header" onclick="toggleSection('similarity-section-{{ grade.id }}')">
+                                        <i class="fas fa-copy"></i>
+                                        <span class="section-title">Similarity Check</span>
+                                        <span class="section-status" id="similarity-status-{{ grade.id }}"></span>
+                                        <i class="fas fa-chevron-down toggle-icon"></i>
+                                    </div>
+                                    <div class="section-content" style="display:none;">
+                                        <p id="similarity-message-{{ grade.id }}"></p>
+                                        <p id="similarity-score-{{ grade.id }}" class="section-score"></p>
+                                        <p id="similarity-warning-{{ grade.id }}" class="warning-text"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Penalty Section (if applicable) -->
+                                <div class="feedback-section" id="penalty-section-{{ grade.id }}" style="display:none;">
+                                    <div class="section-header penalty-header">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span class="section-title">Penalty</span>
+                                    </div>
+                                    <div class="section-content">
+                                        <p id="penalty-message-{{ grade.id }}"></p>
+                                    </div>
+                                </div>
                             </div>
+
+                            <script>
+                                // Parse and populate feedback from JSON
+                                (function() {
+                                    let feedbackData = {};
+                                    try {
+                                        const rawFeedback = {{ grade.feedback | tojson | safe }};
+                                        feedbackData = typeof rawFeedback === 'string' ? JSON.parse(rawFeedback) : rawFeedback;
+                                    } catch(e) {
+                                        console.error('Failed to parse feedback JSON:', e);
+                                    }
+                                    
+                                    try {
+                                        const gradeId = '{{ grade.id }}';
+                                        const feedback = feedbackData;
+                                    
+                                    // Helper function to get status icon
+                                    function getStatusIcon(status) {
+                                        if (status.includes('Correct') || status.includes('Good') || status.includes('Low') || status.includes('Passed')) {
+                                            return '<i class="fas fa-check-circle success"></i>';
+                                        } else if (status.includes('Issues') || status.includes('Error') || status.includes('High') || status.includes('Moderate')) {
+                                            return '<i class="fas fa-times-circle danger"></i>';
+                                        } else {
+                                            return '<i class="fas fa-info-circle info"></i>';
+                                        }
+                                    }
+
+                                    // Populate Syntax Section
+                                    if (feedback.syntax) {
+                                        const syntax = feedback.syntax;
+                                        document.getElementById('syntax-status-' + gradeId).innerHTML = getStatusIcon(syntax.status) + ' ' + syntax.status;
+                                        document.getElementById('syntax-message-' + gradeId).textContent = syntax.message;
+                                        document.getElementById('syntax-score-' + gradeId).innerHTML = '<strong>Score: ' + syntax.score + '</strong>';
+                                        
+                                        if (syntax.details && syntax.details.length > 0) {
+                                            const errorsDiv = document.getElementById('syntax-details-' + gradeId);
+                                            syntax.details.forEach(error => {
+                                                const p = document.createElement('p');
+                                                p.className = 'error-item';
+                                                p.textContent = '• ' + error;
+                                                errorsDiv.appendChild(p);
+                                            });
+                                        }
+                                    }
+
+                                    // Populate Correctness Section
+                                    if (feedback.correctness) {
+                                        const correctness = feedback.correctness;
+                                        document.getElementById('correctness-status-' + gradeId).innerHTML = getStatusIcon(correctness.status) + ' ' + correctness.status;
+                                        if (correctness.message) {
+                                            document.getElementById('correctness-message-' + gradeId).textContent = correctness.message;
+                                        }
+                                        document.getElementById('correctness-score-' + gradeId).innerHTML = '<strong>Score: ' + correctness.score + '</strong>';
+                                        
+                                        if (correctness.test_results && correctness.test_results.length > 0) {
+                                            const testsDiv = document.getElementById('correctness-tests-' + gradeId);
+                                            correctness.test_results.forEach(test => {
+                                                const testDiv = document.createElement('div');
+                                                testDiv.className = 'test-item ' + (test.status === 'Passed' ? 'passed' : 'failed');
+                                                
+                                                let html = '<div class="test-header">';
+                                                html += test.status === 'Passed' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                                                html += ' <strong>Test ' + test.test_number + ':</strong> ' + test.status + '</div>';
+                                                
+                                                if (test.explanation) {
+                                                    html += '<div class="test-explanation">' + test.explanation + '</div>';
+                                                }
+                                                
+                                                testDiv.innerHTML = html;
+                                                testsDiv.appendChild(testDiv);
+                                            });
+                                        }
+                                    }
+
+                                    // Populate Semantics Section
+                                    if (feedback.semantics) {
+                                        const semantics = feedback.semantics;
+                                        document.getElementById('semantics-status-' + gradeId).innerHTML = getStatusIcon(semantics.status) + ' ' + semantics.status;
+                                        if (semantics.message) {
+                                            document.getElementById('semantics-message-' + gradeId).textContent = semantics.message;
+                                        }
+                                        document.getElementById('semantics-score-' + gradeId).innerHTML = '<strong>Score: ' + semantics.score + '</strong>';
+                                        
+                                        if (semantics.details && semantics.details.length > 0) {
+                                            const detailsList = document.getElementById('semantics-details-' + gradeId);
+                                            semantics.details.forEach(detail => {
+                                                const li = document.createElement('li');
+                                                li.textContent = detail;
+                                                detailsList.appendChild(li);
+                                            });
+                                        }
+                                    }
+
+                                    // Populate Similarity Section
+                                    if (feedback.similarity) {
+                                        const similarity = feedback.similarity;
+                                        document.getElementById('similarity-status-' + gradeId).innerHTML = getStatusIcon(similarity.status) + ' ' + similarity.status;
+                                        if (similarity.message) {
+                                            document.getElementById('similarity-message-' + gradeId).textContent = similarity.message;
+                                        }
+                                        document.getElementById('similarity-score-' + gradeId).innerHTML = '<strong>Score: ' + similarity.score + '</strong>';
+                                        
+                                        if (similarity.warning) {
+                                            document.getElementById('similarity-warning-' + gradeId).textContent = '⚠️ ' + similarity.warning;
+                                        }
+                                    }
+
+                                    // Populate Penalty Section if present
+                                    if (feedback.penalty) {
+                                        const penalty = feedback.penalty;
+                                        document.getElementById('penalty-section-' + gradeId).style.display = 'block';
+                                        document.getElementById('penalty-message-' + gradeId).innerHTML = '<strong>' + penalty.type + ' Penalty: ' + penalty.amount + '</strong><br>' + penalty.message;
+                                    }
+                                    } catch (e) {
+                                        console.error('Error populating feedback:', e);
+                                        // Fallback if rendering fails
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'alert alert-warning';
+                                        fallback.textContent = 'Error displaying feedback: ' + e.message;
+                                        document.getElementById('feedback-' + gradeId).appendChild(fallback);
+                                    }
+                                })();
+                            </script>
                         </div>
                         {% endif %}
                     </div>
@@ -233,6 +423,21 @@
                 elem.style.display = 'block';
             } else {
                 elem.style.display = 'none';
+            }
+        }
+
+        function toggleSection(id) {
+            const section = document.getElementById(id);
+            if (section) {
+                section.classList.toggle('collapsed');
+                const content = section.querySelector('.section-content');
+                if (content) {
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                    } else {
+                        content.style.display = 'none';
+                    }
+                }
             }
         }
     </script>
