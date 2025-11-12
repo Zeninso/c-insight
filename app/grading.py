@@ -1031,12 +1031,7 @@ class CodeGrader:
         else:
             feedback_parts.append("Code length is appropriate for the activity")
 
-        # Requirement analysis - always visible
-        if requirements and any(req.get('required', False) for req in requirements.values() if isinstance(req, dict)):
-            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
-            feedback_parts.append(f"Requirement Analysis: {requirement_feedback}")
-        else:
-            feedback_parts.append("No specific requirements needed for this activity")
+
 
         # Check for potential issues
         issues = []
