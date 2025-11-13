@@ -151,20 +151,18 @@
             background: rgba(255, 255, 255, 0.8);
             border-radius: 8px;
             padding: 1rem;
-            border-left: 4px solid #6f42c1;
         }
-        .test-case h4 {
+        .test-case h3 {
             margin-bottom: 0.5rem;
             color: var(--secondary);
-            font-weight: 600;
+            font-weight: 500;
         }
         .test-case p {
             margin-bottom: 0.25rem;
-            font-weight: 500;
+            font-weight: 300;
             color: #333;
         }
         .test-case pre {
-            background: #f8f9fa;
             padding: 0.5rem;
             border-radius: 4px;
             font-size: 0.9rem;
@@ -220,6 +218,48 @@
             border: 1px solid #d6cfcf;
         }
 
+/* ===== Test Case Items ===== */
+.test-case-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.test-case-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.test-case-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.test-case-content textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: inherit;
+    margin-bottom: 0;
+}
+
+.remove-btn {
+    align-self: flex-start;
+    margin-top: 0;
+}
+
 /* ===== Buttons ===== */
         .btn {
             display: inline-block;
@@ -264,26 +304,27 @@
             display: inline-block;
         }
 
-        .btn .tooltip {
-            visibility: hidden;
-            width: 80px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 0;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -40px;
-            opacity: 0;
-            transition: opacity 0.3s, visibility 0.3s;
-            font-size: 12px;
-            font-weight: 400;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            pointer-events: none;
-        }
+.btn .tooltip {
+    visibility: hidden;
+    box-sizing: border-box;
+    width: 80px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -40px;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    font-size: 12px;
+    font-weight: 400;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
 
         .btn .tooltip::after {
             content: "";
@@ -488,7 +529,7 @@
 
         #createActivityModal button[type="submit"]:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px linear-gradient(135deg, #6f42c1 0%, #d63384 100%);
+            box-shadow: 0 5px 15px rgba(111, 66, 193, 0.3);
         }
 
         /* Activity Cards Styles */

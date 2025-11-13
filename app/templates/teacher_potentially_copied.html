@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Potentially Copied Submissions</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_Dashboard.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/teacher_activities.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student_grades.css') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        /* Plagiarism status badges */
+        .plagiarism-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-plagiarism {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            border: 1px solid #ff4757;
+        }
+
+        .badge-highly-suspicious {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+
+        .badge-suspicious {
+            background: rgba(255, 159, 64, 0.2);
+            color: #ff9f40;
+            border: 1px solid #ff9f40;
+        }
+
+        /* Statistics cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-left: 4px solid #a47ea8;
+        }
+
+        .stat-card.plagiarism {
+            border-left-color: #ff4757;
+        }
+
+        .stat-card.highly-suspicious {
+            border-left-color: #dc3545;
+        }
+
+        .stat-card.suspicious {
+            border-left-color: #ff9f40;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Submission row */
+        .submission-row {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr 150px 150px 120px 100px;
+            gap: 15px;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .submission-row:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #a47ea8;
+        }
+
+        .submission-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .activity-info {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .similarity-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff4757;
+            text-align: center;
+        }
+
+        .total-score {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .submitted-time {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .action-btn-view {
+            background: #a47ea8;
+            color: white;
+        }
+
+        .action-btn-view:hover {
+            background: #8b5f9d;
+        }
+
+        /* Filter section */
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(72, 40, 133, 0.05) 25%, rgba(214, 51, 132, 0.05) 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: rgb(27, 27, 27);
+        }
+
+        .filter-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000000;
+            font-size: 14px;
+            min-width: 180px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(164, 126, 168, 0.2);
+        }
+
+        .filter-submit {
+            padding: 10px 20px;
+            background: #a47ea8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-submit:hover {
+            background: #8b5f9d;
+            box-shadow: 0 4px 12px rgba(164, 126, 168, 0.3);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, rgba(72, 40, 133, 0.03) 25%, rgba(214, 51, 132, 0.03) 100%);
+            border-radius: 12px;
+            border: 2px dashed #a47ea8;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            color: #a47ea8;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .submission-row {
+                grid-template-columns: 1fr 120px 100px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .submission-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Icon styles */
+        .icon-plagiarism::before {
+            content: "🚨";
+            font-size: 16px;
+            margin-right: 5px;
+        }
+
+        .icon-suspicious::before {
+            content: "⚠️";
+            font-size: 16px;
+            margin-right: 5px;
+        }
+
+        /* Code preview in modal */
+        .code-preview {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>C-INSIGHT</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('teacher.teacherDashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacherActivities') }}"><i class="fas fa-tasks"></i> Activities</a></li>
+                <li><a href="{{ url_for('teacher.teacherClasses') }}"><i class="fas fa-users"></i> Classes</a></li>
+                <li><a href="{{ url_for('teacher.teacherGrades') }}"><i class="fas fa-award"></i> Grades</a></li>
+                <li><a href="{{ url_for('teacher.teacherAnalytics') }}"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="{{ url_for('teacher.teacherSettings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>🚨 Potentially Copied Submissions</h1>
+                <div class="user-profile">
+                    <a href="{{ url_for('auth.user_profile') }}">
+                        <img src="https://ui-avatars.com/api/?name={{ first_name }}&background=random&size=120" alt="User Profile" />
+                    </a>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="notification-icon">
+                            <a href="{{ url_for('teacher.notifications') }}" class="notification-icon" title="Notifications" style="position: relative; display: inline-block; color: inherit; text-decoration: none;">
+                                <i class="fas fa-bell"></i>
+                                {% if unread_notifications_count > 0 %}
+                                <span style="position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <a href="#" onclick="confirmLogout()" class="btn btn-gradient">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <!-- Statistics -->
+                {% if statistics %}
+                <div class="stats-container">
+                    <div class="stat-card plagiarism">
+                        <div class="stat-number">{{ statistics.plagiarism }}</div>
+                        <div class="stat-label">🚨 Plagiarism Detected</div>
+                    </div>
+                    <div class="stat-card highly-suspicious">
+                        <div class="stat-number">{{ statistics.highly_suspicious }}</div>
+                        <div class="stat-label">⚠️ Highly Suspicious</div>
+                    </div>
+                    <div class="stat-card suspicious">
+                        <div class="stat-number">{{ statistics.suspicious }}</div>
+                        <div class="stat-label">⚠️ Suspicious</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ statistics.total_flagged }}</div>
+                        <div class="stat-label">Total Flagged</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <form method="get" action="{{ url_for('teacher.potentially_copied_submissions') }}" class="filter-form">
+                        <div class="filter-group">
+                            <label for="classFilter" class="filter-label">
+                                <i class="fas fa-users"></i> Filter by Class:
+                            </label>
+                            <select id="classFilter" name="class_id" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Classes</option>
+                                {% for cls in classes %}
+                                    <option value="{{ cls.id }}" {% if class_id and class_id|int == cls.id %}selected{% endif %}>{{ cls.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="activityFilter" class="filter-label">
+                                <i class="fas fa-tasks"></i> Filter by Activity:
+                            </label>
+                            <select id="activityFilter" name="activity_id" class="filter-select" onchange="this.form.submit()">
+                                <option value="">All Activities</option>
+                                {% for activity in activities %}
+                                    <option value="{{ activity.id }}" {% if activity_id and activity_id|int == activity.id %}selected{% endif %}>{{ activity.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="filter-submit">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Submissions List -->
+                {% if flagged_submissions %}
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-list"></i>
+                            Flagged Submissions ({{ flagged_submissions|length }})
+                        </h3>
+
+                        <!-- Header Row -->
+                        <div style="background: #f8f8f8; padding: 12px 15px; border-radius: 8px 8px 0 0; display: grid; grid-template-columns: 1fr 150px 150px 120px 100px; gap: 15px; font-weight: 600; font-size: 13px; color: #666; border-bottom: 2px solid #e0e0e0;">
+                            <div>Student & Activity</div>
+                            <div style="text-align: center;">Similarity Score</div>
+                            <div style="text-align: center;">Total Score</div>
+                            <div style="text-align: center;">Submitted</div>
+                            <div style="text-align: center;">Action</div>
+                        </div>
+
+                        <!-- Submission Rows -->
+                        {% for submission in flagged_submissions %}
+                        <div class="submission-row">
+                            <div class="submission-info">
+                                <div class="student-name">
+                                    {{ submission.first_name }} {{ submission.last_name }}
+                                    <span style="color: #999; font-weight: normal;">({{ submission.username }})</span>
+                                </div>
+                                <div class="activity-info">
+                                    <strong>{{ submission.activity_title }}</strong>
+                                    <br />
+                                    <span style="font-size: 12px; color: #999;">{{ submission.class_name }}</span>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    {% if submission.similarity_score <= 10 %}
+                                        <span class="plagiarism-badge badge-plagiarism">
+                                            🚨 Plagiarism Detected
+                                        </span>
+                                    {% elif submission.similarity_score <= 20 %}
+                                        <span class="plagiarism-badge badge-highly-suspicious">
+                                            ⚠️ Highly Suspicious
+                                        </span>
+                                    {% else %}
+                                        <span class="plagiarism-badge badge-suspicious">
+                                            ⚠️ Suspicious
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="similarity-score">Assigned similarity score: {{ submission.similarity_score }} / 100</div>
+                            <div class="total-score">{{ "%.2f"|format(submission.total_score) }} / 100</div>
+                            <div class="submitted-time">{{ submission.submitted_at.strftime('%b %d, %Y') }}</div>
+                            <div style="text-align: center;">
+                                <a href="{{ url_for('teacher.teacherClassView', activity_id=submission.activity_id) }}#submission-{{ submission.submission_id }}" class="action-btn action-btn-view">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <div class="empty-state-title">No Suspicious Submissions Found</div>
+                        <div class="empty-state-text">
+                            All submissions appear to be original. No plagiarism or copying has been detected.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -18,12 +18,12 @@ def create_app():
     # Secret key
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
 
-    # --- MySQL Railway Config ---
-    app.config['MYSQL_HOST'] = os.environ.get('MYSQLHOST')            # Railway host
-    app.config['MYSQL_USER'] = os.environ.get('MYSQLUSER')            # Railway username
-    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQLPASSWORD')    # Railway password
-    app.config['MYSQL_DB'] = os.environ.get('MYSQLDATABASE')          # Railway database
-    app.config['MYSQL_PORT'] = int(os.environ.get('MYSQLPORT', 3306)) # Railway port
+    # --- MySQL Config (Railway or Local) ---
+    app.config['MYSQL_HOST'] = os.environ.get('MYSQL_HOST', os.environ.get('MYSQLHOST', 'localhost'))            # Local or Railway host
+    app.config['MYSQL_USER'] = os.environ.get('MYSQL_USER', os.environ.get('MYSQLUSER', 'root'))                # Local or Railway username
+    app.config['MYSQL_PASSWORD'] = os.environ.get('MYSQL_PASSWORD', os.environ.get('MYSQLPASSWORD', ''))        # Local or Railway password
+    app.config['MYSQL_DB'] = os.environ.get('MYSQL_DB', os.environ.get('MYSQLDATABASE', 'c_insight_db'))         # Local or Railway database
+    app.config['MYSQL_PORT'] = int(os.environ.get('MYSQL_PORT', os.environ.get('MYSQLPORT', 3306)))             # Local or Railway port
     app.config['MYSQL_CURSORCLASS'] = 'DictCursor'                    # return dict instead of tuple
     app.config['MYSQL_USE_UNICODE'] = True                             # REQUIRED for Flask-MySQLdb
 

@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class CodeGrader:
     def __init__(self):
         self.ml_models = None
+        self.additional_keywords = []
         self.load_ml_models()
     
     def load_ml_models(self):
@@ -113,22 +114,82 @@ class CodeGrader:
             logger.error(f"Error in compile_and_run_code: {str(e)}")
             return None, f"Execution error: {str(e)}"
 
+    def clean_prompts(self, output, additional_keywords=None):
+        """Remove common prompt lines from output."""
+        if not output:
+            return output
+
+        # Normalize newlines and work line by line
+        lines = output.split('\n')
+        cleaned_lines = []
+
+        # Base prompt phrases to remove (kept intentionally broad).
+        prompt_keywords = [
+            'enter your', 'please enter', 'enter name', 'enter age', 'enter value', 'enter number',
+            'please enter', 'input', 'enter', 'prompt', 'type here', 'enter here', 'input here',
+            'output', 'result', 'answer', 'response', 'reply'
+        ]
+
+        if additional_keywords:
+            if isinstance(additional_keywords, str):
+                additional_keywords = [kw.strip() for kw in additional_keywords.split(',')]
+            prompt_keywords.extend(additional_keywords)
+
+        # Remove prompt phrases from each line while preserving following text.
+        # Use longest-first so multi-word phrases match before shorter words.
+        for line in lines:
+            cleaned_line = line
+            for keyword in sorted(set(prompt_keywords), key=lambda k: -len(k)):
+                # Match the keyword case-insensitively, allow optional punctuation
+                # and whitespace after the phrase (e.g. 'Enter your name: ', 'input - ').
+                try:
+                    pattern = r"(?i)" + re.escape(keyword) + r"[\s\:\-\,\.;!\(\)]*"
+                    cleaned_line = re.sub(pattern, '', cleaned_line)
+                except re.error:
+                    cleaned_line = cleaned_line.replace(keyword, '')
+
+            # Collapse multiple spaces and trim
+            cleaned_line = re.sub(r'\s+', ' ', cleaned_line).strip()
+            if cleaned_line:
+                cleaned_lines.append(cleaned_line)
+
+        return '\n'.join(cleaned_lines)
+
     def compare_outputs_flexible(self, actual, expected):
-        """Compare outputs with flexible pattern matching."""
+        """Compare outputs with flexible pattern matching (fully case-insensitive)."""
         if not actual or not expected:
-            return actual == expected
+            return actual.strip().lower() == expected.strip().lower()
 
         # Normalize whitespace
         actual = actual.strip()
         expected = expected.strip()
 
-        # Exact match first
-        if actual == expected:
+        # Clean prompts from both actual and expected output
+        actual = self.clean_prompts(actual, self.additional_keywords)
+        expected = self.clean_prompts(expected, self.additional_keywords)
+
+        # Make all comparisons case-insensitive
+        actual_lower = actual.lower()
+        expected_lower = expected.lower()
+
+        # Exact match first (case-insensitive)
+        if actual_lower == expected_lower:
             return True
 
-        # Split into lines and compare line by line
-        actual_lines = [line.strip() for line in actual.split('\n') if line.strip()]
-        expected_lines = [line.strip() for line in expected.split('\n') if line.strip()]
+        # Try to extract just the answer part from actual output
+        # Look for the expected output within the actual output (case-insensitive)
+        if expected_lower in actual_lower:
+            return True
+
+        # Split into lines and compare line by line (case-insensitive)
+        actual_lines = [line.strip().lower() for line in actual.split('\n') if line.strip()]
+        expected_lines = [line.strip().lower() for line in expected.split('\n') if line.strip()]
+
+        # If expected has fewer lines, check if expected appears in any actual line
+        if len(expected_lines) == 1 and len(actual_lines) >= 1:
+            for actual_line in actual_lines:
+                if expected_lines[0] in actual_line:
+                    return True
 
         if len(actual_lines) != len(expected_lines):
             return False
@@ -139,11 +200,18 @@ class CodeGrader:
                 return False
 
         return True
+    def remove_punctuation(self, text):
+        """Remove common punctuation marks from text."""
+        # Define punctuation to ignore
+        punctuation_to_remove = '.!?,;:\'"()-'
+        for char in punctuation_to_remove:
+            text = text.replace(char, '')
+        return text.strip()
 
     def compare_single_line(self, actual, expected):
-        """Compare single lines with flexible matching."""
-        # Exact match
-        if actual == expected:
+        """Compare single lines with flexible matching (fully case-insensitive)."""
+        # Exact match (case-insensitive)
+        if actual.lower() == expected.lower():
             return True
 
         # Numeric comparison with tolerance for floating point
@@ -155,12 +223,17 @@ class CodeGrader:
         except ValueError:
             pass
 
-        # String comparison (case insensitive for some cases)
-        if actual.lower() == expected.lower():
+        # Check if expected contains actual or vice versa (case-insensitive)
+        if expected.lower() in actual.lower() or actual.lower() in expected.lower():
             return True
 
-        # Check if expected contains actual or vice versa (for partial matches)
-        if expected in actual or actual in expected:
+        # Compare ignoring punctuation (case-insensitive)
+        actual_no_punct = self.remove_punctuation(actual.lower())
+        expected_no_punct = self.remove_punctuation(expected.lower())
+        
+        if actual_no_punct == expected_no_punct and len(actual_no_punct) > 0:
+            # Match found after removing punctuation
+            logger.info(f"Punctuation-tolerant match: '{actual}' matches '{expected}'")
             return True
 
         return False
@@ -240,17 +313,16 @@ class CodeGrader:
                 overdue_penalty = weeks_overdue * 10
             
 
-            # Extract requirements from activity content
-            activity_text = f"{title or ''} {description or ''} {instructions or ''}".lower()
-            requirements = self.extract_activity_requirements(activity_text)
-
-            # Check if code meets specific activity requirements
-            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
+            # Extract requirements from activity text for semantic analysis
+            activity_text_for_requirements = f"{description} {instructions}" if description or instructions else ""
+            requirements = self.extract_activity_requirements(activity_text_for_requirements) if activity_text_for_requirements else None
+            requirement_score = 100
 
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
 
             # If syntax score is below threshold, assign zero to all scores and skip further checks
+            test_details = []  # Initialize for all paths
             if syntax_score < 85:
                 correctness_score = 0
                 syntax_score = 0
@@ -265,54 +337,68 @@ class CodeGrader:
                 test_feedback = ""
 
                 if test_cases:
-                    passed_tests = 0
-                    total_tests = len(test_cases)
-                    test_details = []
+                    if len(test_cases) == 1:
+                        # Single test case, use original method
+                        passed_tests = 0
+                        total_tests = len(test_cases)
+                        test_details = []
 
-                    for i, test_case in enumerate(test_cases, 1):
-                        actual_output, error = self.compile_and_run_code(code, test_case['input'])
+                        for i, test_case in enumerate(test_cases, 1):
+                            actual_output, error = self.compile_and_run_code(code, test_case['input'])
 
-                        if error:
-                            test_details.append(f"Test {i}: Failed - {error}")
-                        else:
-                            
-                            # Remove input prompt from output if present
-                            test_input = test_case['input'].rstrip()
-                            if actual_output.startswith(test_input):
-                                actual_output = actual_output[len(test_input):].lstrip()
-                                if actual_output.startswith('\n'):
-                                    actual_output = actual_output[1:].lstrip()
-                            
-                            if self.compare_outputs_flexible(actual_output, test_case['expected']):
+                            if error:
+                                test_details.append(f"Test {i}: Failed - {error}")
+                            else:
+                                # Clean prompts from the actual output to remove echoes/prompts
+                                cleaned_actual = self.clean_prompts(actual_output, self.additional_keywords)
+                                expected = test_case['expected']
+
+                                if self.compare_outputs_flexible(cleaned_actual, expected):
+                                    passed_tests += 1
+                                    test_details.append(f"Test {i}: Passed")
+                                else:
+                                    # Add helpful diagnostic info for failures
+                                    logger.warning(f"Test {i} failed. Expected: '{expected}' | Actual (cleaned): '{cleaned_actual[:200]}'")
+                                    test_details.append(f"Test {i}: Failed")
+
+                        test_correctness_score = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
+                        test_feedback = f"Test Cases: {passed_tests}/{total_tests} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
+                    else:
+                        # Multiple test cases: run each test input in isolation. This is
+                        # more robust than concatenating inputs and parsing combined output.
+                        passed_tests = 0
+                        test_details = []
+
+                        for i, test_case in enumerate(test_cases, 1):
+                            inp = test_case['input']
+                            expected = test_case['expected']
+
+                            actual_output, error = self.compile_and_run_code(code, inp)
+                            if error:
+                                test_details.append(f"Test {i}: Failed - {error}")
+                                continue
+
+                            cleaned_actual = self.clean_prompts(actual_output, self.additional_keywords)
+
+                            if self.compare_outputs_flexible(cleaned_actual, expected):
                                 passed_tests += 1
                                 test_details.append(f"Test {i}: Passed")
                             else:
+                                logger.warning(f"Test {i} failed. Expected: '{expected}' | Actual (cleaned): '{cleaned_actual[:200]}'")
                                 test_details.append(f"Test {i}: Failed")
 
-                    test_correctness_score = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
-                    test_feedback = f"Test Cases: {passed_tests}/{total_tests} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
+                            test_correctness_score = (passed_tests / len(test_cases)) * 100
+                            test_feedback = f"Test Cases: {passed_tests}/{len(test_cases)} passed ({test_correctness_score:.1f}%). " + " | ".join(test_details)
                 else:
                     test_feedback = "No test cases defined for this activity - using static analysis only."
                     test_correctness_score = 50  # Neutral score when no tests available
 
                 # Correctness and Logic analysis
+                activity_text = f"{description} {instructions}" if description or instructions else ""
                 static_correctness_score, logic_score, ast_feedback = self.check_ast_with_requirements(
-                    code, requirements, requirement_score
+                    code, requirements, requirement_score, activity_text
                 )
 
-                # Adjust logic score based on requirement compliance if requirements exist
-                if requirement_score < 100 and requirements:
-                    # Calculate how many requirements are met vs total
-                    required_features = sum(1 for req in requirements.values() if req is True)
-                    if required_features > 0:
-                        # Reduce logic score proportionally to missing requirements
-                        # Missing 20% of requirements reduces logic score by 10-15%
-                        missing_percentage = (100 - requirement_score) / 100
-                        logic_penalty = min(15, missing_percentage * 50)  # Max 15% reduction
-                        logic_score = max(0, logic_score - logic_penalty)
-
-                        # Add requirement compliance note to feedback
-                        ast_feedback += f" Logic score adjusted for requirement compliance ({requirement_score:.1f}% requirements met)."
 
                 # Correctness is based entirely on test case results, Logic is based on AST analysis
                 correctness_score = test_correctness_score
@@ -356,16 +442,17 @@ class CodeGrader:
                 (similarity_score * similarity_w / 100)
             )
 
-            # Compile feedback
-            feedback_parts = [
-                f"Syntax Check: {syntax_feedback}",
-                f"Code Analysis: {ast_feedback}",
-                f"Similarity Check: {sim_feedback}"
-            ]
-
-            # Add overdue penalty to feedback if applicable
-            if overdue_penalty > 0:
-                feedback_parts.append(f"Overdue Penalty: {overdue_penalty}% deducted")
+            # Compile feedback into structured 4-part format
+            feedback_data = self.format_comprehensive_feedback(
+                syntax_score, syntax_feedback,
+                test_correctness_score, test_details if test_cases else [],
+                logic_score, ast_feedback,
+                similarity_score, sim_feedback,
+                overdue_penalty
+            )
+            
+            # Convert feedback dict to JSON string for database storage
+            feedback_json = json.dumps(feedback_data)
 
             return {
                 'correctness_score': int(correctness_score),
@@ -374,7 +461,7 @@ class CodeGrader:
                 'similarity_score': int(similarity_score),
                 'requirement_score': int(requirement_score),
                 'total_score': int(total_score),
-                'feedback': '. '.join(feedback_parts)
+                'feedback': feedback_json
             }
 
         except Exception as e:
@@ -389,6 +476,128 @@ class CodeGrader:
                 'total_score': 0,
                 'feedback': f'Grading failed due to an error: {str(e)}. All scores set to zero.'
             }
+
+    def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details, 
+                                     logic_score, logic_msg, similarity_score, similarity_msg, overdue_penalty):
+        """Format feedback into 4 structured sections for students."""
+        feedback = {}
+        
+        # 1. SYNTAX CHECK
+        if syntax_score >= 85:
+            feedback['syntax'] = {
+                'status': 'Correct',
+                'message': 'Your code compiles successfully without syntax errors.',
+                'score': f"{syntax_score:.0f}%"
+            }
+        else:
+            # Extract specific error from syntax_msg
+            error_details = syntax_msg.split('|') if '|' in syntax_msg else [syntax_msg]
+            feedback['syntax'] = {
+                'status': 'Error Found',
+                'message': f'Syntax errors detected: {error_details[0]}',
+                'details': error_details,
+                'score': f"{syntax_score:.0f}%"
+            }
+        
+        # 2. CORRECTNESS (Test Cases)
+        if test_details:
+            passed_count = sum(1 for t in test_details if 'Passed' in t)
+            total_count = len(test_details)
+            
+            feedback['correctness'] = {
+                'status': f'{passed_count}/{total_count} tests passed',
+                'score': f"{correctness_score:.0f}%",
+                'test_results': []
+            }
+            
+            for i, test in enumerate(test_details, 1):
+                if 'Passed' in test:
+                    feedback['correctness']['test_results'].append({
+                        'test_number': i,
+                        'status': 'Passed',
+                        'result': test
+                    })
+                else:
+                    feedback['correctness']['test_results'].append({
+                        'test_number': i,
+                        'status': 'Failed',
+                        'result': test,
+                        'explanation': 'Your code output does not match the expected result for this test case'
+                    })
+            
+            if passed_count == total_count:
+                feedback['correctness']['message'] = 'All test cases passed! Your code produces correct output.'
+            else:
+                feedback['correctness']['message'] = f'Some test cases failed. Review the expected vs actual output.'
+        else:
+            feedback['correctness'] = {
+                'status': 'Not Available',
+                'message': 'No test cases defined for this activity.',
+                'score': f"{correctness_score:.0f}%"
+            }
+        
+        # 3. SEMANTICS/LOGIC CHECK
+        logic_details = logic_msg.split('. ') if logic_msg else []
+        required_detected = any('MISSING REQUIRED' in detail or 'required' in detail.lower() for detail in logic_details)
+        
+        feedback['semantics'] = {
+            'score': f"{logic_score:.0f}%",
+            'details': []
+        }
+        
+        if required_detected:
+            feedback['semantics']['status'] = 'Issues Found'
+            for detail in logic_details:
+                if detail.strip():
+                    feedback['semantics']['details'].append(detail.strip())
+        else:
+            feedback['semantics']['status'] = 'Good'
+            feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
+        
+        # 4. SIMILARITY CHECK
+        # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
+        # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
+        feedback['similarity'] = {
+            'assigned_score': f"{similarity_score:.0f}/100",
+        }
+        
+        if 'Insufficient' in similarity_msg:
+            feedback['similarity']['status'] = 'Insufficient Data'
+            feedback['similarity']['message'] = 'Not enough submissions yet to check similarity.'
+        else:
+            # Interpret assigned score correctly: LOWER values indicate HIGHER similarity
+            if similarity_score <= 10:
+                feedback['similarity']['status'] = 'Plagiarism Detected'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '🚨 Code appears to be copied from another submission. This is a serious academic integrity concern.'
+            elif similarity_score <= 20:
+                feedback['similarity']['status'] = 'Highly Suspicious'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '⚠️ Code structure is nearly identical to another submission. Please verify originality.'
+            elif similarity_score <= 40:
+                feedback['similarity']['status'] = 'Suspicious'
+                feedback['similarity']['message'] = similarity_msg
+                feedback['similarity']['warning'] = '⚠️ Your code shows high similarity to other submissions. Please review for originality.'
+            elif similarity_score >= 95:
+                feedback['similarity']['status'] = 'Unique Solution'
+                feedback['similarity']['message'] = similarity_msg or 'Your solution is unique and original.'
+            elif similarity_score >= 90:
+                feedback['similarity']['status'] = 'Low Similarity (Natural)'
+                feedback['similarity']['message'] = similarity_msg or 'Natural similarity for this activity type.'
+            else:
+                # Covers 41–89: acceptable range
+                feedback['similarity']['status'] = 'Acceptable Similarity'
+                feedback['similarity']['message'] = similarity_msg or 'Similarity level is within acceptable bounds.'
+        
+        # Add overdue penalty if applicable
+        if overdue_penalty > 0:
+            feedback['penalty'] = {
+                'type': 'Overdue',
+                'amount': f"{overdue_penalty}%",
+                'message': f'Submission was late. {overdue_penalty}% penalty applied.'
+            }
+        
+        return feedback
 
     def check_syntax(self, code):
         """Check syntax and basic compilation using GCC compiler for C code."""
@@ -406,22 +615,39 @@ class CodeGrader:
             os.unlink(temp_file)
 
             if result.returncode == 0:
-                return 100, " Your Syntax is correct"
+                return 100, "Your Syntax is correct"
             else:
                 errors = result.stderr.strip()
-                error_count = len(re.findall(r'error:', errors))
-
+                error_lines = errors.split('\n')
+                
+                # Extract key error information
+                detailed_errors = []
+                for line in error_lines:
+                    if 'error:' in line:
+                        # Extract the error type and location
+                        parts = line.split('error:')
+                        if len(parts) > 1:
+                            error_type = parts[1].strip()
+                            # Shorten very long error messages
+                            if len(error_type) > 100:
+                                error_type = error_type[:100] + "..."
+                            detailed_errors.append(f"Error: {error_type}")
+                
+                error_count = len(detailed_errors)
+                
                 if error_count == 0:
                     return 80, "Minor syntax issues found"
                 elif error_count == 1:
-                    return 60, f"One syntax error found: {errors[:200]}..."
+                    return 60, f"One error found. {detailed_errors[0]}"
                 elif error_count <= 3:
-                    return 40, f"Few syntax errors found: {errors[:200]}..."
+                    error_msg = " | ".join(detailed_errors)
+                    return 40, f"{error_count} errors found: {error_msg}"
                 else:
-                    return 15, f"Multiple syntax errors: {errors[:200]}..."
+                    error_msg = " | ".join(detailed_errors[:3])
+                    return 15, f"{error_count} errors found: {error_msg} (and {error_count-3} more)"
 
         except subprocess.TimeoutExpired:
-            return 0, "Syntax check timed out."
+            return 0, "Syntax check timed out (code may have infinite compilation issues)"
         except FileNotFoundError:
             # Fallback if GCC is not available
             logger.warning("GCC not found, using basic syntax check")
@@ -472,22 +698,27 @@ class CodeGrader:
         except Exception as e:
             return 0, f"Basic syntax check failed: {str(e)}"
 
-    def check_ast_with_requirements(self, code, requirements, requirement_score):
+    def check_ast_with_requirements(self, code, requirements, requirement_score, activity_text=None):
         """Check correctness and logic using analysis."""
-        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code, requirements)
+        correctness_score, logic_score, syntax_score, enhanced_feedback = self.enhanced_ml_grading(code, requirements, activity_text)
 
         return correctness_score, logic_score, enhanced_feedback
 
-    def enhanced_ml_grading(self, code, requirements=None):
+    def enhanced_ml_grading(self, code, requirements=None, activity_text=None):
         """Enhanced grading function combining ML predictions with rule-based analysis."""
         if self.ml_models:
-            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code, requirements)
+            ml_correctness, ml_logic, ml_syntax, analysis_type = self.predict_grading_scores(code, requirements, activity_text)
         else:
             ml_correctness, ml_logic, ml_syntax, analysis_type = 0, 0, 0, "Rule-based analysis"
 
         # Get rule-based analysis
         rule_correctness = self.analyze_c_code_correctness(code)
-        rule_logic = self.analyze_c_code_logic(code, requirements)
+        # analyze_c_code_logic now returns (score, feedback) tuple
+        logic_result = self.analyze_c_code_logic(code, requirements, activity_text)
+        if isinstance(logic_result, tuple):
+            rule_logic, _ = logic_result
+        else:
+            rule_logic = logic_result
         rule_syntax, _ = self.check_syntax(code)
 
         # Combine scores
@@ -502,11 +733,12 @@ class CodeGrader:
 
         return final_correctness, final_logic, final_syntax, self.analyze_c_code_detailed_feedback(code, requirements)
 
-    def predict_grading_scores(self, code, requirements=None):
+    def predict_grading_scores(self, code, requirements=None, activity_text=None):
         """Use trained ML models to predict grading scores."""
         if not self.ml_models:
             correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code, requirements)
+            logic_result = self.analyze_c_code_logic(code, requirements, activity_text)
+            logic_score = logic_result[0] if isinstance(logic_result, tuple) else logic_result
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -530,7 +762,8 @@ class CodeGrader:
         except Exception as e:
             logger.error(f"Error in ML prediction: {str(e)}")
             correctness_score = self.analyze_c_code_correctness(code)
-            logic_score = self.analyze_c_code_logic(code, requirements)
+            logic_result = self.analyze_c_code_logic(code, requirements, activity_text)
+            logic_score = logic_result[0] if isinstance(logic_result, tuple) else logic_result
             syntax_score = self.check_syntax(code)[0]
             return correctness_score, logic_score, syntax_score, "Rule-based analysis"
 
@@ -655,51 +888,186 @@ class CodeGrader:
 
         return min(100, max(0, score))
 
-    def analyze_c_code_logic(self, code, requirements=None):
-        """Analyze C code logic complexity and flow with enhanced semantic criteria."""
+    def analyze_c_code_logic(self, code, requirements=None, activity_text=None):
+        """Analyze C code logic complexity and flow with enhanced semantic and requirement-based criteria."""
         score = 100  # Start with full score, deduct for errors only
+        feedback = []
 
+        # 0. CRITICAL CHECK: Detect hardcoded printf-only solutions
+        printf_count = code.count('printf(')
+        scanf_count = code.count('scanf(')
+        variable_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+        logic_count = code.count('if ') + code.count('for ') + code.count('while ')
+        
+        # If code has many printf but minimal input/processing logic, flag it as hardcoded
+        if printf_count > 3 and logic_count == 0 and scanf_count == 0:
+            score -= 50
+            feedback.append("WARNING: Code appears to be hardcoded printf statements without actual logic or input processing")
+        elif printf_count > 2 and variable_count < 2 and logic_count == 0:
+            score -= 30
+            feedback.append("WARNING: Code may be printing hardcoded values without proper variable usage or logic")
+
+        # 1. Requirement-based semantic check - STRICT enforcement
+        # First check if requirements parameter was provided (dict-based)
+        missing_constructs = []
+        requirement_count = 0
+        
+        if requirements and isinstance(requirements, dict):
+            # Use the structured requirements dict
+            requirement_checks = [
+                ('loops', lambda c: c.count('for ') + c.count('while ') + c.count('do ') > 0, 20),
+                ('if_else', lambda c: 'if ' in c and 'else' in c, 20),
+                ('functions', lambda c: c.count('(') - c.count('main(') > 0, 20),
+                ('arrays', lambda c: '[' in c and ']' in c, 20),
+                ('pointers', lambda c: '*' in c or '&' in c, 20),
+                ('switch', lambda c: 'switch ' in c, 20),
+            ]
+            
+            for req_name, check, penalty in requirement_checks:
+                if requirements.get(req_name, {}).get('required', False):
+                    requirement_count += 1
+                    if not check(code):
+                        score -= penalty
+                        missing_constructs.append(req_name)
+        
+        # Fallback: check activity_text for semantic keywords (more flexible)
+        if not missing_constructs and activity_text:
+            text_lower = activity_text.lower()
+            
+            # More flexible keyword matching
+            loop_keywords = ['loop', 'for', 'while', 'iterate', 'iteration', 'repeat']
+            if_keywords = ['if', 'condition', 'conditional', 'decision', 'check', 'validate']
+            func_keywords = ['function', 'method', 'procedure', 'subroutine']
+            array_keywords = ['array', 'list', 'collection', 'elements']
+            pointer_keywords = ['pointer', 'address', 'reference', 'memory']
+            switch_keywords = ['switch', 'case', 'selection']
+            
+            # Check for any loop requirement keywords
+            if any(kw in text_lower for kw in loop_keywords):
+                requirement_count += 1
+                if not any(x in code for x in ['for ', 'while ', 'do ']):
+                    score -= 20
+                    missing_constructs.append('loops')
+            
+            # Check for any if/conditional requirement keywords
+            if any(kw in text_lower for kw in if_keywords):
+                requirement_count += 1
+                if 'if ' not in code:
+                    score -= 20
+                    missing_constructs.append('if statement')
+            
+            # Check for function requirement keywords
+            if any(kw in text_lower for kw in func_keywords):
+                requirement_count += 1
+                if code.count('(') - code.count('main(') <= 0:
+                    score -= 20
+                    missing_constructs.append('functions')
+            
+            # Check for array requirement keywords
+            if any(kw in text_lower for kw in array_keywords):
+                requirement_count += 1
+                if '[' not in code or ']' not in code:
+                    score -= 20
+                    missing_constructs.append('arrays')
+            
+            # Check for pointer requirement keywords
+            if any(kw in text_lower for kw in pointer_keywords):
+                requirement_count += 1
+                if '*' not in code and '&' not in code:
+                    score -= 20
+                    missing_constructs.append('pointers')
+            
+            # Check for switch requirement keywords
+            if any(kw in text_lower for kw in switch_keywords):
+                requirement_count += 1
+                if 'switch ' not in code:
+                    score -= 20
+                    missing_constructs.append('switch')
+        
+        if missing_constructs:
+            feedback.append(f"MISSING REQUIRED: {', '.join(missing_constructs)}")
+
+        # If requirements are specified and code is missing them, significantly lower the score
+        if requirement_count > 0 and missing_constructs:
+            missing_ratio = len(missing_constructs) / requirement_count
+            if missing_ratio > 0.5:  # Missing more than 50% of required constructs
+                score = min(score, 40)  # Cap score to max 40
+                feedback.append(f"Critical: More than half of required constructs are missing")
+
+        # 2. General logic scoring (enhanced)
         # Control Flow Complexity - Check for potential issues
         if_count = code.count('if ') + code.count('else if')
         loop_count = code.count('for ') + code.count('while ') + code.count('do ')
         switch_count = code.count('switch ')
         total_control = if_count + loop_count + switch_count
+        if total_control == 0 and requirement_count == 0:  # Only penalize if no requirements specified
+            score -= 10
+            feedback.append("No control flow statements detected (if, loop, switch)")
 
         # Check for potential infinite loops
         infinite_loop_penalty = self.check_infinite_loops(code)
+        if infinite_loop_penalty > 0:
+            feedback.append(f"Potential infinite loop detected (-{infinite_loop_penalty})")
         score -= infinite_loop_penalty
 
         # Check for proper loop initialization and bounds
         if loop_count > 0:
             loop_quality_score = self.check_loop_quality(code)
-            score += loop_quality_score  # This can be negative, so it deducts
+            if loop_quality_score < 0:
+                feedback.append("Loop initialization or bounds may be incorrect")
+            score += loop_quality_score
 
         # Enhanced logic checks for semantic practices
         # Check for proper variable initialization and usage
         var_logic_score = self.check_variable_logic(code)
-        score += var_logic_score  # This can be negative, so it deducts
+        if var_logic_score < 0:
+            feedback.append("Variable initialization or usage issues detected")
+        score += var_logic_score
 
         # Check for logical consistency and potential errors
         logic_consistency_score = self.check_enhanced_logical_consistency(code)
-        score += logic_consistency_score  # This can be negative, so it deducts
+        if logic_consistency_score < 0:
+            feedback.append("Logical consistency issues detected")
+        score += logic_consistency_score
 
         # Check for proper nesting and structure
         nesting_score = self.check_nesting_structure(code)
-        score += nesting_score  # This can be negative, so it deducts
+        if nesting_score < 0:
+            feedback.append("Nesting/indentation issues detected")
+        score += nesting_score
 
         # Check for unreachable code patterns
         unreachable_score = self.check_unreachable_code(code)
-        score += unreachable_score  # This can be negative, so it deducts
+        if unreachable_score < 0:
+            feedback.append("Unreachable code detected")
+        score += unreachable_score
 
         # Check for proper operator usage
         operator_score = self.check_operator_usage(code)
-        score += operator_score  # This can be negative, so it deducts
+        if operator_score < 0:
+            feedback.append("Operator usage issues detected")
+        score += operator_score
 
         # Check for memory safety
         memory_score = self.check_memory_safety(code)
-        score += memory_score  # This can be negative, so it deducts
+        if memory_score < 0:
+            feedback.append("Memory safety issues detected")
+        score += memory_score
 
-        return min(100, max(0, score))
+        # Bonus for good practices
+        if 'return 0;' in code:
+            score += 2
+        if '#include <stdio.h>' in code:
+            score += 2
+        if 'int main(' in code:
+            score += 2
+
+        # Cap score and return feedback
+        score = min(100, max(0, score))
+        if feedback:
+            return score, ". ".join(feedback)
+        else:
+            return score, "Logic/semantics checks passed."
 
 
     def check_nesting_structure(self, code):
@@ -1031,7 +1399,7 @@ class CodeGrader:
         else:
             feedback_parts.append("Code length is appropriate for the activity")
 
-
+        # Requirement analysis disabled
 
         # Check for potential issues
         issues = []

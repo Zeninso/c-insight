@@ -161,10 +161,231 @@
 
 .feedback-content {
     margin-top: 12px;
-    padding: 12px;
-    background: #f8f9fa;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border-left: none;
+}
+
+.feedback-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feedback-section {
+    background: white;
     border-radius: 8px;
-    border-left: 4px solid #17a2b8;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.feedback-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.section-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.section-header i:first-child {
+    font-size: 1.1rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.section-title {
+    flex: 1;
+    color: #495057;
+}
+
+.section-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.section-status i {
+    margin-right: 4px;
+}
+
+.section-status i.success {
+    color: #28a745;
+}
+
+.section-status i.danger {
+    color: #dc3545;
+}
+
+.section-status i.info {
+    color: #17a2b8;
+}
+
+.toggle-icon {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+    color: #adb5bd;
+}
+
+.feedback-section.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    padding: 16px;
+    color: #495057;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    background: #fafbfc;
+}
+
+.section-content p {
+    margin: 0 0 10px 0;
+}
+
+.section-content p:last-child {
+    margin-bottom: 0;
+}
+
+.section-score {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 8px !important;
+}
+
+/* Syntax Error Details */
+.syntax-errors {
+    margin-top: 12px;
+}
+
+.error-item {
+    padding: 8px 12px;
+    background: #fff5f5;
+    border-left: 3px solid #dc3545;
+    margin: 6px 0;
+    border-radius: 4px;
+    color: #721c24;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+/* Test Results */
+.test-results {
+    margin-top: 12px;
+}
+
+.test-item {
+    padding: 12px;
+    border-radius: 6px;
+    margin: 8px 0;
+    border-left: 4px solid #dee2e6;
+}
+
+.test-item.passed {
+    background: #d4edda;
+    border-left-color: #28a745;
+}
+
+.test-item.passed .test-header {
+    color: #155724;
+}
+
+.test-item.passed i {
+    color: #28a745;
+}
+
+.test-item.failed {
+    background: #f8d7da;
+    border-left-color: #dc3545;
+}
+
+.test-item.failed .test-header {
+    color: #721c24;
+}
+
+.test-item.failed i {
+    color: #dc3545;
+}
+
+.test-header {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.test-explanation {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Semantics/Logic Details */
+.details-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0 0;
+}
+
+.details-list li {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-left: 3px solid #ffc107;
+    margin: 6px 0;
+    border-radius: 4px;
+    color: #856404;
+}
+
+.details-list li:before {
+    content: "⚠️ ";
+    margin-right: 6px;
+}
+
+/* Warning Text */
+.warning-text {
+    padding: 10px 12px;
+    background: #fff3cd;
+    border-left: 3px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    margin-top: 10px !important;
+}
+
+/* Penalty Section */
+.penalty-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.penalty-header .section-title {
+    color: white;
+}
+
+.penalty-header .section-status {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.section-content.penalty {
+    background: #fff5f5;
 }
 
 .feedback-text {

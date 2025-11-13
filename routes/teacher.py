@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import mysql
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask
 from flask_mysqldb import MySQL
 from flask_dance.contrib.google import make_google_blueprint
@@ -822,7 +822,7 @@ def teacherActivities():
         })
 
     return render_template('teacher_activities.html', activities=activities_list, classes=classes_list,
-                           unread_notifications_count=unread_notifications_count)
+                            unread_notifications_count=unread_notifications_count)
 
 
 @teacher_bp.route('/create_activity', methods=['POST'])
@@ -864,9 +864,11 @@ def create_activity():
 
         due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
 
-        # Validate due date is in the future
-        if due_date <= datetime.now():
-            return jsonify({'error': 'Due date must be set to a future date and time'}), 400
+
+        # Validate due date is at least 5 days in the future
+        min_due_date = datetime.now() + timedelta(days=5)
+        if due_date < min_due_date:
+            return jsonify({'error': 'Due date must be set to at least 5 days in the future'}), 400
 
         created_at = datetime.now()
 
@@ -947,6 +949,7 @@ def create_activity():
 
 @teacher_bp.route('/activity/<int:activity_id>', methods=['GET', 'PUT', 'DELETE'])
 def manage_activity(activity_id):
+    
     if 'username' not in session or session.get('role') != 'teacher':
         return jsonify({'error': 'Unauthorized access'}), 401
     
@@ -1045,10 +1048,6 @@ def manage_activity(activity_id):
             test_cases_json = json.dumps(test_cases)
 
             due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
-
-            # Validate due date is in the future
-            if due_date <= datetime.now():
-                return jsonify({'error': 'Due date must be set to a future date and time'}), 400
 
             # Get rubrics arrays from form
             rubric_names = request.form.getlist('rubric_name[]')
