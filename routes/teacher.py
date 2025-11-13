@@ -321,26 +321,19 @@ def teacherGrades():
     grouped_submissions = []
 
     if show_similar:
-        if activity_id and submissions:
-            # Group submissions with high structural similarity for side-by-side comparison
-            grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
+        # Group submissions with high structural similarity for side-by-side comparison
+        grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
 
-            # Prepare display submissions with group metadata
-            display_submissions = []
-            for group in grouped_submissions:
-                if len(group) > 1:
-                    # Mark submissions as part of a similar group
-                    for submission in group:
-                        submission['is_similar_group'] = True
-                        submission['group_members'] = len(group)
-                        submission['group_submissions'] = group
-                display_submissions.extend(group)
-        else:
-            # Show submissions with high similarity scores (potential copying)
-            display_submissions = [
-                s for s in submissions
-                if s.get('similarity_score') is not None and s['similarity_score'] >= 80
-            ]
+        # Prepare display submissions with group metadata
+        display_submissions = []
+        for group in grouped_submissions:
+            if len(group) > 1:
+                # Mark submissions as part of a similar group
+                for submission in group:
+                    submission['is_similar_group'] = True
+                    submission['group_members'] = len(group)
+                    submission['group_submissions'] = group
+            display_submissions.extend(group)
 
     # Get unread notifications count
     unread_notifications_count = get_unread_notifications_count(teacher_id)
