@@ -396,8 +396,8 @@
                                 </div>
                             </div>
                             <script type="application/json" id="feedback-data-{{ activity.id }}">
-{{ activity.feedback | tojson | safe }}
-</script>
+                                {{ activity.feedback | tojson | safe }}
+                            </script>
                             <script>
                                 (function() {
                                     let feedbackData = {};

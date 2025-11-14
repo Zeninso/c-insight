@@ -391,10 +391,10 @@
                                     <script>
                                         (function() {
                                             let feedbackData = {};
-                                        try {
-                                            const feedbackJson = "{{ submission.feedback | tojson | safe }}";
-                                            feedbackData = JSON.parse(feedbackJson);
-                                        } catch(e) { console.error('Failed to parse feedback JSON:', e); }
+                                            try {
+                                                const rawFeedback = {{ submission.feedback | tojson | safe }};
+                                                feedbackData = typeof rawFeedback === 'string' ? JSON.parse(rawFeedback) : rawFeedback;
+                                            } catch(e) { console.error('Failed to parse feedback JSON:', e); }
                                             try {
                                                 const id = '{{ submission.submission_id }}';
                                                 const fb = feedbackData;
@@ -660,7 +660,7 @@
                                     (function() {
                                         let feedbackData = {};
                                         try {
-                                            const rawFeedback = "{{ submission.feedback | tojson | safe }}";
+                                            const rawFeedback = {{ submission.feedback | tojson | safe }};
                                             feedbackData = typeof rawFeedback === 'string' ? JSON.parse(rawFeedback) : rawFeedback;
                                         } catch(e) { console.error('Failed to parse feedback JSON:', e); }
                                         try {
