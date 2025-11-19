@@ -558,7 +558,7 @@ class CodeGrader:
         # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
         # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
         feedback['similarity'] = {
-            'assigned_score': f"{similarity_score:.0f}/100",
+            'score': f"{similarity_score:.0f}/100",
         }
         
         if 'Insufficient' in similarity_msg:
