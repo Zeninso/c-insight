@@ -998,7 +998,7 @@ def manage_activity(activity_id):
                 'description': activity['description'],
                 'instructions': activity['instructions'],
                 'starter_code': activity['starter_code'],
-                'due_date': activity['due_date'].strftime('%Y-%m-%d %H:%M:%S') if activity['due_date'] else None,
+                'due_date': activity['due_date'].strftime('%Y-%m-%dT%H:%M:%S') + 'Z' if activity['due_date'] else None,
                 'correctness_weight': activity['correctness_weight'],
                 'syntax_weight': activity['syntax_weight'],
                 'logic_weight': activity['logic_weight'],
