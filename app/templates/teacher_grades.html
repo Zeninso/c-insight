@@ -873,11 +873,17 @@
             const classId = this.querySelector('input[name="class_id"]').value;
             const activityId = this.querySelector('input[name="activity_id"]').value;
 
-            // Check if both filters are empty (All Classes and All Activities)
-            if (!classId && !activityId) {
+            // Check if class is not selected
+            if (!classId) {
+                let errorText = '';
+                if (!activityId) {
+                    errorText = 'Pick a class you want to generate a report first.';
+                } else {
+                    errorText = 'Cannot generate report for all classes with a specific activity. Please select a specific class.';
+                }
                 Swal.fire({
                     title: 'Error',
-                    text: 'Pick a class you want to generate a report first.',
+                    text: errorText,
                     icon: 'error',
                     confirmButtonColor: '#6f42c1'
                 });

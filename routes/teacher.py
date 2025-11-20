@@ -464,8 +464,32 @@ def generate_grade_report():
             except ValueError:
                 pass
 
+        # Require at least one filter to match frontend validation
+        if not class_id and not activity_id:
+            return jsonify({'error': 'Please select a class or activity to generate the report'}), 400
+
         # First, get relevant students and activities based on filters
-        if class_id:
+        if class_id and activity_id:
+            # Filter by both class and activity: get students in class who submitted the activity, and only that activity
+            cur.execute("""
+                SELECT DISTINCT u.id as student_id, u.first_name, u.last_name, c.name as class_name
+                FROM submissions s
+                JOIN users u ON s.student_id = u.id
+                JOIN activities a ON s.activity_id = a.id
+                JOIN classes c ON a.class_id = c.id
+                JOIN enrollments e ON u.id = e.student_id AND e.class_id = c.id
+                WHERE a.id = %s AND c.id = %s AND a.teacher_id = %s
+                ORDER BY u.last_name, u.first_name
+            """, (activity_id, class_id, teacher_id))
+            students = cur.fetchall()
+
+            cur.execute("""
+                SELECT id, title
+                FROM activities
+                WHERE id = %s AND class_id = %s AND teacher_id = %s
+            """, (activity_id, class_id, teacher_id))
+            activities = cur.fetchall()
+        elif class_id:
             # Filter by class: get students in class and activities in class
             cur.execute("""
                 SELECT DISTINCT u.id as student_id, u.first_name, u.last_name, c.name as class_name
