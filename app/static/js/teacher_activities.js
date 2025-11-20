@@ -2,6 +2,7 @@
 
 // Modal functions
 function showCreateActivityModal() {
+    hideEditActivityModal(); // Close edit modal if open
     document.getElementById('createActivityForm').reset();
     updateTotalWeight();
     // Clear test cases container
@@ -244,7 +245,7 @@ function deleteActivity(activityId) {
 
 // Update total weight (create form)
 function updateTotalWeight() {
-    const total = Array.from(document.querySelectorAll('.weight-input'))
+    const total = Array.from(document.querySelectorAll('#createActivityModal .weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
 
     const totalWeightSpan = document.getElementById('total-weight');
@@ -286,7 +287,7 @@ updateTotalWeight();
 document.getElementById('createActivityForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
-    const totalWeight = Array.from(document.querySelectorAll('.weight-input'))
+    const totalWeight = Array.from(document.querySelectorAll('#createActivityModal .weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
 
     if (totalWeight !== 100) {
