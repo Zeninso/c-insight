@@ -102,8 +102,29 @@
             </div>
         </form>
     </div>
-    
-    
+
+    <script>
+        const passwordInput = document.querySelector('input[name="password"]');
+        const requirements = document.querySelectorAll('.requirement');
+
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+
+            // Check each requirement
+            const lengthMet = password.length >= 8;
+            const uppercaseMet = /[A-Z]/.test(password);
+            const lowercaseMet = /[a-z]/.test(password);
+            const digitMet = /\d/.test(password);
+            const specialMet = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            // Update UI for each requirement
+            requirements[0].className = lengthMet ? 'requirement met' : 'requirement not-met';
+            requirements[1].className = uppercaseMet ? 'requirement met' : 'requirement not-met';
+            requirements[2].className = lowercaseMet ? 'requirement met' : 'requirement not-met';
+            requirements[3].className = digitMet ? 'requirement met' : 'requirement not-met';
+            requirements[4].className = specialMet ? 'requirement met' : 'requirement not-met';
+        });
+    </script>
 
 </body>
 </html>
