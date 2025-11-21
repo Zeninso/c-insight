@@ -3,12 +3,35 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import mysql
 from flask_dance.contrib.google import google
 import MySQLdb
+import re
 from .admin import add_admin_notification
 
 
 auth_bp = Blueprint('auth', __name__)
 teacher_bp = Blueprint('teacher', __name__)
 student_bp = Blueprint('student', __name__)
+
+def validate_password(password):
+    """
+    Validate password strength.
+    Requirements:
+    - At least 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character
+    """
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter."
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter."
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one digit."
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, "Password must contain at least one special character."
+    return True, "Password is valid."
 
 
 
@@ -81,6 +104,15 @@ def register():
         first_name = request.form['first_name']  
         last_name = request.form['last_name']    
         role = request.form['role']
+        
+        # Validate password strength
+        is_valid, message = validate_password(password)
+        if not is_valid:
+            flash(message, 'error')
+            user = {
+                'theme': session.get('theme', 'light')
+            }
+            return render_template('register.html', user=user)
         
         hashed_password = generate_password_hash(password)
         
@@ -207,8 +239,10 @@ def google_register():
         role = request.form["role"]
         password = request.form.get("password")
 
-        if not password or len(password) < 6:
-            flash("Password must be at least 6 characters long.", "error")
+        # Validate password strength
+        is_valid, message = validate_password(password)
+        if not is_valid:
+            flash(message, "error")
             return render_template("google_register.html", data=data)
         
         hashed_password = generate_password_hash(password)

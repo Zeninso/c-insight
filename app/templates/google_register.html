@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Complete Google Registration - C-Insight</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+    <style>
+        .password-strength {
+            margin-top: 10px;
+        }
+        .password-requirements {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .requirement {
+            padding: 2px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .requirement.met {
+            color: #28a745;
+        }
+        .requirement.met::before {
+            content: '✓ ';
+        }
+        .requirement.not-met {
+            color: #dc3545;
+        }
+        .requirement.not-met::before {
+            content: '✗ ';
+        }
+    </style>
 </head>
 <body>
     <div class="register-card">
@@ -30,7 +57,16 @@
 
                     <div class="form-group">
                         <label class="form-label" for="password">Set a Password</label>
-                        <input type="password" id="password" name="password" class="form-control" required minlength="6" />
+                        <input type="password" id="password" name="password" class="form-control" required minlength="8" placeholder="Enter a strong password" />
+                        <div id="password-strength" class="password-strength">
+                            <ul class="password-requirements">
+                                <li id="length" class="requirement">At least 8 characters</li>
+                                <li id="uppercase" class="requirement">One uppercase letter</li>
+                                <li id="lowercase" class="requirement">One lowercase letter</li>
+                                <li id="digit" class="requirement">One digit</li>
+                                <li id="special" class="requirement">One special character</li>
+                            </ul>
+                        </div>
                     </div>
 
                 </div>
