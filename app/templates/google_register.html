@@ -36,7 +36,17 @@
 <body>
     <div class="register-card">
         <h2>Complete Your Registration</h2>
-        
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <form method="POST" class="register-form">
             <div class="form-container">
                 <div class="form-fields">
@@ -67,6 +77,9 @@
                                 <li id="special" class="requirement">One special character</li>
                             </ul>
                         </div>
+                        {% if error %}
+                            <div class="alert alert-error">{{ error }}</div>
+                        {% endif %}
                     </div>
 
                 </div>

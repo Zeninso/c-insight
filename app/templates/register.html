@@ -37,7 +37,17 @@
 <body>
     <div class="register-card">
         <h2>Join C-Insight</h2>
-        
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <form method="POST" class="register-form">
             <div class="form-container">
                 <div class="form-fields">
