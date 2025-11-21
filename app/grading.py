@@ -330,6 +330,8 @@ class CodeGrader:
                 similarity_score = 0
                 ast_feedback = "Submission has syntax errors; grading scores set to zero."
                 sim_feedback = "Similarity check skipped due to syntax errors."
+                test_correctness_score = 0
+                test_cases = []
             else:
                 # Dynamic testing with test cases
                 test_cases = self.parse_test_cases(activity_id)
@@ -448,7 +450,8 @@ class CodeGrader:
                 test_correctness_score, test_details if test_cases else [],
                 logic_score, ast_feedback,
                 similarity_score, sim_feedback,
-                overdue_penalty
+                overdue_penalty,
+                code
             )
             
             # Convert feedback dict to JSON string for database storage
@@ -477,11 +480,14 @@ class CodeGrader:
                 'feedback': f'Grading failed due to an error: {str(e)}. All scores set to zero.'
             }
 
-    def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details, 
-                                     logic_score, logic_msg, similarity_score, similarity_msg, overdue_penalty):
+    def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details,
+                                     logic_score, logic_msg, similarity_score, similarity_msg, overdue_penalty, code):
         """Format feedback into 4 structured sections for students."""
         feedback = {}
-        
+
+        # Check if there are syntax errors that prevent further grading
+        has_syntax_errors = syntax_score < 85
+
         # 1. SYNTAX CHECK
         if syntax_score >= 85:
             feedback['syntax'] = {
@@ -496,20 +502,28 @@ class CodeGrader:
                 'status': 'Error Found',
                 'message': f'Syntax errors detected: {error_details[0]}',
                 'details': error_details,
-                'score': f"{syntax_score:.0f}%"
+                'score': f"{syntax_score:.0f}%",
+                'submitted_code': code
             }
-        
+
         # 2. CORRECTNESS (Test Cases)
-        if test_details:
+        if has_syntax_errors:
+            feedback['correctness'] = {
+                'status': 'Not Graded',
+                'message': 'Correctness testing was skipped due to syntax errors. Please fix the syntax errors first.',
+                'score': '0%',
+                'explanation': 'Syntax errors prevent code execution and testing.'
+            }
+        elif test_details:
             passed_count = sum(1 for t in test_details if 'Passed' in t)
             total_count = len(test_details)
-            
+
             feedback['correctness'] = {
                 'status': f'{passed_count}/{total_count} tests passed',
                 'score': f"{correctness_score:.0f}%",
                 'test_results': []
             }
-            
+
             for i, test in enumerate(test_details, 1):
                 if 'Passed' in test:
                     feedback['correctness']['test_results'].append({
@@ -524,7 +538,7 @@ class CodeGrader:
                         'result': test,
                         'explanation': 'Your code output does not match the expected result for this test case'
                     })
-            
+
             if passed_count == total_count:
                 feedback['correctness']['message'] = 'All test cases passed! Your code produces correct output.'
             else:
@@ -535,60 +549,76 @@ class CodeGrader:
                 'message': 'No test cases defined for this activity.',
                 'score': f"{correctness_score:.0f}%"
             }
-        
+
         # 3. SEMANTICS/LOGIC CHECK
-        logic_details = logic_msg.split('. ') if logic_msg else []
-        required_detected = any('MISSING REQUIRED' in detail or 'required' in detail.lower() for detail in logic_details)
-        
-        feedback['semantics'] = {
-            'score': f"{logic_score:.0f}%",
-            'details': []
-        }
-        
-        if required_detected:
-            feedback['semantics']['status'] = 'Issues Found'
-            for detail in logic_details:
-                if detail.strip():
-                    feedback['semantics']['details'].append(detail.strip())
+        if has_syntax_errors:
+            feedback['semantics'] = {
+                'status': 'Not Graded',
+                'message': 'Logic and semantic analysis was skipped due to syntax errors. Please fix the syntax errors first.',
+                'score': '0%',
+                'explanation': 'Syntax errors prevent detailed code analysis.'
+            }
         else:
-            feedback['semantics']['status'] = 'Good'
-            feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
-        
-        # 4. SIMILARITY CHECK
-        # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
-        # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
-        feedback['similarity'] = {
-            'score': f"{similarity_score:.0f}/100",
-        }
-        
-        if 'Insufficient' in similarity_msg:
-            feedback['similarity']['status'] = 'Insufficient Data'
-            feedback['similarity']['message'] = 'Not enough submissions yet to check similarity.'
-        else:
-            # Interpret assigned score correctly: LOWER values indicate HIGHER similarity
-            if similarity_score <= 10:
-                feedback['similarity']['status'] = 'Plagiarism Detected'
-                feedback['similarity']['message'] = similarity_msg
-                feedback['similarity']['warning'] = '🚨 Code appears to be copied from another submission. This is a serious academic integrity concern.'
-            elif similarity_score <= 20:
-                feedback['similarity']['status'] = 'Highly Suspicious'
-                feedback['similarity']['message'] = similarity_msg
-                feedback['similarity']['warning'] = '⚠️ Code structure is nearly identical to another submission. Please verify originality.'
-            elif similarity_score <= 40:
-                feedback['similarity']['status'] = 'Suspicious'
-                feedback['similarity']['message'] = similarity_msg
-                feedback['similarity']['warning'] = '⚠️ Your code shows high similarity to other submissions. Please review for originality.'
-            elif similarity_score >= 95:
-                feedback['similarity']['status'] = 'Unique Solution'
-                feedback['similarity']['message'] = similarity_msg or 'Your solution is unique and original.'
-            elif similarity_score >= 90:
-                feedback['similarity']['status'] = 'Low Similarity (Natural)'
-                feedback['similarity']['message'] = similarity_msg or 'Natural similarity for this activity type.'
+            logic_details = logic_msg.split('. ') if logic_msg else []
+            required_detected = any('MISSING REQUIRED' in detail or 'required' in detail.lower() for detail in logic_details)
+
+            feedback['semantics'] = {
+                'score': f"{logic_score:.0f}%",
+                'details': []
+            }
+
+            if required_detected:
+                feedback['semantics']['status'] = 'Issues Found'
+                for detail in logic_details:
+                    if detail.strip():
+                        feedback['semantics']['details'].append(detail.strip())
             else:
-                # Covers 41–89: acceptable range
-                feedback['similarity']['status'] = 'Acceptable Similarity'
-                feedback['similarity']['message'] = similarity_msg or 'Similarity level is within acceptable bounds.'
-        
+                feedback['semantics']['status'] = 'Good'
+                feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
+
+        # 4. SIMILARITY CHECK
+        if has_syntax_errors:
+            feedback['similarity'] = {
+                'status': 'Not Checked',
+                'message': 'Similarity check was skipped due to syntax errors. Please fix the syntax errors first.',
+                'score': '0/100',
+                'explanation': 'Syntax errors prevent similarity analysis.'
+            }
+        else:
+            # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
+            # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
+            feedback['similarity'] = {
+                'score': f"{similarity_score:.0f}/100",
+            }
+
+            if 'Insufficient' in similarity_msg:
+                feedback['similarity']['status'] = 'Insufficient Data'
+                feedback['similarity']['message'] = 'Not enough submissions yet to check similarity.'
+            else:
+                # Interpret assigned score correctly: LOWER values indicate HIGHER similarity
+                if similarity_score <= 10:
+                    feedback['similarity']['status'] = 'Plagiarism Detected'
+                    feedback['similarity']['message'] = similarity_msg
+                    feedback['similarity']['warning'] = '🚨 Code appears to be copied from another submission. This is a serious academic integrity concern.'
+                elif similarity_score <= 20:
+                    feedback['similarity']['status'] = 'Highly Suspicious'
+                    feedback['similarity']['message'] = similarity_msg
+                    feedback['similarity']['warning'] = '⚠️ Code structure is nearly identical to another submission. Please verify originality.'
+                elif similarity_score <= 40:
+                    feedback['similarity']['status'] = 'Suspicious'
+                    feedback['similarity']['message'] = similarity_msg
+                    feedback['similarity']['warning'] = '⚠️ Your code shows high similarity to other submissions. Please review for originality.'
+                elif similarity_score >= 95:
+                    feedback['similarity']['status'] = 'Unique Solution'
+                    feedback['similarity']['message'] = similarity_msg or 'Your solution is unique and original.'
+                elif similarity_score >= 90:
+                    feedback['similarity']['status'] = 'Low Similarity (Natural)'
+                    feedback['similarity']['message'] = similarity_msg or 'Natural similarity for this activity type.'
+                else:
+                    # Covers 41–89: acceptable range
+                    feedback['similarity']['status'] = 'Acceptable Similarity'
+                    feedback['similarity']['message'] = similarity_msg or 'Similarity level is within acceptable bounds.'
+
         # Add overdue penalty if applicable
         if overdue_penalty > 0:
             feedback['penalty'] = {
@@ -596,7 +626,7 @@ class CodeGrader:
                 'amount': f"{overdue_penalty}%",
                 'message': f'Submission was late. {overdue_penalty}% penalty applied.'
             }
-        
+
         return feedback
 
     def check_syntax(self, code):
