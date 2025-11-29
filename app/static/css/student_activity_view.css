@@ -10,12 +10,29 @@
             border-radius: 10px;
             margin-bottom: 2rem;
         }
+        .activity-header p {
+            word-break: break-word;
+            overflow-wrap: break-word; 
+            margin-bottom: 1rem;
+        }
 
         .activity-meta {
             display: flex;
             gap: 2rem;
             margin-top: 1rem;
             flex-wrap: wrap;
+        }
+
+        .instructions pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 5px;
+        border: 1px solid #e9ecef;
+        font-family: inherit;
+        color: #333;
+        overflow: auto;
         }
 
         .meta-item {
