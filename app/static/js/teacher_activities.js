@@ -168,6 +168,7 @@ function populateEditForm(activity) {
         activity.test_cases.forEach(testCase => {
             addEditTestCase(testCase);
         });
+        updateTestCaseNumbers(); // Initialize numbering after loading
     }
 
     const rubricsContainer = document.getElementById('edit-rubrics-container');
@@ -192,25 +193,29 @@ function populateEditForm(activity) {
     updateEditTotalWeight();
 }
 
-// Update total weight (edit form)
+// Update total weight (edit form) - Enhanced UI/UX
 function updateEditTotalWeight() {
     const total = Array.from(document.querySelectorAll('#edit-rubrics-container .weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
     
-    document.getElementById('edit-total-weight').textContent = total + '%';
+    const totalWeightSpan = document.getElementById('edit-total-weight');
+    totalWeightSpan.textContent = total + '%';
     
     const errorElement = document.getElementById('edit-weight-error');
     const submitBtn = document.getElementById('edit-submit-btn');
     
     if (total !== 100) {
         errorElement.textContent = 'Total weight must equal 100%';
+        totalWeightSpan.style.color = 'red';
+        totalWeightSpan.style.fontWeight = 'bold';
         submitBtn.disabled = true;
     } else {
         errorElement.textContent = '';
+        totalWeightSpan.style.color = 'green';
+        totalWeightSpan.style.fontWeight = 'bold';
         submitBtn.disabled = false;
     }
 }
-
 
 
 // Delete activity
@@ -336,9 +341,17 @@ document.getElementById('createActivityForm').addEventListener('submit', functio
     });
 });
 
-// Form submission (edit activity)
+// Form submission (edit activity) - FIX APPLIED & LOADING STATE ADDED
 document.getElementById('editActivityForm').addEventListener('submit', function(e) {
     e.preventDefault();
+
+    const classIdInput = document.getElementById('edit_class_id');
+    
+
+    if (classIdInput.value === "") {
+        Swal.fire('Error', 'You must select a class for the activity.', 'error');
+        return; 
+    }
 
     const totalWeight = Array.from(document.querySelectorAll('#edit-rubrics-container .weight-input'))
         .reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
@@ -354,6 +367,11 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
 
     const formData = new FormData(this);
     const activityId = document.getElementById('edit_activity_id').value;
+    const submitBtn = document.getElementById('edit-submit-btn');
+
+    // Set loading state
+    submitBtn.textContent = 'Updating...';
+    submitBtn.disabled = true;
 
     fetch(`/teacher/activity/${activityId}`, {
         method: 'PUT',
@@ -364,6 +382,10 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
     })
     .then(response => response.json())
     .then(data => {
+        // Reset button state
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Activity';
+        submitBtn.disabled = false;
+
         if (data.error) {
             Swal.fire('Error', data.error, 'error');
         } else {
@@ -380,6 +402,9 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
         }
     })
     .catch(error => {
+        // Reset button state on failure
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Activity';
+        submitBtn.disabled = false;
         Swal.fire('Error', 'Failed to update activity', 'error');
     });
 });
@@ -389,37 +414,66 @@ document.getElementById('editActivityForm').addEventListener('submit', function(
 function addTestCase(existingTestCase = null) {
     const container = document.getElementById('test-cases-container');
     const testCaseDiv = document.createElement('div');
-    testCaseDiv.className = 'test-case-item';
+    testCaseDiv.className = 'test-case-item card-test-case';
+    
+    const index = container.children.length + 1;
+
     testCaseDiv.innerHTML = `
+        <div class="test-case-header">
+            <h4>Test Case ${index}</h4>
+            <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this, 'create')"><i class="fas fa-minus-circle"></i> Remove</button>
+        </div>
         <div class="test-case-content">
             <label>Input:</label>
             <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
             <label>Expected Output:</label>
             <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
         </div>
-        <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this)">Remove</button>
     `;
     container.appendChild(testCaseDiv);
+    updateTestCaseNumbers('create');
 }
 
+// Test case functions for EDIT modal - Enhanced UI/UX
 function addEditTestCase(existingTestCase = null) {
     const container = document.getElementById('edit-test-cases-container');
     const testCaseDiv = document.createElement('div');
-    testCaseDiv.className = 'test-case-item';
+    testCaseDiv.className = 'test-case-item card-test-case';
+    
+    const index = container.children.length + 1;
+
     testCaseDiv.innerHTML = `
+        <div class="test-case-header">
+            <h4>Test Case ${index}</h4>
+            <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this, 'edit')"><i class="fas fa-minus-circle"></i> Remove</button>
+        </div>
         <div class="test-case-content">
             <label>Input:</label>
             <textarea name="test_case_input[]" placeholder="Enter input for test case" required>${existingTestCase ? existingTestCase.input : ''}</textarea>
             <label>Expected Output:</label>
             <textarea name="test_case_output[]" placeholder="Enter expected output" required>${existingTestCase ? existingTestCase.output : ''}</textarea>
         </div>
-        <button type="button" class="btn btn-danger btn-sm remove-btn" onclick="removeTestCase(this)">Remove</button>
     `;
     container.appendChild(testCaseDiv);
+    updateTestCaseNumbers('edit');
 }
 
-function removeTestCase(button) {
-    button.parentElement.remove();
+function removeTestCase(button, formType) {
+    button.parentElement.parentElement.remove(); // Remove the whole test-case-item
+    updateTestCaseNumbers(formType);
+}
+
+// New function to re-number test cases after adding or removing
+function updateTestCaseNumbers(formType) {
+    const containerId = formType === 'edit' ? 'edit-test-cases-container' : 'test-cases-container';
+    const container = document.getElementById(containerId);
+
+    Array.from(container.children).forEach((item, index) => {
+        const header = item.querySelector('.test-case-header h4');
+        if (header) {
+            header.textContent = `Test Case ${index + 1}`;
+        }
+    });
 }
 
 // Form validation for test cases

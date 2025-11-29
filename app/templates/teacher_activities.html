@@ -33,12 +33,86 @@
             overflow-y: auto !important;
             flex: 1;
         }
+
+        /* --- UI Improvements for Modals --- */
+        .form-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            color: #6f42c1;
+            border-bottom: 2px solid #6f42c1;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Test Case Card Styling */
+        .card-test-case {
+            border: 1px solid #ccc;
+            border-left: 5px solid #28a745; /* Green accent */
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            background-color: #e6ffe6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .test-case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-test-case label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        /* Rubric Styling */
+        #edit-rubrics-container .rubric-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        #edit-rubrics-container .rubric-item input[type="text"] {
+            flex-grow: 1;
+            background-color: #f1f1f1;
+        }
+
+        #edit-rubrics-container .rubric-item input[type="number"] {
+            width: 80px;
+            text-align: right;
+        }
+
+        /* Total Weight Styling */
+        .total-weight-display {
+            font-size: 1.2em;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            margin-top: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .total-weight-display #edit-total-weight {
+            font-size: 1.1em;
+        }
     </style>
 
 </head>
 <body>
     <div class="dashboard">
-        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <i class="fas fa-graduation-cap"></i>
@@ -54,7 +128,6 @@
             </ul>
         </div>
         
-        <!-- Main Content -->
         <div class="main-content">
             <div class="header">
                 <h1>Activities Management</h1>
@@ -78,9 +151,7 @@
                 </div>
             </div>
 
-            <!-- Content Section -->
             <div class="content-section">
-                <!-- Activity Management Section -->
                 <div class="activity-management">
                 <div class="activity-actions">
                     <button class="btn btn-gradient" onclick="showCreateActivityModal()">
@@ -88,7 +159,6 @@
                     </button>
                 </div>
                 
-                <!-- Activities Grid -->
                 <div class="activities-grid">
                     <div class="card">
                         <div class="card-header">
@@ -153,14 +223,12 @@
         </div>
     </div>
     
-    <!-- Create Activity Modal -->
     <div id="createActivityModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="hideCreateActivityModal()">&times;</span>
             <h2>Create New Activity</h2>
     
             <form id="createActivityForm" action="{{ url_for('teacher.create_activity') }}" method="POST">
-                <!-- Class selection -->
                 <label for="class_id">Class:</label>
                 <select id="class_id" name="class_id" required>
                     <option value="">Select a class...</option>
@@ -169,37 +237,28 @@
                     {% endfor %}
                 </select>
 
-                <!-- Activity title -->
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" required>
 
-                <!-- Description -->
                 <label for="description">Description:</label>
                 <textarea id="description" name="description"></textarea>
 
-                <!-- Instructions -->
                 <label for="instructions">Instructions:</label>
                 <textarea id="instructions" name="instructions" required></textarea>
 
-                <!-- Starter code -->
                 <label for="starter_code">Starter Code (optional):</label>
                 <textarea id="starter_code" name="starter_code"></textarea>
 
-                <!-- Due date -->
                 <label for="due_date">Due Date:</label>
                 <input type="datetime-local" id="due_date" name="due_date" required>
 
-                <!-- Test Cases Section -->
                 <label for="test_cases">Test Cases:</label>
                 <div id="test-cases-container" class="test-cases-list">
-                    <!-- Test cases will be added here dynamically -->
-                </div>
+                    </div>
                 <button type="button" class="btn btn-secondary" onclick="addTestCase()">Add Test Case</button>
 
-                <!-- Rubrics Section -->
                 <h3>Rubrics</h3>
                 <div id="rubrics-container">
-                    <!-- Default rubrics-->
                     <div class="rubric-item">
                         <input type="text" name="rubric_name[]" value="Correctness" required readonly>
                         <input type="number" name="rubric_weight[]" min="0" max="100" value="40" class="weight-input" required>
@@ -221,29 +280,24 @@
                     </div>
                 </div>
 
-                <!-- Total weight display -->
                 <p><strong>Total Weight: <span id="total-weight">100%</span></strong></p>
                 <p id="weight-error" style="color:red;"></p>
 
-                <!-- Submit -->
                 <button type="submit" id="submit-btn" class="btn btn-primary">Create Activity</button>
             </form>
             <div id="create-activity-message" style="margin-top: 10px;"></div>
         </div>
     </div>
     
-    <!-- View Activity Modal -->
     <div id="viewActivityModal" class="modal">
         <div class="modal-content" style="width: 70%; max-height: 80vh; overflow-y: auto;">
             <span class="close" onclick="hideViewActivityModal()">&times;</span>
             <h2>Activity Details</h2>
             <div id="viewActivityContent" class="activity-view">
-                <!-- Content will be loaded dynamically -->
-            </div>
+                </div>
         </div>
     </div>
     
-    <!-- Edit Activity Modal -->
     <div id="editActivityModal" class="modal">
         <div class="modal-content" style="width: 70%; max-height: 80vh; overflow-y: auto;">
             <span class="close" onclick="hideEditActivityModal()">&times;</span>
@@ -251,56 +305,70 @@
             <form id="editActivityForm" method="POST">
                 <input type="hidden" id="edit_activity_id" name="activity_id">
 
-                <div class="form-group">
-                    <label for="edit_class_id">Class:</label>
-                    <select id="edit_class_id" name="class_id">
-                        <option value="">No Class</option>
-                        {% for class in classes %}
-                        <option value="{{ class.id }}">{{ class.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="edit_title">Title:</label>
-                    <input type="text" id="edit_title" name="title" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit_description">Description:</label>
-                    <textarea id="edit_description" name="description"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit_instructions">Instructions:</label>
-                    <textarea id="edit_instructions" name="instructions" required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit_starter_code">Starter Code (optional):</label>
-                    <textarea id="edit_starter_code" name="starter_code"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit_due_date">Due Date:</label>
-                    <input type="datetime-local" id="edit_due_date" name="due_date" required>
-                </div>
-
-                <!-- Test Cases Section -->
-                    <label for="test_cases">Test Cases:</label>
-                    <div id="edit-test-cases-container" class="test-cases-list">
-                        <!-- Test cases will be added here dynamically -->
+                <div class="form-section">
+                    <h3><i class="fas fa-info-circle"></i> General Details</h3>
+                    
+                    <div class="form-group">
+                        <label for="edit_class_id">Class:</label>
+                        <select id="edit_class_id" name="class_id">
+                            <option value="">No Class</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <button type="button" class="btn btn-secondary" onclick="addEditTestCase()">Add Test Case</button>
 
-                <h3>Rubrics</h3>
-                <div id="edit-rubrics-container">
+                    <div class="form-group">
+                        <label for="edit_title">Title:</label>
+                        <input type="text" id="edit_title" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_description">Description:</label>
+                        <textarea id="edit_description" name="description"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_due_date">Due Date:</label>
+                        <input type="datetime-local" id="edit_due_date" name="due_date" required>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-code"></i> Instructions & Starter Code</h3>
+
+                    <div class="form-group">
+                        <label for="edit_instructions">Instructions:</label>
+                        <textarea id="edit_instructions" name="instructions" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_starter_code">Starter Code (optional):</label>
+                        <textarea id="edit_starter_code" name="starter_code"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-vial"></i> Test Cases</h3>
+                    <label for="test_cases">Define Test Cases for Autograding:</label>
+                    <div id="edit-test-cases-container" class="test-cases-list">
+                        </div>
+                    <button type="button" class="btn btn-secondary" onclick="addEditTestCase()"><i class="fas fa-plus"></i> Add Test Case</button>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-percent"></i> Grading Rubrics</h3>
+                    <div id="edit-rubrics-container">
+                    </div>
+                    
+                    <div class="total-weight-display">
+                        <span>Total Weight:</span>
+                        <span id="edit-total-weight">100%</span>
+                    </div>
+                    <p id="edit-weight-error" style="color:red; margin-top: 5px; text-align: right;"></p>
                 </div>
                 
-                <p><strong>Total Weight: <span id="edit-total-weight">100%</span></strong></p>
-                <p id="edit-weight-error" style="color:red;"></p>
-                
-                <button type="submit" id="edit-submit-btn" class="btn btn-gradient">Update Activity</button>
+                <button type="submit" id="edit-submit-btn" class="btn btn-gradient"><i class="fas fa-save"></i> Update Activity</button>
             </form>
         </div>
     </div>
