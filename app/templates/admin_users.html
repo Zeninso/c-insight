@@ -106,6 +106,31 @@
             align-items: center;
             gap: 0.5rem;
         }
+
+        /* Mobile Responsiveness */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 768px) {
+            .filter-section div {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .filter-section input,
+            .filter-section select {
+                width: 100%;
+            }
+            #bulkActions .role-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            #bulkActions .role-group select {
+                width: 100%;
+                min-width: unset;
+            }
+        }
     </style>
 </head>
 <body>
@@ -182,37 +207,39 @@
                 </div>
 
                 {% if users and users|length > 0 %}
-                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                    <thead>
-                        <tr style="background-color: #f8f9fa;">
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;"><label class="table-header-checkbox"><input type="checkbox" id="selectAll"> Select All</label></th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Username</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">First Name</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Last Name</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Email</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Role</th>
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr id="user-{{ user.id }}" data-username="{{ user.username }}" data-firstname="{{ user.first_name }}" data-lastname="{{ user.last_name }}" data-email="{{ user.email }}" data-role="{{ user.role }}">
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;"><input type="checkbox" class="userCheckbox" value="{{ user.id }}"></td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.id }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.username }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.first_name }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.last_name }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.email }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.role }}</td>
-                            <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">
-                                <button onclick="editUser('{{ user.id }}')" class="btn btn-gradient" style="margin-right: 0.5rem;" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button type="button" onclick="confirmDelete('{{ user.id }}')" class="btn btn-gradient" style="padding: 0.5rem 1rem;" title="Delete"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                        <thead>
+                            <tr style="background-color: #f8f9fa;">
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;"><label class="table-header-checkbox"><input type="checkbox" id="selectAll"> Select All</label></th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Username</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">First Name</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Last Name</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Email</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Role</th>
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr id="user-{{ user.id }}" data-username="{{ user.username }}" data-firstname="{{ user.first_name }}" data-lastname="{{ user.last_name }}" data-email="{{ user.email }}" data-role="{{ user.role }}">
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;"><input type="checkbox" class="userCheckbox" value="{{ user.id }}"></td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.id }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.username }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.first_name }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.last_name }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.email }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">{{ user.role }}</td>
+                                <td style="padding: 0.75rem; border-bottom: 1px solid #eee;">
+                                    <button onclick="editUser('{{ user.id }}')" class="btn btn-gradient" style="margin-right: 0.5rem;" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button type="button" onclick="confirmDelete('{{ user.id }}')" class="btn btn-gradient" style="padding: 0.5rem 1rem;" title="Delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
                 <!-- Empty state -->
                 <div class="empty-state">
