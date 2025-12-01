@@ -5,23 +5,239 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>C-Insight | Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="bg-purple"></div>
-        <div class="main-card">
-            <h1 id="main-heading"></h1>
-            <p class="lead" id="sub-heading"></p>
-            <div class="btn-container">
-                <a href="{{ url_for('auth.login') }}" class="btn btn-gradient">Login</a>
-                <a href="{{ url_for('auth.register') }}" class="btn btn-outline-gradient">Register</a>
+    
+    <header>
+        <div class="header-content">
+            <a href="#" class="logo">C-Insight</a>
+            
+            <button class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="desktop-nav-auth-container" id="mobile-menu-container">
+                <nav id="nav-menu">
+                    <a href="#about-section">About</a>
+                    <a href="#faqs-section">FAQs</a>
+                    <a href="#contact-section">Contact</a>
+                </nav>
+                <div class="header-auth">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-gradient-small">Login</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-gradient-small">Register</a>
+                </div>
             </div>
+            
         </div>
-    </div>
+    </header>
+
+    <main>
+        <section class="hero-section">
+            <div class="main-card">
+                <h1 id="main-heading"></h1>
+                
+                <p class="lead-description">C-INSIGHT AN LMS-INTEGRATED AUTOMATED CODE CHECKER FOR ALL YOU C PROGRAMMING ACTIVITIES</p>
+                
+                <p class="lead" id="sub-heading"></p>
+                <div class="btn-container">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-gradient">Start Exploring</a>
+                    <a href="#about-section" class="btn btn-outline-gradient">Learn More</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="about-section" class="content-section">
+            <h2 class="fade-in-scroll"><i class="fas fa-info-circle icon-gradient"></i> Core Features</h2>
+            <div class="about-features">
+                <div class="feature-card fade-in-scroll">
+                    <i class="fas fa-desktop icon-gradient"></i>
+                    <h3>LMS Integration</h3>
+                    <p>Seamlessly integrates with our Learning Management System for easy assignment management and grade synchronization.</p>
+                </div>
+                <div class="feature-card fade-in-scroll">
+                    <i class="fas fa-magic icon-gradient"></i>
+                    <h3>Automated Grading</h3>
+                    <p>Submissions are instantly compiled, executed, and graded against multiple test cases, saving instructors valuable time.</p>
+                </div>
+                <div class="feature-card fade-in-scroll">
+                    <i class="fas fa-comment-dots icon-gradient"></i>
+                    <h3>Instant Feedback</h3>
+                    <p>Students receive immediate, detailed reports on errors, efficiency, and code quality to foster rapid learning and iteration.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="faqs-section" class="content-section">
+            <h2 class="fade-in-scroll"><i class="fas fa-question-circle icon-gradient"></i> Frequently Asked Questions</h2>
+            <div class="accordion fade-in-scroll">
+                
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>What is C-Insight?</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <p>C-Insight is an LMS integrated code checker for C programming that allows students to submit code, receive instant feedback, and get automatically graded assignments. Teachers can create and manage programming exercises with ease.</p>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>How does the automatic grading work?</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <p>Our system compiles and runs your C code against predefined test cases, checking for correctness, efficiency, and adherence to coding standards. It provides detailed feedback on errors, warnings, and suggestions for improvement.</p>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>Is my code secure?</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <p>Security is our top priority. We use industry-standard encryption for all data and code submissions. Our platform is designed to prevent unauthorized access and ensure a safe learning environment.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="contact-section" class="content-section">
+            <div class="fade-in-scroll">
+                <h2><i class="fas fa-envelope icon-gradient"></i> Get in Touch</h2>
+                <p>Have a question or need personalized support? Our team is here to help. Reach out to us via email or contact us on our contact number.</p>
+                <div class="contact-links">
+                    <a href="mailto:support@c-insight.com" class="btn btn-gradient-small"><i class="fas fa-envelope"></i> Email Support</a>
+                    <a href="tel:09391286722" class="btn btn-gradient-small"><i class="fas fa-phone"></i> Call Us: 09391286722</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2025 C-Insight. All rights reserved.</p>
+        </div>
+    </footer>
+
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ url_for('static', filename='js/typewriter.js') }}"></script>
+    <script>
+        const bg = document.querySelector('.bg-purple');
+        const bubbleSizes = ['small', 'medium', 'large'];
 
-    
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble', bubbleSizes[Math.floor(Math.random() * bubbleSizes.length)]);
+            
+            // Random position
+            const x = Math.random() * 100; // %
+            const y = Math.random() * 100; // %
+            bubble.style.left = `${x}vw`;
+            bubble.style.top = `${y}vh`;
 
+            // Random delay and duration for animation
+            const delay = Math.random() * 2; // seconds
+            const duration = 3 + Math.random() * 2; // seconds
+            bubble.style.animationDelay = `${delay}s`;
+            bubble.style.animationDuration = `${duration}s`;
+
+            bg.appendChild(bubble);
+
+
+            bubble.addEventListener('animationend', () => {
+                bubble.remove();
+            });
+        }
+
+        // Create initial bubbles and then one every 500ms
+        for (let i = 0; i < 15; i++) {
+            createBubble();
+        }
+        setInterval(createBubble, 500);
+
+        // Intersection Observer for Scroll Animation
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('faded-in');
+
+                    if (!entry.target.closest('#faqs-section') && !entry.target.closest('#contact-section')) {
+
+                         observer.unobserve(entry.target); 
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-scroll').forEach(element => {
+            observer.observe(element);
+        });
+
+        // Sticky Header Effect
+        const header = document.querySelector('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('sticky');
+            } else {
+                header.classList.remove('sticky');
+            }
+        });
+
+        // Hamburger Menu Toggle
+        const hamburger = document.getElementById('hamburger-menu');
+
+        const mobileMenuContainer = document.getElementById('mobile-menu-container'); 
+        
+        hamburger.addEventListener('click', () => {
+            mobileMenuContainer.classList.toggle('active');
+        });
+        
+
+        const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const accordionItem = header.parentElement;
+                const content = header.nextElementSibling;
+                
+
+                accordionHeaders.forEach(otherHeader => {
+                    const otherItem = otherHeader.parentElement;
+                    const otherContent = otherHeader.nextElementSibling;
+
+                    if (otherItem !== accordionItem && otherHeader.classList.contains('active')) {
+                        otherHeader.classList.remove('active');
+                        otherContent.style.maxHeight = null;
+                        otherContent.style.padding = '0 1.5rem';
+                    }
+                });
+
+                // Toggle the clicked item
+                header.classList.toggle('active');
+
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    content.style.padding = '0 1.5rem';
+                } else {
+  
+                    content.style.maxHeight = content.scrollHeight + 20 + "px"; 
+
+                }
+            });
+        });
+
+    </script>
 </body>
 </html>
