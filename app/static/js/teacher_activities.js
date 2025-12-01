@@ -60,9 +60,13 @@ function formatActivityView(activity) {
         <div class="activity-section">
             <h3>${activity.title}</h3>
             <p><strong>Class:</strong> ${ activity.class_name || 'N/A'}</p>
-            <p><strong>Description:</strong> ${activity.description || 'N/A'}</p>
         </div>
-        
+
+        <div class="activity-section">
+            <h4>Description</h4>
+            <p>${activity.description || 'N/A'}</p>
+        </div>
+
         <div class="activity-section">
             <h4>Instructions</h4>
             <pre>${activity.instructions}</pre>
@@ -168,7 +172,7 @@ function populateEditForm(activity) {
         activity.test_cases.forEach(testCase => {
             addEditTestCase(testCase);
         });
-        updateTestCaseNumbers(); // Initialize numbering after loading
+        updateTestCaseNumbers(); 
     }
 
     const rubricsContainer = document.getElementById('edit-rubrics-container');
@@ -341,7 +345,7 @@ document.getElementById('createActivityForm').addEventListener('submit', functio
     });
 });
 
-// Form submission (edit activity) - FIX APPLIED & LOADING STATE ADDED
+
 document.getElementById('editActivityForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -434,7 +438,7 @@ function addTestCase(existingTestCase = null) {
     updateTestCaseNumbers('create');
 }
 
-// Test case functions for EDIT modal - Enhanced UI/UX
+// Test case functions for EDIT modal
 function addEditTestCase(existingTestCase = null) {
     const container = document.getElementById('edit-test-cases-container');
     const testCaseDiv = document.createElement('div');
@@ -459,7 +463,7 @@ function addEditTestCase(existingTestCase = null) {
 }
 
 function removeTestCase(button, formType) {
-    button.parentElement.parentElement.remove(); // Remove the whole test-case-item
+    button.parentElement.parentElement.remove(); 
     updateTestCaseNumbers(formType);
 }
 

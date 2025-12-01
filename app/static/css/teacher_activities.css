@@ -53,7 +53,8 @@
         /* ===== Activity View ===== */
         .activity-view {
             display: grid;
-            gap: 1.5rem;
+            gap: 2rem;
+            overflow: hidden;
         }
 
         .activity-section {
@@ -62,6 +63,7 @@
             padding: 1rem 1.5rem;
             box-shadow: 0 3px 8px rgba(0,0,0,0.05);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
         }
         .activity-section:hover {
             transform: translateY(-3px);
@@ -78,6 +80,9 @@
             font-size: 0.95rem;
             color: #333;
             white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
         }
 
         /* ===== Rubrics Table ===== */
@@ -577,12 +582,16 @@
 
         .activity-card-body {
             padding: 20px;
+            overflow: hidden;
         }
 
         .activity-description {
             color: #666;
             margin-bottom: 15px;
             line-height: 1.5;
+            height: 4.5em;
+            overflow: hidden;
+            word-break: break-word;
         }
 
         .activity-details {
