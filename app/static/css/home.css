@@ -50,28 +50,7 @@ body {
     z-index: -1;
 }
 
-.bubble {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 50%;
-    animation: pop 4s ease-out infinite;
-    opacity: 0;
-    box-sizing: border-box;
-    transform: scale(0);
-    filter: blur(1px);
-    will-change: transform, opacity;
-}
 
-.bubble.small { width: 30px; height: 30px; }
-.bubble.medium { width: 60px; height: 60px; }
-.bubble.large { width: 90px; height: 90px; }
-
-@keyframes pop {
-    0%   { transform: scale(0); opacity: 0; }
-    50%  { opacity: 0.4; }
-    70%  { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(1.1); opacity: 0; }
-}
 
 @keyframes fade-in {
     from {
@@ -269,7 +248,7 @@ main {
 .fade-in-scroll {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fade-in-scroll.faded-in {
@@ -457,6 +436,7 @@ footer {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .btn-gradient-small {

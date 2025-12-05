@@ -931,11 +931,11 @@ class CodeGrader:
         logic_count = code.count('if ') + code.count('for ') + code.count('while ')
 
         # Only penalize if code is clearly just hardcoded output with no logic at all
-        if printf_count > 5 and logic_count == 0 and scanf_count == 0 and variable_count <= 1:
-            score -= 30
+        if printf_count > 6 and logic_count == 0 and scanf_count == 0 and variable_count <= 1:
+            score -= 20
             feedback.append("Code appears to be mostly hardcoded output - consider adding more logic and variable usage")
-        elif printf_count > 3 and logic_count == 0 and scanf_count == 0 and variable_count < 2:
-            score -= 15
+        elif printf_count > 4 and logic_count == 0 and scanf_count == 0 and variable_count < 2:
+            score -= 10
             feedback.append("Code may benefit from more variable usage and logic operations")
 
         # 1. Requirement-based semantic check - STRICT enforcement
