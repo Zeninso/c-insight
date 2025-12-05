@@ -316,7 +316,7 @@ class CodeGrader:
             # Extract requirements from activity text for semantic analysis
             activity_text_for_requirements = f"{description} {instructions}" if description or instructions else ""
             requirements = self.extract_activity_requirements(activity_text_for_requirements) if activity_text_for_requirements else None
-            requirement_score = 100
+            requirement_score, requirement_feedback = self.check_activity_requirements(code, requirements)
 
             # Syntax check using GCC
             syntax_score, syntax_feedback = self.check_syntax(code)
@@ -873,7 +873,7 @@ class CodeGrader:
 
     def analyze_c_code_correctness(self, code):
         """Analyze C code correctness with enhanced criteria."""
-        score = 70  # Base score
+        score = 80  # Base score
 
         lines = code.split('\n')
         total_lines = len([line for line in lines if line.strip()])
@@ -922,31 +922,32 @@ class CodeGrader:
         """Analyze C code logic complexity and flow with enhanced semantic and requirement-based criteria."""
         score = 100  # Start with full score, deduct for errors only
         feedback = []
+        semantic_issues = []  # Track semantic correctness issues
 
-        # 0. CRITICAL CHECK: Detect hardcoded printf-only solutions
+        # 0. CRITICAL CHECK: Detect hardcoded printf-only solutions (less aggressive)
         printf_count = code.count('printf(')
         scanf_count = code.count('scanf(')
         variable_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
         logic_count = code.count('if ') + code.count('for ') + code.count('while ')
-        
-        # If code has many printf but minimal input/processing logic, flag it as hardcoded
-        if printf_count > 3 and logic_count == 0 and scanf_count == 0:
-            score -= 50
-            feedback.append("WARNING: Code appears to be hardcoded printf statements without actual logic or input processing")
-        elif printf_count > 2 and variable_count < 2 and logic_count == 0:
+
+        # Only penalize if code is clearly just hardcoded output with no logic at all
+        if printf_count > 5 and logic_count == 0 and scanf_count == 0 and variable_count <= 1:
             score -= 30
-            feedback.append("WARNING: Code may be printing hardcoded values without proper variable usage or logic")
+            feedback.append("Code appears to be mostly hardcoded output - consider adding more logic and variable usage")
+        elif printf_count > 3 and logic_count == 0 and scanf_count == 0 and variable_count < 2:
+            score -= 15
+            feedback.append("Code may benefit from more variable usage and logic operations")
 
         # 1. Requirement-based semantic check - STRICT enforcement
         # First check if requirements parameter was provided (dict-based)
         missing_constructs = []
         requirement_count = 0
-        
+
         if requirements and isinstance(requirements, dict):
             # Use the structured requirements dict
             requirement_checks = [
                 ('loops', lambda c: c.count('for ') + c.count('while ') + c.count('do ') > 0, 20),
-                ('if_else', lambda c: 'if ' in c and 'else' in c, 20),
+                ('if_else', lambda c: 'if ' in c and ('else ' in c or 'else if' in c), 20),
                 ('functions', lambda c: c.count('(') - c.count('main(') > 0, 20),
                 ('arrays', lambda c: '[' in c and ']' in c, 20),
                 ('pointers', lambda c: '*' in c or '&' in c, 20),

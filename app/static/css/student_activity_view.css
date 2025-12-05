@@ -75,6 +75,28 @@
             margin-top: 1rem;
         }
 
+        .submission-info pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .submission-info code {
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: inherit;
+        }
+
         .overdue-notice {
             background: #f8d7da;
             color: #721c24;

@@ -846,6 +846,38 @@
             color: #721c24;
         }
 
+/* Code Container Styles */
+.code-container {
+    margin-top: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+}
+
+.code-container pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    background: transparent;
+    padding: 1rem;
+    border-radius: 0;
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.code-container code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: inherit;
+}
+
 /* Hide scrollbar */
 ::-webkit-scrollbar {
     display: none;
