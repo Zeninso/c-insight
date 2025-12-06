@@ -56,6 +56,11 @@ function hideEditActivityModal() {
 
 // Format activity data for viewing
 function formatActivityView(activity) {
+    // Calculate total weight from available rubrics
+    const totalWeight = (parseInt(activity.correctness_weight) || 0) + 
+                       (parseInt(activity.syntax_weight) || 0) + 
+                       (parseInt(activity.logic_weight) || 0);
+    
     return `
         <div class="activity-section">
             <h3>${activity.title}</h3>
@@ -123,15 +128,11 @@ function formatActivityView(activity) {
                         <td>Logic</td>
                         <td>${activity.logic_weight}%</td>
                     </tr>
-                    <tr>
-                        <td>Similarity</td>
-                        <td>${activity.similarity_weight}%</td>
-                    </tr>
                 </tbody>
                 <tfoot>
                     <tr>
                         <td><strong>Total</strong></td>
-                        <td><strong>${parseInt(activity.correctness_weight) + parseInt(activity.syntax_weight) + parseInt(activity.logic_weight) + parseInt(activity.similarity_weight)}%</strong></td>
+                        <td><strong>${totalWeight}%</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -175,6 +176,7 @@ function populateEditForm(activity) {
         updateTestCaseNumbers(); 
     }
 
+    // Create rubrics container with only 3 rubrics (no Similarity)
     const rubricsContainer = document.getElementById('edit-rubrics-container');
     rubricsContainer.innerHTML = `
         <div class="rubric-item">
@@ -188,10 +190,6 @@ function populateEditForm(activity) {
         <div class="rubric-item">
             <input type="text" name="rubric_name[]" value="Logic" required readonly>
             <input type="number" name="rubric_weight[]" min="0" max="100" value="${activity.logic_weight}" class="weight-input" required>
-        </div>
-        <div class="rubric-item">
-            <input type="text" name="rubric_name[]" value="Similarity" required readonly>
-            <input type="number" name="rubric_weight[]" min="0" max="100" value="${activity.similarity_weight}" class="weight-input" required>
         </div>
     `;
     updateEditTotalWeight();

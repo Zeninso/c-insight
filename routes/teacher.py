@@ -13,13 +13,281 @@ from io import BytesIO
 from flask import send_file
 import pandas as pd
 import json
-
-
-
+import itertools
+from difflib import SequenceMatcher
 
 teacher_bp = Blueprint('teacher', __name__)
 
+def calculate_code_similarity(code1, code2):
+    """Calculate similarity between two code snippets, accounting for variable renaming"""
+    if not code1 or not code2:
+        return 0
 
+    # C keywords and common library functions to preserve
+    c_keywords = {
+        'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
+        'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
+        'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
+    }
+    library_functions = {
+        'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
+        'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
+        'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
+    }
+
+    # Remove comments first
+    import re
+    code1_nocomments = re.sub(r'//.*', '', code1)
+    code1_nocomments = re.sub(r'/\*.*?\*/', '', code1_nocomments, flags=re.DOTALL)
+    code2_nocomments = re.sub(r'//.*', '', code2)
+    code2_nocomments = re.sub(r'/\*.*?\*/', '', code2_nocomments, flags=re.DOTALL)
+
+    # Find all identifiers in the code
+    def extract_identifiers(code):
+        # Pattern to match C identifiers (letters, digits, underscores, starting with letter or underscore)
+        return set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', code))
+
+    # Get identifiers from both codes
+    ids1 = extract_identifiers(code1_nocomments)
+    ids2 = extract_identifiers(code2_nocomments)
+
+    # Filter out keywords and library functions
+    user_ids1 = ids1 - c_keywords - library_functions
+    user_ids2 = ids2 - c_keywords - library_functions
+
+    # Create a mapping for normalization
+    def normalize_identifiers(code, user_ids):
+        normalized = code
+        # Sort identifiers by length (longest first) to avoid partial replacements
+        sorted_ids = sorted(user_ids, key=len, reverse=True)
+        for idx, identifier in enumerate(sorted_ids):
+            # Replace with generic placeholder
+            placeholder = f'VAR{idx}'
+            normalized = re.sub(r'\b' + re.escape(identifier) + r'\b', placeholder, normalized)
+        return normalized
+
+    # Normalize both codes
+    norm1 = normalize_identifiers(code1_nocomments, user_ids1)
+    norm2 = normalize_identifiers(code2_nocomments, user_ids2)
+
+    # Also normalize whitespace for better comparison
+    norm1 = re.sub(r'\s+', ' ', norm1).strip()
+    norm2 = re.sub(r'\s+', ' ', norm2).strip()
+
+    # Calculate similarity using sequence matcher
+    similarity = SequenceMatcher(None, norm1, norm2).ratio()
+    
+    # Scale to percentage and round
+    return round(similarity * 100, 1)
+
+@teacher_bp.route('/grades')
+def teacherGrades():
+    if 'username' not in session or session.get('role') != 'teacher':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get teacher ID
+    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
+    teacher_id = cur.fetchone()['id']
+
+    # Get class filter
+    class_id = request.args.get('class_id')
+    if class_id:
+        try:
+            class_id = int(class_id)
+        except ValueError:
+            class_id = None
+
+    # Get activity filter
+    activity_id = request.args.get('activity_id')
+    if activity_id:
+        try:
+            activity_id = int(activity_id)
+        except ValueError:
+            activity_id = None
+
+    # Get "show similar" filter
+    show_similar = request.args.get('show_similar') == 'true'
+
+    # Get all classes for dropdown
+    cur.execute("SELECT id, name FROM classes WHERE teacher_id = %s ORDER BY name", (teacher_id,))
+    classes = cur.fetchall()
+
+    # Get activities for filter dropdown (filtered by class if selected)
+    if class_id:
+        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s AND class_id = %s ORDER BY title", (teacher_id, class_id))
+    else:
+        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
+    activities = cur.fetchall()
+
+    # Query submissions with grades and code for teacher's activities
+    base_query = """
+        SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
+               a.id as activity_id, a.title as activity_title, a.class_id, c.name as class_name,
+               s.code, s.submitted_at,
+               s.correctness_score, s.syntax_score, s.logic_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight,
+               ((s.correctness_score * a.correctness_weight / 100) +
+                (s.syntax_score * a.syntax_weight / 100) +
+                (s.logic_score * a.logic_weight / 100)) as total_score,
+               s.feedback
+        FROM submissions s
+        JOIN users u ON s.student_id = u.id
+        JOIN activities a ON s.activity_id = a.id
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.teacher_id = %s
+    """
+    params = [teacher_id]
+
+    if class_id:
+        base_query += " AND a.class_id = %s"
+        params.append(class_id)
+
+    if activity_id:
+        base_query += " AND a.id = %s"
+        params.append(activity_id)
+
+    base_query += " ORDER BY s.submitted_at DESC"
+    cur.execute(base_query, params)
+    submissions = cur.fetchall()
+
+    # Group similar submissions if requested
+    grouped_submissions = []
+    if show_similar and submissions and len(submissions) > 1:
+        # Only group if we have at least 2 submissions
+        if activity_id:
+            # Group by activity when specific activity is selected
+            submissions_by_activity = {}
+            for sub in submissions:
+                act_id = sub['activity_id']
+                if act_id not in submissions_by_activity:
+                    submissions_by_activity[act_id] = []
+                submissions_by_activity[act_id].append(sub)
+
+            for act_id, act_submissions in submissions_by_activity.items():
+                if len(act_submissions) < 2:
+                    # Not enough submissions to compare
+                    continue
+
+                # Calculate similarity matrix for this activity
+                similarity_matrix = {}
+                for i in range(len(act_submissions)):
+                    for j in range(i + 1, len(act_submissions)):
+                        sim = calculate_code_similarity(
+                            act_submissions[i]['code'],
+                            act_submissions[j]['code']
+                        )
+                        similarity_matrix[(i, j)] = sim
+
+                # Group submissions with high similarity (≥ 80%)
+                visited = set()
+                groups = []
+
+                for i in range(len(act_submissions)):
+                    if i in visited:
+                        continue
+
+                    # Find all submissions similar to this one
+                    group = [act_submissions[i]]
+                    visited.add(i)
+
+                    for j in range(len(act_submissions)):
+                        if j in visited:
+                            continue
+
+                        # Check if this submission is similar to any in the group
+                        is_similar = False
+                        for k in range(len(group)):
+                            idx_k = act_submissions.index(group[k])
+                            sim = similarity_matrix.get((min(idx_k, j), max(idx_k, j)), 0)
+                            if sim >= 80:  # Threshold for potential copying
+                                is_similar = True
+                                break
+
+                        if is_similar:
+                            group.append(act_submissions[j])
+                            visited.add(j)
+
+                    groups.append(group)
+
+                # Add groups to final result
+                for group in groups:
+                    if len(group) > 1:
+                        # Sort group by similarity (optional) or by student name
+                        grouped_submissions.append(sorted(group, key=lambda x: x['last_name']))
+        else:
+            # When no specific activity selected, group all submissions together
+            # Calculate similarity matrix for all submissions
+            similarity_matrix = {}
+            for i in range(len(submissions)):
+                for j in range(i + 1, len(submissions)):
+                    sim = calculate_code_similarity(
+                        submissions[i]['code'],
+                        submissions[j]['code']
+                    )
+                    similarity_matrix[(i, j)] = sim
+
+            # Group submissions with high similarity (≥ 80%)
+            visited = set()
+            groups = []
+
+            for i in range(len(submissions)):
+                if i in visited:
+                    continue
+
+                # Find all submissions similar to this one
+                group = [submissions[i]]
+                visited.add(i)
+
+                for j in range(len(submissions)):
+                    if j in visited:
+                        continue
+
+                    # Check if this submission is similar to any in the group
+                    is_similar = False
+                    for k in range(len(group)):
+                        idx_k = submissions.index(group[k])
+                        sim = similarity_matrix.get((min(idx_k, j), max(idx_k, j)), 0)
+                        if sim >= 80:  # Threshold for potential copying
+                            is_similar = True
+                            break
+
+                    if is_similar:
+                        group.append(submissions[j])
+                        visited.add(j)
+
+                groups.append(group)
+
+            # Add groups to final result (only groups with multiple submissions)
+            for group in groups:
+                if len(group) > 1:
+                    grouped_submissions.append(sorted(group, key=lambda x: x['last_name']))
+
+    # If show_similar is true but no similar groups found, set to None
+    if show_similar and not grouped_submissions:
+        grouped_submissions = None
+    elif not show_similar:
+        grouped_submissions = None
+
+    # Get unread notifications count
+    unread_notifications_count = get_unread_notifications_count(teacher_id)
+
+    cur.close()
+
+    return render_template('teacher_grades.html',
+                         submissions=submissions,
+                         grouped_submissions=grouped_submissions if show_similar else None,
+                         activities=activities,
+                         classes=classes,
+                         first_name=session['first_name'],
+                         unread_notifications_count=unread_notifications_count,
+                         activity_id=activity_id,
+                         class_id=class_id,
+                         show_similar=show_similar)
+
+# ... (rest of the file remains the same with all other functions)
 
 @teacher_bp.route('/teacherDashboard')
 def teacherDashboard():
@@ -161,9 +429,8 @@ def teacherAnalytics():
             SELECT s.submitted_at,
                    ((s.correctness_score * a.correctness_weight / 100) +
                     (s.syntax_score * a.syntax_weight / 100) +
-                    (s.logic_score * a.logic_weight / 100) +
-                    (s.similarity_score * a.similarity_weight / 100)) as total_score,
-                    s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score
+                    (s.logic_score * a.logic_weight / 100)) as total_score,
+                    s.correctness_score, s.syntax_score, s.logic_score
             FROM submissions s
             JOIN activities a ON s.activity_id = a.id
             JOIN classes c ON a.class_id = c.id
@@ -178,7 +445,6 @@ def teacherAnalytics():
         correctness_sum = 0
         syntax_sum = 0
         logic_sum = 0
-        similarity_sum = 0
 
         for sub in submissions:
             progress_data.append({
@@ -186,14 +452,12 @@ def teacherAnalytics():
                 'total_score': float(sub['total_score']),
                 'correctness_score': float(sub['correctness_score']),
                 'syntax_score': float(sub['syntax_score']),
-                'logic_score': float(sub['logic_score']),
-                'similarity_score': float(sub['similarity_score'])
+                'logic_score': float(sub['logic_score'])
             })
             total_score_sum += sub['total_score']
             correctness_sum += sub['correctness_score']
             syntax_sum += sub['syntax_score']
             logic_sum += sub['logic_score']
-            similarity_sum += sub['similarity_score']
 
         # Calculate averages
         num_submissions = len(submissions)
@@ -201,7 +465,6 @@ def teacherAnalytics():
         avg_correctness = correctness_sum / num_submissions if num_submissions > 0 else 0
         avg_syntax = syntax_sum / num_submissions if num_submissions > 0 else 0
         avg_logic = logic_sum / num_submissions if num_submissions > 0 else 0
-        avg_similarity = similarity_sum / num_submissions if num_submissions > 0 else 0
 
         # Get classes for this student
         cur.execute("""
@@ -221,8 +484,7 @@ def teacherAnalytics():
                 'avg_total_score': round(avg_total, 1),
                 'avg_correctness': round(avg_correctness, 1),
                 'avg_syntax': round(avg_syntax, 1),
-                'avg_logic': round(avg_logic, 1),
-                'avg_similarity': round(avg_similarity, 1)
+                'avg_logic': round(avg_logic, 1)
             },
             'classes': student_classes
         })
@@ -240,199 +502,6 @@ def teacherAnalytics():
         student_progress_json = '[]'
 
     return render_template('teacher_analytics.html', student_progress=student_progress, student_progress_json=student_progress_json, first_name=session['first_name'], unread_notifications_count=unread_notifications_count, classes=classes, class_id=class_id)
-
-@teacher_bp.route('/grades')
-def teacherGrades():
-    if 'username' not in session or session.get('role') != 'teacher':
-        flash('Unauthorized access', 'error')
-        return redirect(url_for('auth.login'))
-
-    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Get teacher ID
-    cur.execute("SELECT id FROM users WHERE username=%s", (session['username'],))
-    teacher_id = cur.fetchone()['id']
-
-    # Get class filter
-    class_id = request.args.get('class_id')
-    if class_id:
-        try:
-            class_id = int(class_id)
-        except ValueError:
-            class_id = None
-
-    # Get activity filter
-    activity_id = request.args.get('activity_id')
-    if activity_id:
-        try:
-            activity_id = int(activity_id)
-        except ValueError:
-            activity_id = None
-            
-    # Get similarity filter
-    show_similar = request.args.get('show_similar') == 'true'
-
-    # Get all classes for dropdown
-    cur.execute("SELECT id, name FROM classes WHERE teacher_id = %s ORDER BY name", (teacher_id,))
-    classes = cur.fetchall()
-
-    # Get activities for filter dropdown (filtered by class if selected)
-    if class_id:
-        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s AND class_id = %s ORDER BY title", (teacher_id, class_id))
-    else:
-        cur.execute("SELECT id, title FROM activities WHERE teacher_id = %s ORDER BY title", (teacher_id,))
-    activities = cur.fetchall()
-
-    # Query submissions with grades and code for teacher's activities
-    base_query = """
-        SELECT s.id as submission_id, s.student_id, u.first_name, u.last_name, u.username,
-               a.id as activity_id, a.title as activity_title, a.class_id, c.name as class_name,
-               s.code, s.submitted_at,
-               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
-               ((s.correctness_score * a.correctness_weight / 100) +
-                (s.syntax_score * a.syntax_weight / 100) +
-                (s.logic_score * a.logic_weight / 100) +
-                (s.similarity_score * a.similarity_weight / 100)) as total_score,
-               s.feedback
-        FROM submissions s
-        JOIN users u ON s.student_id = u.id
-        JOIN activities a ON s.activity_id = a.id
-        JOIN classes c ON a.class_id = c.id
-        WHERE a.teacher_id = %s
-    """
-    params = [teacher_id]
-
-    if class_id:
-        base_query += " AND a.class_id = %s"
-        params.append(class_id)
-
-    if activity_id:
-        base_query += " AND a.id = %s"
-        params.append(activity_id)
-
-    base_query += " ORDER BY s.submitted_at DESC"
-    cur.execute(base_query, params)
-
-    submissions = cur.fetchall()
-    
-    # Handle similarity filtering
-    display_submissions = submissions
-    grouped_submissions = []
-
-    if show_similar:
-        # Group submissions with high structural similarity for side-by-side comparison
-        grouped_submissions = group_similar_submissions(submissions, similarity_threshold=80)
-
-        # Prepare display submissions with group metadata
-        display_submissions = []
-        for group in grouped_submissions:
-            if len(group) > 1:
-                # Mark submissions as part of a similar group
-                for submission in group:
-                    submission['is_similar_group'] = True
-                    submission['group_members'] = len(group)
-                    submission['group_submissions'] = group
-            display_submissions.extend(group)
-
-    # Get unread notifications count
-    unread_notifications_count = get_unread_notifications_count(teacher_id)
-
-    cur.close()
-
-    return render_template('teacher_grades.html',
-                         submissions=display_submissions,
-                         activities=activities,
-                         classes=classes,
-                         first_name=session['first_name'],
-                         unread_notifications_count=unread_notifications_count,
-                         show_similar=show_similar,
-                         activity_id=activity_id,
-                         class_id=class_id,
-                         grouped_submissions=grouped_submissions if show_similar else None)
-
-def group_similar_submissions(submissions, similarity_threshold=70):
-    """Group submissions that have high similarity to each other"""
-    if not submissions:
-        return []
-    
-    groups = []
-    processed_ids = set()
-    
-    for i, submission1 in enumerate(submissions):
-        if submission1['submission_id'] in processed_ids:
-            continue
-            
-        current_group = [submission1]
-        processed_ids.add(submission1['submission_id'])
-        
-        for j, submission2 in enumerate(submissions):
-            if (submission2['submission_id'] not in processed_ids and 
-                i != j and 
-                calculate_code_similarity(submission1['code'], submission2['code']) >= similarity_threshold):
-                
-                current_group.append(submission2)
-                processed_ids.add(submission2['submission_id'])
-        
-        if len(current_group) > 1:  # Only add groups with multiple submissions
-            groups.append(current_group)
-    
-    # Add single submissions that weren't grouped
-    for submission in submissions:
-        if submission['submission_id'] not in processed_ids:
-            groups.append([submission])
-    
-    return groups
-
-
-def calculate_code_similarity(code1, code2):
-    """Calculate similarity between two code snippets, accounting for variable renaming"""
-    if not code1 or not code2:
-        return 0
-
-    # Normalize code by replacing user-defined identifiers with VAR
-    def normalize_code(code):
-        import re
-        # C keywords and common library functions to preserve
-        c_keywords = {
-            'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern',
-            'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static',
-            'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'
-        }
-        library_functions = {
-            'printf', 'scanf', 'main', 'malloc', 'free', 'strlen', 'strcpy', 'strcmp', 'fopen', 'fclose', 'fprintf',
-            'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
-            'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
-        }
-
-        # Remove comments first
-        code = re.sub(r'//.*', '', code)
-        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
-
-        # Find all words in the code
-        words = set(re.findall(r'\b\w+\b', code))
-
-        # Replace user-defined identifiers with VAR
-        normalized = code
-        for word in words:
-            if word not in c_keywords and word not in library_functions:
-                normalized = re.sub(r'\b' + re.escape(word) + r'\b', 'VAR', normalized)
-
-        # Remove extra whitespace
-        normalized = re.sub(r'\s+', ' ', normalized)
-        return normalized.strip()
-
-    norm1 = normalize_code(code1)
-    norm2 = normalize_code(code2)
-
-    if not norm1 or not norm2:
-        return 0
-
-    # Use sequence matching for similarity calculation
-    from difflib import SequenceMatcher
-    return int(SequenceMatcher(None, norm1, norm2).ratio() * 100)
-
-
 
 @teacher_bp.route('/generate_grade_report', methods=['POST'])
 def generate_grade_report():
@@ -577,8 +646,7 @@ def generate_grade_report():
                         SELECT s.submitted_at,
                                ROUND(((s.correctness_score * a.correctness_weight / 100) +
                                       (s.syntax_score * a.syntax_weight / 100) +
-                                      (s.logic_score * a.logic_weight / 100) +
-                                      (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
+                                      (s.logic_score * a.logic_weight / 100)), 2) as total_score
                         FROM submissions s
                         JOIN activities a ON s.activity_id = a.id
                     """
@@ -600,8 +668,7 @@ def generate_grade_report():
                         SELECT s.submitted_at,
                                ROUND(((s.correctness_score * a.correctness_weight / 100) +
                                       (s.syntax_score * a.syntax_weight / 100) +
-                                      (s.logic_score * a.logic_weight / 100) +
-                                      (s.similarity_score * a.similarity_weight / 100)), 2) as total_score
+                                      (s.logic_score * a.logic_weight / 100)), 2) as total_score
                         FROM submissions s
                         JOIN activities a ON s.activity_id = a.id
                         JOIN classes c ON a.class_id = c.id
@@ -787,7 +854,7 @@ def teacherActivities():
     cur.execute("""
         SELECT  a.id, a.teacher_id, a.class_id, a.title, a.description, a.instructions,
                 a.starter_code, a.due_date, a.correctness_weight, a.syntax_weight,
-                a.logic_weight, a.similarity_weight, a.created_at,
+                a.logic_weight, a.created_at,
                 COUNT(s.id) AS submission_count, c.name AS class_name
         FROM activities a
         LEFT JOIN submissions s ON a.id = s.activity_id
@@ -823,7 +890,6 @@ def teacherActivities():
             'correctness_weight': activity['correctness_weight'],
             'syntax_weight': activity['syntax_weight'],
             'logic_weight': activity['logic_weight'],
-            'similarity_weight': activity['similarity_weight'],
             'created_at': activity['created_at'],
             'submission_count': activity['submission_count'],
             'class_name': class_name
@@ -840,7 +906,6 @@ def teacherActivities():
 
     return render_template('teacher_activities.html', activities=activities_list, classes=classes_list,
                             unread_notifications_count=unread_notifications_count)
-
 
 @teacher_bp.route('/create_activity', methods=['POST'])
 def create_activity():
@@ -900,7 +965,7 @@ def create_activity():
         for name, weight in zip(rubric_names, rubric_weights):
             rubrics[name.strip()] = int(weight)
 
-        required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
+        required_rubrics = ["Correctness", "Syntax", "Logic"]
         for r in required_rubrics:
             if r not in rubrics:
                 return jsonify({'error': f'Missing rubric: {r}'}), 400
@@ -908,10 +973,9 @@ def create_activity():
         correctness_weight = rubrics.get("Correctness", 0)
         syntax_weight = rubrics.get("Syntax", 0)
         logic_weight = rubrics.get("Logic", 0)
-        similarity_weight = rubrics.get("Similarity", 0)
 
         #  Validate weights sum = 100
-        total_weight = correctness_weight + syntax_weight + logic_weight + similarity_weight
+        total_weight = correctness_weight + syntax_weight + logic_weight
         if total_weight != 100:
             return jsonify({'error': 'Rubric weights must sum to 100%'}), 400
 
@@ -931,12 +995,12 @@ def create_activity():
             INSERT INTO activities (
                 teacher_id, class_id, title, description, instructions,
                 starter_code, due_date, correctness_weight,
-                syntax_weight, logic_weight, similarity_weight, test_cases_json, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                syntax_weight, logic_weight, test_cases_json, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             teacher_id, class_id, title, description, instructions,
             starter_code, due_date, correctness_weight,
-            syntax_weight, logic_weight, similarity_weight, test_cases_json, created_at
+            syntax_weight, logic_weight, test_cases_json, created_at
         ))
 
         # Get the last inserted activity ID
@@ -984,7 +1048,7 @@ def manage_activity(activity_id):
             cur.execute("""
                 SELECT a.id, a.teacher_id, a.class_id, a.title, a.description, a.instructions,
                         a.starter_code, a.due_date, a.correctness_weight, a.syntax_weight,
-                        a.logic_weight, a.similarity_weight, a.created_at,
+                        a.logic_weight, a.created_at,
                         COUNT(s.id) AS submission_count, c.name AS class_name, a.test_cases_json
                 FROM activities a
                 LEFT JOIN submissions s ON a.id = s.activity_id
@@ -1026,7 +1090,6 @@ def manage_activity(activity_id):
                 'correctness_weight': activity['correctness_weight'],
                 'syntax_weight': activity['syntax_weight'],
                 'logic_weight': activity['logic_weight'],
-                'similarity_weight': activity['similarity_weight'],
                 'created_at': activity['created_at'].strftime('%Y-%m-%d %H:%M:%S') if activity['created_at'] else None,
                 'submission_count': activity['submission_count'],
                 'class_name': class_name,
@@ -1078,7 +1141,7 @@ def manage_activity(activity_id):
             for name, weight in zip(rubric_names, rubric_weights):
                 rubrics[name.strip()] = int(weight)
 
-            required_rubrics = ["Correctness", "Syntax", "Logic", "Similarity"]
+            required_rubrics = ["Correctness", "Syntax", "Logic"]
             for r in required_rubrics:
                 if r not in rubrics:
                     return jsonify({'error': f'Missing rubric: {r}'}), 400
@@ -1086,10 +1149,9 @@ def manage_activity(activity_id):
             correctness_weight = rubrics.get("Correctness", 0)
             syntax_weight = rubrics.get("Syntax", 0)
             logic_weight = rubrics.get("Logic", 0)
-            similarity_weight = rubrics.get("Similarity", 0)
 
             # Validate weights sum = 100
-            total_weight = correctness_weight + syntax_weight + logic_weight + similarity_weight
+            total_weight = correctness_weight + syntax_weight + logic_weight
             if total_weight != 100:
                 return jsonify({'error': 'Rubric weights must sum to 100%'}), 400
 
@@ -1105,11 +1167,11 @@ def manage_activity(activity_id):
                     UPDATE activities
                     SET class_id=%s, title=%s, description=%s, instructions=%s, starter_code=%s,
                         due_date=%s, correctness_weight=%s, syntax_weight=%s,
-                        logic_weight=%s, similarity_weight=%s, test_cases_json=%s
+                        logic_weight=%s, test_cases_json=%s
                     WHERE id=%s AND teacher_id=%s
                 """, (
                     class_id, title, description, instructions, starter_code, due_date,
-                    correctness_weight, syntax_weight, logic_weight, similarity_weight, test_cases_json,
+                    correctness_weight, syntax_weight, logic_weight, test_cases_json,
                     activity_id, teacher_id
                 ))
             else:
@@ -1117,11 +1179,11 @@ def manage_activity(activity_id):
                     UPDATE activities
                     SET class_id=NULL, title=%s, description=%s, instructions=%s, starter_code=%s,
                         due_date=%s, correctness_weight=%s, syntax_weight=%s,
-                        logic_weight=%s, similarity_weight=%s, test_cases_json=%s
+                        logic_weight=%s, test_cases_json=%s
                     WHERE id=%s AND teacher_id=%s
                 """, (
                     title, description, instructions, starter_code, due_date,
-                    correctness_weight, syntax_weight, logic_weight, similarity_weight, test_cases_json,
+                    correctness_weight, syntax_weight, logic_weight, test_cases_json,
                     activity_id, teacher_id
                 ))
 
@@ -1509,7 +1571,7 @@ def delete_class(class_id):
             link = url_for('student.studentClasses')
             cur.execute(notification_query, (student_id, 'student', 'class_deleted', message, link, False))
 
- 
+
         cur.execute("""
             DELETE s FROM submissions s
             INNER JOIN activities a ON s.activity_id = a.id
@@ -1519,7 +1581,7 @@ def delete_class(class_id):
 
         cur.execute("DELETE FROM activities WHERE class_id=%s", (class_id,))
 
-     
+
         cur.execute("DELETE FROM enrollments WHERE class_id=%s", (class_id,))
 
 
@@ -1534,7 +1596,6 @@ def delete_class(class_id):
         return jsonify({'error': str(e)}), 500
     finally:
         cur.close()
-
 
 
 

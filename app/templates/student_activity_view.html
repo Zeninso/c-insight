@@ -276,10 +276,6 @@
                                     <td>Logic</td>
                                     <td>{{ activity.logic_weight }}%</td>
                                 </tr>
-                                <tr>
-                                    <td>Similarity</td>
-                                    <td>{{ activity.similarity_weight }}%</td>
-                                </tr>
                             </tbody>
                         </table>
                         <div class="submission-note">
@@ -331,17 +327,11 @@
                                 <div class="score-value">{{ "%.1f"|format(activity.logic_score * activity.logic_weight / 100) }}/{{ "%.0f"|format(activity.logic_weight) }}</div>
                                 <div class="score-percentage">{{ "%.1f"|format(activity.logic_score) }}%</div>
                             </div>
-                            <div class="score-card">
-                                <div class="score-icon"><i class="fas fa-copy"></i></div>
-                                <div class="score-label">Similarity</div>
-                                <div class="score-value">{{ "%.1f"|format(activity.similarity_score * activity.similarity_weight / 100) }}/{{ "%.0f"|format(activity.similarity_weight) }}</div>
-                                <div class="score-percentage">{{ "%.1f"|format(activity.similarity_score) }}%</div>
-                            </div>
                         </div>
                         <div class="total-score-card">
                             <div class="score-icon"><i class="fas fa-trophy"></i></div>
                             <div class="score-label">Total Score</div>
-                            <div class="score-value">{{ "%.1f"|format((activity.correctness_score * activity.correctness_weight + activity.syntax_score * activity.syntax_weight + activity.logic_score * activity.logic_weight + activity.similarity_score * activity.similarity_weight) / 100) }}%</div>
+                            <div class="score-value">{{ "%.1f"|format((activity.correctness_score * activity.correctness_weight + activity.syntax_score * activity.syntax_weight + activity.logic_score * activity.logic_weight) / 100) }}%</div>
                         </div>
                         {% if activity.feedback %}
                         <div class="feedback-section">
@@ -388,20 +378,6 @@
                                             <p id="semantics-message-{{ activity.id }}"></p>
                                             <p id="semantics-score-{{ activity.id }}" class="section-score"></p>
                                             <ul id="semantics-details-{{ activity.id }}" class="details-list"></ul>
-                                        </div>
-                                    </div>
-                                    <!-- Similarity -->
-                                    <div class="feedback-section collapsed" id="similarity-section-{{ activity.id }}">
-                                        <div class="section-header" onclick="toggleSection('similarity-section-{{ activity.id }}')">
-                                            <i class="fas fa-copy"></i>
-                                            <span class="section-title">Similarity Check</span>
-                                            <span class="section-status" id="similarity-status-{{ activity.id }}"></span>
-                                            <i class="fas fa-chevron-down toggle-icon"></i>
-                                        </div>
-                                        <div class="section-content" style="display:none;">
-                                            <p id="similarity-message-{{ activity.id }}"></p>
-                                            <p id="similarity-score-{{ activity.id }}" class="section-score"></p>
-                                            <p id="similarity-warning-{{ activity.id }}" class="warning-text"></p>
                                         </div>
                                     </div>
                                     <!-- Penalty -->
@@ -490,14 +466,6 @@
                                             }
                                         }
 
-                                        if (fb.similarity) {
-                                            const si = fb.similarity;
-                                            document.getElementById('similarity-status-' + id).innerHTML = getStatusIcon(si.status) + ' ' + si.status;
-                                            if (si.message) document.getElementById('similarity-message-' + id).textContent = si.message;
-                                            document.getElementById('similarity-score-' + id).innerHTML = '<strong>Score: ' + si.score + '</strong>';
-                                            if (si.warning) document.getElementById('similarity-warning-' + id).textContent = '⚠️ ' + si.warning;
-                                        }
-
                                         if (fb.penalty) {
                                             const p = fb.penalty;
                                             document.getElementById('penalty-section-' + id).style.display = 'block';
@@ -559,21 +527,7 @@
             });
         }
 
-        function confirmLogout() {
-            Swal.fire({
-                title: 'Logout?',
-                text: "Are you sure you want to logout?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#6f42c1',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, logout!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "{{ url_for('auth.logout') }}";
-                }
-            });
-        }
+       
 
         // Toggle submission info visibility
         document.addEventListener('DOMContentLoaded', function() {
@@ -632,6 +586,22 @@
                 document.getElementById('loader').style.display = 'none';
             });
         });
+
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Logout?',
+                text: "Are you sure you want to logout?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#6f42c1',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{{ url_for('auth.logout') }}";
+                }
+            });
+        }
     </script>
 </body>
 </html>

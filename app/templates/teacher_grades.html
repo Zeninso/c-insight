@@ -38,6 +38,18 @@
         .filter-checkbox {
             display: none;
         }
+        /* Additional styles for similarity info */
+        .similarity-info {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            color: #856404;
+        }
+        .similarity-info i {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -133,17 +145,26 @@
                         </form>
                     </div>
                     
-                    {% if show_similar and submissions %}
-                    <div class="similarity-info">
-                        <i class="fas fa-info-circle"></i>
-                        Showing {{ submissions|length }} submissions. 
-                        Lower scores indicate higher similarity to the other submissions.
-                    </div>
-                    {% elif show_similar and not submissions %}
-                    <div class="similarity-info">
-                        <i class="fas fa-info-circle"></i>
-                        No submissions with high similarity found for this activity.
-                    </div>
+                    <!-- FIXED: Show appropriate similarity info messages -->
+                    {% if show_similar %}
+                        {% if submissions %}
+                            {% if grouped_submissions and grouped_submissions|length > 0 %}
+                                <div class="similarity-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Found {{ grouped_submissions|length }} group(s) of potentially copied submissions.
+                                </div>
+                            {% else %}
+                                <div class="similarity-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    No submissions with high similarity found for this activity/class combination.
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="similarity-info">
+                                <i class="fas fa-info-circle"></i>
+                                No submissions found for the selected filters.
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
                 
@@ -176,21 +197,6 @@
                                                 <h4>{{ submission.first_name }} {{ submission.last_name }} ({{ submission.username }})</h4>
                                             </div>
 
-                                            {% if submission.correctness_score is not none %}
-                                            <div class="grade-scores">
-                                                <div class="score-grid">
-                                                    <div class="score-item">
-                                                        <div class="score-label">Similarity</div>
-                                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}</div>
-                                                        <div class="score-explanation" style="font-size: 12px; color: #dc3545;">
-                                                            (Raw: {{ submission.similarity_score }}%)
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {% endif %}
-
-                                            <!-- Code comparison button -->
                                             <div class="actions-section" style="display: flex; gap: 10px; margin-bottom: 10px;">
                                             </div>
 
@@ -272,13 +278,6 @@
                                         <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}/{{ "%.0f"|format(submission.logic_weight) }}</div>
                                         <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
                                             (Weighted: {{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}%)
-                                        </div>
-                                    </div>
-                                    <div class="score-item">
-                                        <div class="score-label">Similarity</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}/{{ "%.0f"|format(submission.similarity_weight) }}</div>
-                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                            (Weighted: {{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}%)
                                         </div>
                                     </div>
                                 </div>
@@ -363,20 +362,6 @@
                                                 <ul id="semantics-details-{{ submission.submission_id }}" class="details-list"></ul>
                                             </div>
                                         </div>
-                                        <!-- Similarity -->
-                                        <div class="feedback-section collapsed" id="similarity-section-{{ submission.submission_id }}">
-                                            <div class="section-header" onclick="toggleSection('similarity-section-{{ submission.submission_id }}')">
-                                                <i class="fas fa-copy"></i>
-                                                <span class="section-title">Similarity Check</span>
-                                                <span class="section-status" id="similarity-status-{{ submission.submission_id }}"></span>
-                                                <i class="fas fa-chevron-down toggle-icon"></i>
-                                            </div>
-                                            <div class="section-content" style="display:none;">
-                                                <p id="similarity-message-{{ submission.submission_id }}"></p>
-                                                <p id="similarity-score-{{ submission.submission_id }}" class="section-score"></p>
-                                                <p id="similarity-warning-{{ submission.submission_id }}" class="warning-text"></p>
-                                            </div>
-                                        </div>
                                         <!-- Penalty -->
                                         <div class="feedback-section" id="penalty-section-{{ submission.submission_id }}" style="display:none;">
                                             <div class="section-header penalty-header">
@@ -452,13 +437,6 @@
                                                         });
                                                     }
                                                 }
-                                                if (fb.similarity) {
-                                                    const si = fb.similarity;
-                                                    document.getElementById('similarity-status-' + id).innerHTML = getStatusIcon(si.status) + ' ' + si.status;
-                                                    if (si.message) document.getElementById('similarity-message-' + id).textContent = si.message;
-                                                    document.getElementById('similarity-score-' + id).innerHTML = '<strong>Score: ' + si.score + '</strong>';
-                                                    if (si.warning) document.getElementById('similarity-warning-' + id).textContent = '⚠️ ' + si.warning;
-                                                }
                                                 if (fb.penalty) {
                                                     const p = fb.penalty;
                                                     document.getElementById('penalty-section-' + id).style.display = 'block';
@@ -483,16 +461,7 @@
                     {% else %}
                         <!-- Original individual display when not showing similar -->
                         {% for submission in submissions %}
-                            <div class="grade-card {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}high-similarity{% endif %}" 
-                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}style="border-left: 4px solid #dc3545;"{% endif %}>
-                            <!-- Add similarity warning if applicable -->
-                            {% if show_similar and submission.similarity_score is not none and submission.similarity_score <= 40 %}
-                            <div class="similarity-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Potential copying detected (Similarity score: {{ submission.similarity_score }}%)
-                            </div>
-                            {% endif %}
-
+                            <div class="grade-card">
                             <div class="grade-header">
                                 <div class="grade-title">
                                     <h3>{{ submission.activity_title }}</h3>
@@ -539,13 +508,6 @@
                                         <div class="score-value">{{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}/{{ "%.0f"|format(submission.logic_weight) }}</div>
                                         <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
                                             (Weighted: {{ "%.1f"|format(submission.logic_score * submission.logic_weight / 100) }}%)
-                                        </div>
-                                    </div>
-                                    <div class="score-item">
-                                        <div class="score-label">Similarity</div>
-                                        <div class="score-value">{{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}/{{ "%.0f"|format(submission.similarity_weight) }}</div>
-                                        <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                            (Weighted: {{ "%.1f"|format(submission.similarity_score * submission.similarity_weight / 100) }}%)
                                         </div>
                                     </div>
                                 </div>
@@ -630,20 +592,6 @@
                                             <ul id="semantics-details-{{ submission.submission_id }}" class="details-list"></ul>
                                         </div>
                                     </div>
-                                    <!-- Similarity -->
-                                    <div class="feedback-section collapsed" id="similarity-section-{{ submission.submission_id }}">
-                                        <div class="section-header" onclick="toggleSection('similarity-section-{{ submission.submission_id }}')">
-                                            <i class="fas fa-copy"></i>
-                                            <span class="section-title">Similarity Check</span>
-                                            <span class="section-status" id="similarity-status-{{ submission.submission_id }}"></span>
-                                            <i class="fas fa-chevron-down toggle-icon"></i>
-                                        </div>
-                                        <div class="section-content" style="display:none;">
-                                            <p id="similarity-message-{{ submission.submission_id }}"></p>
-                                            <p id="similarity-score-{{ submission.submission_id }}" class="section-score"></p>
-                                            <p id="similarity-warning-{{ submission.submission_id }}" class="warning-text"></p>
-                                        </div>
-                                    </div>
                                     <!-- Penalty -->
                                     <div class="feedback-section" id="penalty-section-{{ submission.submission_id }}" style="display:none;">
         
@@ -719,13 +667,6 @@
                                                         ul.appendChild(li);
                                                     });
                                                 }
-                                            }
-                                            if (fb.similarity) {
-                                                const si = fb.similarity;
-                                                document.getElementById('similarity-status-' + id).innerHTML = getStatusIcon(si.status) + ' ' + si.status;
-                                                if (si.message) document.getElementById('similarity-message-' + id).textContent = si.message;
-                                                document.getElementById('similarity-score-' + id).innerHTML = '<strong>Score: ' + si.score + '</strong>';
-                                                if (si.warning) document.getElementById('similarity-warning-' + id).textContent = '⚠️ ' + si.warning;
                                             }
                                             if (fb.penalty) {
                                                 const p = fb.penalty;
@@ -896,9 +837,7 @@
                 scopeMessage = 'This report will include grades for the selected activity in the selected class only.';
             } else if (classId) {
                 scopeMessage = 'This report will include grades for all activities in the selected class.';
-            } else if (activityId) {
-                scopeMessage = 'This report will include grades for the selected activity across all your classes.';
-            }
+            } 
 
             // Show confirmation dialog
             Swal.fire({

@@ -243,11 +243,11 @@ class CodeGrader:
         Grade a student submission based on the activity's rubric.
         """
         try:
-            # Get activity details
+            # Get activity details - REMOVED similarity_weight
             cur = mysql.connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
             cur.execute("""
                 SELECT title, description, instructions, starter_code, due_date,
-                        correctness_weight, syntax_weight, logic_weight, similarity_weight
+                        correctness_weight, syntax_weight, logic_weight
                 FROM activities WHERE id = %s
             """, (activity_id,))
             activity = cur.fetchone()
@@ -277,19 +277,15 @@ class CodeGrader:
             try:
                 correctness_w = float(activity['correctness_weight'])
             except (ValueError, TypeError):
-                correctness_w = 25.0
+                correctness_w = 50.0  # Adjusted default weight
             try:
                 syntax_w = float(activity['syntax_weight'])
             except (ValueError, TypeError):
-                syntax_w = 25.0
+                syntax_w = 30.0  # Adjusted default weight
             try:
                 logic_w = float(activity['logic_weight'])
             except (ValueError, TypeError):
-                logic_w = 25.0
-            try:
-                similarity_w = float(activity['similarity_weight'])
-            except (ValueError, TypeError):
-                similarity_w = 25.0
+                logic_w = 20.0  # Adjusted default weight
 
             # Convert due_date if it's a string
             if due_date and isinstance(due_date, str):
@@ -312,7 +308,6 @@ class CodeGrader:
     
                 overdue_penalty = weeks_overdue * 10
             
-
             # Extract requirements from activity text for semantic analysis
             activity_text_for_requirements = f"{description} {instructions}" if description or instructions else ""
             requirements = self.extract_activity_requirements(activity_text_for_requirements) if activity_text_for_requirements else None
@@ -327,9 +322,7 @@ class CodeGrader:
                 correctness_score = 0
                 syntax_score = 0
                 logic_score = 0
-                similarity_score = 0
                 ast_feedback = "Submission has syntax errors; grading scores set to zero."
-                sim_feedback = "Similarity check skipped due to syntax errors."
                 test_correctness_score = 0
                 test_cases = []
             else:
@@ -401,55 +394,45 @@ class CodeGrader:
                     code, requirements, requirement_score, activity_text
                 )
 
-
                 # Correctness is based entirely on test case results, Logic is based on AST analysis
                 correctness_score = test_correctness_score
                 ast_feedback = f"{test_feedback}, {ast_feedback}"
-
-                # Similarity check
-                similarity_score, sim_feedback = self.check_similarity(activity_id, code, student_id)
 
             # Update feedback with final scores
             ast_feedback = f"Correctness: {correctness_score:.1f}%, Semantic: {logic_score:.1f}%, Syntax: {syntax_score:.1f}%. {ast_feedback}"
 
             # Apply overdue penalty to individual criteria
             if overdue_penalty > 0:
-                total_weight = correctness_w + syntax_w + logic_w + similarity_w
+                total_weight = correctness_w + syntax_w + logic_w
                 if total_weight > 0:
                     penalty_correctness = round(overdue_penalty * (correctness_w / total_weight), 1)
                     penalty_syntax = round(overdue_penalty * (syntax_w / total_weight), 1)
                     penalty_logic = round(overdue_penalty * (logic_w / total_weight), 1)
-                    penalty_similarity = round(overdue_penalty * (similarity_w / total_weight), 1)
 
                     correctness_score = (correctness_score * correctness_w / 100)
                     syntax_score = (syntax_score * syntax_w / 100)
                     logic_score = (logic_score * logic_w / 100)
-                    similarity_score = (similarity_score * similarity_w / 100)
 
                     correctness_score = max(0, correctness_score - penalty_correctness)
                     syntax_score = max(0, syntax_score - penalty_syntax)
                     logic_score = max(0, logic_score - penalty_logic)
-                    similarity_score = max(0, similarity_score - penalty_similarity)
 
                     correctness_score = (correctness_score * 100 / correctness_w)
                     syntax_score = (syntax_score * 100 / syntax_w)
                     logic_score = (logic_score * 100 / logic_w)
-                    similarity_score = (similarity_score * 100 / similarity_w)
 
             # Calculate weighted scores
             total_score = (
                 (correctness_score * correctness_w / 100) +
                 (syntax_score * syntax_w / 100) +
-                (logic_score * logic_w / 100) +
-                (similarity_score * similarity_w / 100)
+                (logic_score * logic_w / 100)
             )
 
-            # Compile feedback into structured 4-part format
+            # Compile feedback into structured 3-part format (removed similarity)
             feedback_data = self.format_comprehensive_feedback(
                 syntax_score, syntax_feedback,
                 test_correctness_score, test_details if test_cases else [],
                 logic_score, ast_feedback,
-                similarity_score, sim_feedback,
                 overdue_penalty,
                 code
             )
@@ -461,7 +444,6 @@ class CodeGrader:
                 'correctness_score': int(correctness_score),
                 'syntax_score': int(syntax_score),
                 'logic_score': int(logic_score),
-                'similarity_score': int(similarity_score),
                 'requirement_score': int(requirement_score),
                 'total_score': int(total_score),
                 'feedback': feedback_json
@@ -474,15 +456,14 @@ class CodeGrader:
                 'correctness_score': 0,
                 'syntax_score': 0,
                 'logic_score': 0,
-                'similarity_score': 0,
                 'requirement_score': 0,
                 'total_score': 0,
                 'feedback': f'Grading failed due to an error: {str(e)}. All scores set to zero.'
             }
 
     def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details,
-                                     logic_score, logic_msg, similarity_score, similarity_msg, overdue_penalty, code):
-        """Format feedback into 4 structured sections for students."""
+                                     logic_score, logic_msg, overdue_penalty, code):
+        """Format feedback into 3 structured sections for students (removed similarity)."""
         feedback = {}
 
         # Check if there are syntax errors that prevent further grading
@@ -575,49 +556,6 @@ class CodeGrader:
             else:
                 feedback['semantics']['status'] = 'Good'
                 feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
-
-        # 4. SIMILARITY CHECK
-        if has_syntax_errors:
-            feedback['similarity'] = {
-                'status': 'Not Checked',
-                'message': 'Similarity check was skipped due to syntax errors. Please fix the syntax errors first.',
-                'score': '0/100',
-                'explanation': 'Syntax errors prevent similarity analysis.'
-            }
-        else:
-            # IMPORTANT: similarity_score is an ASSIGNED GRADE (10–100), NOT a similarity percent!
-            # LOW score = HIGH similarity (plagiarism) | HIGH score = LOW similarity (original)
-            feedback['similarity'] = {
-                'score': f"{similarity_score:.0f}/100",
-            }
-
-            if 'Insufficient' in similarity_msg:
-                feedback['similarity']['status'] = 'Insufficient Data'
-                feedback['similarity']['message'] = 'Not enough submissions yet to check similarity.'
-            else:
-                # Interpret assigned score correctly: LOWER values indicate HIGHER similarity
-                if similarity_score <= 10:
-                    feedback['similarity']['status'] = 'Plagiarism Detected'
-                    feedback['similarity']['message'] = similarity_msg
-                    feedback['similarity']['warning'] = '🚨 Code appears to be copied from another submission. This is a serious academic integrity concern.'
-                elif similarity_score <= 20:
-                    feedback['similarity']['status'] = 'Highly Suspicious'
-                    feedback['similarity']['message'] = similarity_msg
-                    feedback['similarity']['warning'] = '⚠️ Code structure is nearly identical to another submission. Please verify originality.'
-                elif similarity_score <= 40:
-                    feedback['similarity']['status'] = 'Suspicious'
-                    feedback['similarity']['message'] = similarity_msg
-                    feedback['similarity']['warning'] = '⚠️ Your code shows high similarity to other submissions. Please review for originality.'
-                elif similarity_score >= 95:
-                    feedback['similarity']['status'] = 'Unique Solution'
-                    feedback['similarity']['message'] = similarity_msg or 'Your solution is unique and original.'
-                elif similarity_score >= 90:
-                    feedback['similarity']['status'] = 'Low Similarity (Natural)'
-                    feedback['similarity']['message'] = similarity_msg or 'Natural similarity for this activity type.'
-                else:
-                    # Covers 41–89: acceptable range
-                    feedback['similarity']['status'] = 'Acceptable Similarity'
-                    feedback['similarity']['message'] = similarity_msg or 'Similarity level is within acceptable bounds.'
 
         # Add overdue penalty if applicable
         if overdue_penalty > 0:

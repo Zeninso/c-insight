@@ -135,13 +135,6 @@
                                     <div class="score-label">Logic</div>
                                     <div class="score-value">{{ "%.1f"|format(grade.logic_score * grade.logic_weight / 100) }}</div>
                                 </div>
-                                <div class="score-item">
-                                    <div class="score-label">Similarity</div>
-                                    <div class="score-value">{{ "%.1f"|format(grade.similarity_score * grade.similarity_weight / 100) }}</div>
-                                    <div class="score-explanation" style="font-size: 12px; color: #6c757d;">
-                                        (Raw: {{ grade.similarity_score }}%)
-                                    </div>
-                                </div>
                             </div>
 
                             <div class="total-score">
@@ -222,21 +215,6 @@
                                         <p id="semantics-message-{{ grade.id }}"></p>
                                         <p id="semantics-score-{{ grade.id }}" class="section-score"></p>
                                         <ul id="semantics-details-{{ grade.id }}" class="details-list"></ul>
-                                    </div>
-                                </div>
-
-                                <!-- Similarity Section -->
-                                <div class="feedback-section collapsed" id="similarity-section-{{ grade.id }}">
-                                    <div class="section-header" onclick="toggleSection('similarity-section-{{ grade.id }}')">
-                                        <i class="fas fa-copy"></i>
-                                        <span class="section-title">Similarity Check</span>
-                                        <span class="section-status" id="similarity-status-{{ grade.id }}"></span>
-                                        <i class="fas fa-chevron-down toggle-icon"></i>
-                                    </div>
-                                    <div class="section-content" style="display:none;">
-                                        <p id="similarity-message-{{ grade.id }}"></p>
-                                        <p id="similarity-score-{{ grade.id }}" class="section-score"></p>
-                                        <p id="similarity-warning-{{ grade.id }}" class="warning-text"></p>
                                     </div>
                                 </div>
 
@@ -345,20 +323,6 @@
                                                     li.textContent = detail;
                                                     detailsList.appendChild(li);
                                                 });
-                                            }
-                                        }
-
-                                        // Populate Similarity Section
-                                        if (feedback.similarity) {
-                                            const similarity = feedback.similarity;
-                                            document.getElementById('similarity-status-' + gradeId).innerHTML = getStatusIcon(similarity.status) + ' ' + similarity.status;
-                                            if (similarity.message) {
-                                                document.getElementById('similarity-message-' + gradeId).textContent = similarity.message;
-                                            }
-                                            document.getElementById('similarity-score-' + gradeId).innerHTML = '<strong>Score: ' + similarity.score + '</strong>';
-
-                                            if (similarity.warning) {
-                                                document.getElementById('similarity-warning-' + gradeId).textContent = '⚠️ ' + similarity.warning;
                                             }
                                         }
 

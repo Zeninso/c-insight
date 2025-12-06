@@ -564,8 +564,8 @@ def viewActivity(activity_id):
                 CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
                 CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
                 s.code, s.submitted_at, a.correctness_weight, a.syntax_weight,
-                a.logic_weight, a.similarity_weight, s.correctness_score,
-                s.syntax_score, s.logic_score, s.similarity_score, s.feedback,
+                a.logic_weight, s.correctness_score,
+                s.syntax_score, s.logic_score, s.feedback,
                 a.test_cases_json AS test_cases
         FROM activities a
         JOIN users u ON a.teacher_id = u.id
@@ -610,11 +610,9 @@ def viewActivity(activity_id):
         'correctness_weight': activity['correctness_weight'],
         'syntax_weight': activity['syntax_weight'],
         'logic_weight': activity['logic_weight'],
-        'similarity_weight': activity['similarity_weight'],
         'correctness_score': activity['correctness_score'],
         'syntax_score': activity['syntax_score'],
         'logic_score': activity['logic_score'],
-        'similarity_score': activity['similarity_score'],
         'feedback': activity['feedback'],
         'test_cases': test_cases
     }
@@ -696,13 +694,12 @@ def submit_activity(activity_id):
             # Update submission with scores and feedback
             cur.execute("""
                 UPDATE submissions
-                SET correctness_score=%s, syntax_score=%s, logic_score=%s, similarity_score=%s, feedback=%s
+                SET correctness_score=%s, syntax_score=%s, logic_score=%s, feedback=%s
                 WHERE id=%s
             """, (
                 grading_result['correctness_score'],
                 grading_result['syntax_score'],
                 grading_result['logic_score'],
-                grading_result['similarity_score'],
                 grading_result['feedback'],
                 submission_id
             ))
@@ -875,8 +872,8 @@ def studentProgress():
         SELECT a.id, a.title, c.name as class_name, a.due_date,
                CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as submitted,
                CASE WHEN a.due_date < NOW() THEN 1 ELSE 0 END as overdue,
-               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight
+               s.correctness_score, s.syntax_score, s.logic_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight
         FROM activities a
         JOIN classes c ON a.class_id = c.id
         JOIN enrollments e ON c.id = e.class_id
@@ -892,12 +889,11 @@ def studentProgress():
     activities_progress_list = []
     for activity in activity_progress:
         total_score = None
-        if activity['submitted'] and all(score is not None for score in [activity['correctness_score'], activity['syntax_score'], activity['logic_score'], activity['similarity_score']]):  # submitted and has scores
+        if activity['submitted'] and all(score is not None for score in [activity['correctness_score'], activity['syntax_score'], activity['logic_score']]):  # submitted and has scores
             total_score = (
                 (activity['correctness_score'] * activity['correctness_weight'] / 100) +  # correctness
                 (activity['syntax_score'] * activity['syntax_weight'] / 100) +  # syntax
-                (activity['logic_score'] * activity['logic_weight'] / 100) +  # logic
-                (activity['similarity_score'] * activity['similarity_weight'] / 100)    # similarity
+                (activity['logic_score'] * activity['logic_weight'] / 100)  # logic
             )
 
         activities_progress_list.append({
@@ -910,11 +906,9 @@ def studentProgress():
             'correctness_score': activity['correctness_score'],
             'syntax_score': activity['syntax_score'],
             'logic_score': activity['logic_score'],
-            'similarity_score': activity['similarity_score'],
             'correctness_weight': activity['correctness_weight'],
             'syntax_weight': activity['syntax_weight'],
             'logic_weight': activity['logic_weight'],
-            'similarity_weight': activity['similarity_weight'],
             'total_score': total_score
         })
 
@@ -975,8 +969,8 @@ def studentGrades():
     # Build query with optional filter
     query = """
         SELECT s.id, a.title, c.name as class_name, c.id as class_id, s.submitted_at,
-               s.correctness_score, s.syntax_score, s.logic_score, s.similarity_score,
-               a.correctness_weight, a.syntax_weight, a.logic_weight, a.similarity_weight,
+               s.correctness_score, s.syntax_score, s.logic_score,
+               a.correctness_weight, a.syntax_weight, a.logic_weight,
                s.feedback, s.code
         FROM submissions s
         JOIN activities a ON s.activity_id = a.id
@@ -1001,8 +995,7 @@ def studentGrades():
         total_score = (
             (submission['correctness_score'] * submission['correctness_weight'] / 100) +  # correctness
             (submission['syntax_score'] * submission['syntax_weight'] / 100) +  # syntax
-            (submission['logic_score'] * submission['logic_weight'] / 100) + # logic
-            (submission['similarity_score'] * submission['similarity_weight'] / 100)   # similarity
+            (submission['logic_score'] * submission['logic_weight'] / 100)  # logic
         ) if submission['correctness_score'] is not None else None
 
         grades_list.append({
@@ -1014,11 +1007,9 @@ def studentGrades():
             'correctness_score': submission['correctness_score'],
             'syntax_score': submission['syntax_score'],
             'logic_score': submission['logic_score'],
-            'similarity_score': submission['similarity_score'],
             'correctness_weight': submission['correctness_weight'],
             'syntax_weight': submission['syntax_weight'],
             'logic_weight': submission['logic_weight'],
-            'similarity_weight': submission['similarity_weight'],
             'total_score': total_score,
             'feedback': submission['feedback'],
             'code': submission['code']
@@ -1175,8 +1166,3 @@ def notify_students_activity_deadline():
 
     mysql.connection.commit()
     cur.close()
-
-
-
-
-
