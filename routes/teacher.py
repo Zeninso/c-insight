@@ -202,7 +202,7 @@ def teacherGrades():
                         for k in range(len(group)):
                             idx_k = act_submissions.index(group[k])
                             sim = similarity_matrix.get((min(idx_k, j), max(idx_k, j)), 0)
-                            if sim >= 80:  # Threshold for potential copying
+                            if sim >= 83:  # Threshold for potential copying
                                 is_similar = True
                                 break
 
