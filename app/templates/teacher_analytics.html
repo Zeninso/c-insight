@@ -122,7 +122,7 @@
                                     </div>
                                     <div class="stat-item">
                                         <h4>Latest Score</h4>
-                                        <span>{{ student_data.progress[-1].total_score }}%</span>
+                                        <span>{{ student_data.progress[-1].total_score | round(2) }}%</span>
                                     </div>
                                 </div>
 
