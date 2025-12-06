@@ -306,7 +306,7 @@ class CodeGrader:
                 if total_seconds_overdue % seconds_per_week > 0:  # Partial week counts as full week
                     weeks_overdue += 1
     
-                overdue_penalty = weeks_overdue * 10
+                overdue_penalty = weeks_overdue * 20
             
             # Extract requirements from activity text for semantic analysis
             activity_text_for_requirements = f"{description} {instructions}" if description or instructions else ""
@@ -434,7 +434,8 @@ class CodeGrader:
                 test_correctness_score, test_details if test_cases else [],
                 logic_score, ast_feedback,
                 overdue_penalty,
-                code
+                code,
+                requirements
             )
             
             # Convert feedback dict to JSON string for database storage
@@ -462,7 +463,7 @@ class CodeGrader:
             }
 
     def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details,
-                                     logic_score, logic_msg, overdue_penalty, code):
+                                     logic_score, logic_msg, overdue_penalty, code, requirements=None):
         """Format feedback into 3 structured sections for students (removed similarity)."""
         feedback = {}
 
@@ -548,14 +549,41 @@ class CodeGrader:
                 'details': []
             }
 
+            # Enhanced feedback based on logic score ranges
+            if logic_score >= 90:
+                feedback['semantics']['status'] = 'Excellent'
+                feedback['semantics']['message'] = 'Outstanding logic and semantic implementation. Your code demonstrates advanced programming concepts and excellent problem-solving skills.'
+                feedback['semantics']['strengths'] = 'Excellent algorithm structure, variable management, control flow, and code quality.'
+            elif logic_score >= 80:
+                feedback['semantics']['status'] = 'Very Good'
+                feedback['semantics']['message'] = 'Strong logic and semantic implementation with minor areas for improvement. Your code shows good understanding of programming principles.'
+                feedback['semantics']['strengths'] = 'Good algorithm design and variable usage.'
+            elif logic_score >= 70:
+                feedback['semantics']['status'] = 'Good'
+                feedback['semantics']['message'] = 'Satisfactory logic and semantic implementation. Your code meets basic requirements but could benefit from some refinements.'
+                feedback['semantics']['suggestions'] = 'Consider improving algorithm efficiency or variable management.'
+            elif logic_score >= 60:
+                feedback['semantics']['status'] = 'Needs Improvement'
+                feedback['semantics']['message'] = 'Logic and semantic implementation has several issues that need attention. Review the code structure and problem-solving approach.'
+                feedback['semantics']['suggestions'] = 'Focus on proper control flow, variable initialization, and algorithm correctness.'
+            else:
+                feedback['semantics']['status'] = 'Poor'
+                feedback['semantics']['message'] = 'Significant issues with logic and semantic implementation. The code lacks proper structure and problem-solving logic.'
+                feedback['semantics']['suggestions'] = 'Review basic programming concepts, ensure proper variable usage, and implement correct algorithms.'
+
+            # Add specific details from analysis
             if required_detected:
-                feedback['semantics']['status'] = 'Issues Found'
+                feedback['semantics']['issues'] = []
                 for detail in logic_details:
                     if detail.strip():
-                        feedback['semantics']['details'].append(detail.strip())
+                        feedback['semantics']['issues'].append(detail.strip())
             else:
-                feedback['semantics']['status'] = 'Good'
-                feedback['semantics']['message'] = 'Your code uses good programming practices and logic.'
+                feedback['semantics']['details'].append('Logic/semantics checks passed.')
+
+            # Add detailed feedback from analysis
+            detailed_feedback = self.analyze_c_code_detailed_feedback(code, requirements)
+            if detailed_feedback and detailed_feedback != "Code structure analysis complete.":
+                feedback['semantics']['analysis'] = detailed_feedback
 
         # Add overdue penalty if applicable
         if overdue_penalty > 0:
@@ -857,10 +885,8 @@ class CodeGrader:
         return min(100, max(0, score))
 
     def analyze_c_code_logic(self, code, requirements=None, activity_text=None):
-        """Analyze C code logic complexity and flow with enhanced semantic and requirement-based criteria."""
-        score = 100  # Start with full score, deduct for errors only
+        """Analyze C code logic complexity and flow with weighted semantic criteria."""
         feedback = []
-        semantic_issues = []  # Track semantic correctness issues
 
         # 0. CRITICAL CHECK: Detect hardcoded printf-only solutions (less aggressive)
         printf_count = code.count('printf(')
@@ -870,173 +896,43 @@ class CodeGrader:
 
         # Only penalize if code is clearly just hardcoded output with no logic at all
         if printf_count > 5 and logic_count == 0 and scanf_count == 0 and variable_count <= 1:
-            score -= 30
             feedback.append("Code appears to be mostly hardcoded output - consider adding more logic and variable usage")
         elif printf_count > 3 and logic_count == 0 and scanf_count == 0 and variable_count < 2:
-            score -= 15
             feedback.append("Code may benefit from more variable usage and logic operations")
 
-        # 1. Requirement-based semantic check - STRICT enforcement
-        # First check if requirements parameter was provided (dict-based)
-        missing_constructs = []
-        requirement_count = 0
+        # Calculate weighted scores for each category
+        algorithm_score = self.calculate_algorithm_structure_score(code)
+        variable_score = self.calculate_variable_management_score(code)
+        control_flow_score = self.calculate_control_flow_score(code)
+        quality_score = self.calculate_code_quality_score(code)
 
-        if requirements and isinstance(requirements, dict):
-            # Use the structured requirements dict
-            requirement_checks = [
-                ('loops', lambda c: c.count('for ') + c.count('while ') + c.count('do ') > 0, 20),
-                ('if_else', lambda c: 'if ' in c and ('else ' in c or 'else if' in c), 20),
-                ('functions', lambda c: c.count('(') - c.count('main(') > 0, 20),
-                ('arrays', lambda c: '[' in c and ']' in c, 20),
-                ('pointers', lambda c: '*' in c or '&' in c, 20),
-                ('switch', lambda c: 'switch ' in c, 20),
-            ]
-            
-            for req_name, check, penalty in requirement_checks:
-                if requirements.get(req_name, {}).get('required', False):
-                    requirement_count += 1
-                    if not check(code):
-                        score -= penalty
-                        missing_constructs.append(req_name)
-        
-        # Fallback: check activity_text for semantic keywords (more flexible)
-        if not missing_constructs and activity_text:
-            text_lower = activity_text.lower()
-            
-            # More flexible keyword matching
-            loop_keywords = ['loop', 'for', 'while', 'iterate', 'iteration', 'repeat']
-            if_keywords = ['if', 'condition', 'conditional', 'decision', 'check', 'validate']
-            func_keywords = ['function', 'method', 'procedure', 'subroutine']
-            array_keywords = ['array', 'list', 'collection', 'elements']
-            pointer_keywords = ['pointer', 'address', 'reference', 'memory']
-            switch_keywords = ['switch', 'case', 'selection']
-            
-            # Check for any loop requirement keywords
-            if any(kw in text_lower for kw in loop_keywords):
-                requirement_count += 1
-                if not any(x in code for x in ['for ', 'while ', 'do ']):
-                    score -= 20
-                    missing_constructs.append('loops')
-            
-            # Check for any if/conditional requirement keywords
-            if any(kw in text_lower for kw in if_keywords):
-                requirement_count += 1
-                if 'if ' not in code:
-                    score -= 20
-                    missing_constructs.append('if statement')
-            
-            # Check for function requirement keywords
-            if any(kw in text_lower for kw in func_keywords):
-                requirement_count += 1
-                if code.count('(') - code.count('main(') <= 0:
-                    score -= 20
-                    missing_constructs.append('functions')
-            
-            # Check for array requirement keywords
-            if any(kw in text_lower for kw in array_keywords):
-                requirement_count += 1
-                if '[' not in code or ']' not in code:
-                    score -= 20
-                    missing_constructs.append('arrays')
-            
-            # Check for pointer requirement keywords
-            if any(kw in text_lower for kw in pointer_keywords):
-                requirement_count += 1
-                if '*' not in code and '&' not in code:
-                    score -= 20
-                    missing_constructs.append('pointers')
-            
-            # Check for switch requirement keywords
-            if any(kw in text_lower for kw in switch_keywords):
-                requirement_count += 1
-                if 'switch ' not in code:
-                    score -= 20
-                    missing_constructs.append('switch')
-        
-        if missing_constructs:
-            feedback.append(f"MISSING REQUIRED: {', '.join(missing_constructs)}")
+        # Apply weights: Algorithm (40%), Variables (30%), Control Flow (20%), Quality (10%)
+        final_score = (
+            algorithm_score * 0.40 +
+            variable_score * 0.30 +
+            control_flow_score * 0.20 +
+            quality_score * 0.10
+        )
 
-        # If requirements are specified and code is missing them, significantly lower the score
-        if requirement_count > 0 and missing_constructs:
-            missing_ratio = len(missing_constructs) / requirement_count
-            if missing_ratio > 0.5:  # Missing more than 50% of required constructs
-                score = min(score, 40)  # Cap score to max 40
-                feedback.append(f"Critical: More than half of required constructs are missing")
+        # Ensure score is within valid range
+        final_score = min(100, max(0, final_score))
 
-        # 2. General logic scoring (enhanced)
-        # Control Flow Complexity - Check for potential issues
-        if_count = code.count('if ') + code.count('else if')
-        loop_count = code.count('for ') + code.count('while ') + code.count('do ')
-        switch_count = code.count('switch ')
-        total_control = if_count + loop_count + switch_count
-        if total_control == 0 and requirement_count == 0:  # Only penalize if no requirements specified
-            score -= 10
-            feedback.append("No control flow statements detected (if, loop, switch)")
+        # Add category-specific feedback
+        category_feedback = []
+        if algorithm_score < 70:
+            category_feedback.append("Algorithm structure needs improvement")
+        if variable_score < 70:
+            category_feedback.append("Variable and data management issues detected")
+        if control_flow_score < 70:
+            category_feedback.append("Control flow correctness issues found")
+        if quality_score < 70:
+            category_feedback.append("Code quality and practices can be enhanced")
 
-        # Check for potential infinite loops
-        infinite_loop_penalty = self.check_infinite_loops(code)
-        if infinite_loop_penalty > 0:
-            feedback.append(f"Potential infinite loop detected (-{infinite_loop_penalty})")
-        score -= infinite_loop_penalty
-
-        # Check for proper loop initialization and bounds
-        if loop_count > 0:
-            loop_quality_score = self.check_loop_quality(code)
-            if loop_quality_score < 0:
-                feedback.append("Loop initialization or bounds may be incorrect")
-            score += loop_quality_score
-
-        # Enhanced logic checks for semantic practices
-        # Check for proper variable initialization and usage
-        var_logic_score = self.check_variable_logic(code)
-        if var_logic_score < 0:
-            feedback.append("Variable initialization or usage issues detected")
-        score += var_logic_score
-
-        # Check for logical consistency and potential errors
-        logic_consistency_score = self.check_enhanced_logical_consistency(code)
-        if logic_consistency_score < 0:
-            feedback.append("Logical consistency issues detected")
-        score += logic_consistency_score
-
-        # Check for proper nesting and structure
-        nesting_score = self.check_nesting_structure(code)
-        if nesting_score < 0:
-            feedback.append("Nesting/indentation issues detected")
-        score += nesting_score
-
-        # Check for unreachable code patterns
-        unreachable_score = self.check_unreachable_code(code)
-        if unreachable_score < 0:
-            feedback.append("Unreachable code detected")
-        score += unreachable_score
-
-        # Check for proper operator usage
-        operator_score = self.check_operator_usage(code)
-        if operator_score < 0:
-            feedback.append("Operator usage issues detected")
-        score += operator_score
-
-        # Check for memory safety
-        memory_score = self.check_memory_safety(code)
-        if memory_score < 0:
-            feedback.append("Memory safety issues detected")
-        score += memory_score
-
-        # Bonus for good practices
-        if 'return 0;' in code:
-            score += 2
-        if '#include <stdio.h>' in code:
-            score += 2
-        if 'int main(' in code:
-            score += 2
-
-        # Cap score and return feedback
-        score = min(100, max(0, score))
-        if feedback:
-            return score, ". ".join(feedback)
+        all_feedback = feedback + category_feedback
+        if all_feedback:
+            return final_score, ". ".join(all_feedback)
         else:
-            return score, "Logic/semantics checks passed."
+            return final_score, "Logic/semantics checks passed."
 
 
     def check_nesting_structure(self, code):
@@ -1329,6 +1225,140 @@ class CodeGrader:
                 score += min(5, bounds_checks)
 
         return max(-10, min(10, score))
+
+    def calculate_algorithm_structure_score(self, code):
+        """Calculate algorithm structure score (40% weight)."""
+        score = 100  # Start with perfect score, deduct for issues
+
+        # Check for algorithm quality patterns
+        algorithm_quality = self.check_algorithm_quality(code)
+        score += algorithm_quality
+
+        # Check for proper nesting structure
+        nesting = self.check_nesting_structure(code)
+        score += nesting
+
+        # Check for unreachable code
+        unreachable = self.check_unreachable_code(code)
+        score += unreachable
+
+        # Check for memory safety
+        memory = self.check_memory_safety(code)
+        score += memory
+
+        # Bonus for good practices
+        if 'return 0;' in code:
+            score += 5
+        if '#include <stdio.h>' in code:
+            score += 5
+        if 'int main(' in code:
+            score += 5
+
+        return max(0, min(100, score))
+
+    def calculate_variable_management_score(self, code):
+        """Calculate variable and data management score (30% weight)."""
+        score = 100  # Start with perfect score, deduct for issues
+
+        # Check variable logic and initialization
+        var_logic = self.check_variable_logic(code)
+        score += var_logic
+
+        # Check for proper variable declarations
+        var_count = len([line for line in code.split('\n') if any(t in line for t in ['int ', 'char ', 'float ', 'double '])])
+        if var_count == 0:
+            score -= 20  # No variables declared
+        elif var_count < 2:
+            score -= 10  # Very few variables
+
+        # Check for array usage if arrays are present
+        if '[' in code and ']' in code:
+            array_count = code.count('[')
+            if array_count > 0:
+                score += min(10, array_count * 2)  # Bonus for array usage
+
+        # Check for pointer usage if pointers are present
+        pointer_count = code.count('*') + code.count('&')
+        if pointer_count > 0:
+            score += min(10, pointer_count)  # Bonus for pointer usage
+
+        return max(0, min(100, score))
+
+    def calculate_control_flow_score(self, code):
+        """Calculate control flow correctness score (20% weight)."""
+        score = 100  # Start with perfect score, deduct for issues
+
+        # Check for infinite loops
+        infinite_penalty = self.check_infinite_loops(code)
+        score -= infinite_penalty
+
+        # Check loop quality
+        loop_quality = self.check_loop_quality(code)
+        score += loop_quality
+
+        # Check logical consistency
+        logic_consistency = self.check_enhanced_logical_consistency(code)
+        score += logic_consistency
+
+        # Check operator usage
+        operator_usage = self.check_operator_usage(code)
+        score += operator_usage
+
+        # Count control structures
+        if_count = code.count('if ') + code.count('else if')
+        loop_count = code.count('for ') + code.count('while ') + code.count('do ')
+        switch_count = code.count('switch ')
+
+        total_control = if_count + loop_count + switch_count
+        if total_control == 0:
+            score -= 15  # No control flow structures
+        elif total_control >= 3:
+            score += min(10, total_control)  # Bonus for complex control flow
+
+        return max(0, min(100, score))
+
+    def calculate_code_quality_score(self, code):
+        """Calculate code quality and practices score (10% weight)."""
+        score = 100  # Start with perfect score, deduct for issues
+
+        # Check for comments
+        comment_count = code.count('//') + code.count('/*')
+        if comment_count == 0:
+            score -= 10  # No comments
+        else:
+            score += min(10, comment_count * 2)  # Bonus for comments
+
+        # Check code length appropriateness
+        lines = [line for line in code.split('\n') if line.strip()]
+        code_length = len(lines)
+
+        if code_length < 5:
+            score -= 20  # Too short
+        elif code_length < 10:
+            score -= 10  # Somewhat short
+        elif code_length > 50:
+            score -= 5  # Somewhat long
+
+        # Check for consistent indentation (basic check)
+        indented_lines = len([line for line in lines if line.startswith('    ') or line.startswith('\t')])
+        if len(lines) > 0:
+            indent_ratio = indented_lines / len(lines)
+            if indent_ratio < 0.3:
+                score -= 10  # Poor indentation
+            elif indent_ratio > 0.8:
+                score += 5  # Good indentation
+
+        # Check for long lines
+        long_lines = len([line for line in lines if len(line) > 80])
+        if long_lines > 0:
+            score -= min(10, long_lines * 2)  # Penalty for long lines
+
+        # Check for proper function structure
+        func_count = code.count('(') - code.count('main(') - code.count('printf(') - code.count('scanf(')
+        if func_count > 0:
+            score += min(10, func_count * 5)  # Bonus for functions
+
+        return max(0, min(100, score))
 
     def analyze_c_code_detailed_feedback(self, code, requirements=None):
         """Provide detailed feedback on C code analysis."""
