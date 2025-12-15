@@ -14,12 +14,29 @@ from flask import send_file
 import pandas as pd
 import json
 import itertools
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher # This is the import used by the function
+import re # This import is required by the function's logic
 
 teacher_bp = Blueprint('teacher', __name__)
 
+# Helper function to remove C-style comments (moved from inside the main function for clarity)
+def remove_comments(code):
+    # Remove single-line comments //...
+    code = re.sub(r'//.*', '', code)
+    # Remove multi-line comments /*...*/
+    code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+    return code
+
+def extract_identifiers(code):
+    # Pattern to match C identifiers (letters, digits, underscores, starting with letter or underscore)
+    return set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', code))
+
 def calculate_code_similarity(code1, code2):
-    """Calculate similarity between two code snippets, accounting for variable renaming"""
+    """
+    Calculate similarity between two code snippets, robustly accounting for variable renaming.
+    This fix uses a unified, deterministic mapping for all user-defined identifiers
+    from both code snippets before normalization.
+    """
     if not code1 or not code2:
         return 0
 
@@ -34,47 +51,51 @@ def calculate_code_similarity(code1, code2):
         'fscanf', 'sprintf', 'sscanf', 'gets', 'puts', 'getchar', 'putchar', 'atoi', 'atof', 'rand', 'srand',
         'time', 'exit', 'abs', 'sqrt', 'pow', 'sin', 'cos', 'tan'
     }
+    # Combine keywords for faster lookup
+    RESERVED_IDENTIFIERS = c_keywords.union(library_functions)
 
-    # Remove comments first
-    import re
-    code1_nocomments = re.sub(r'//.*', '', code1)
-    code1_nocomments = re.sub(r'/\*.*?\*/', '', code1_nocomments, flags=re.DOTALL)
-    code2_nocomments = re.sub(r'//.*', '', code2)
-    code2_nocomments = re.sub(r'/\*.*?\*/', '', code2_nocomments, flags=re.DOTALL)
+    # 1. Remove comments
+    code1_nocomments = remove_comments(code1)
+    code2_nocomments = remove_comments(code2)
 
-    # Find all identifiers in the code
-    def extract_identifiers(code):
-        # Pattern to match C identifiers (letters, digits, underscores, starting with letter or underscore)
-        return set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', code))
+    # 2. Extract and filter all user-defined identifiers from both codes
+    ids_all_1 = extract_identifiers(code1_nocomments)
+    ids_all_2 = extract_identifiers(code2_nocomments)
+    
+    # Create a unified set of all identifiers used by the students
+    unified_ids = ids_all_1 | ids_all_2
 
-    # Get identifiers from both codes
-    ids1 = extract_identifiers(code1_nocomments)
-    ids2 = extract_identifiers(code2_nocomments)
+    # Filter out keywords/library functions to get only user-defined identifiers
+    user_ids_to_normalize = unified_ids - RESERVED_IDENTIFIERS
 
-    # Filter out keywords and library functions
-    user_ids1 = ids1 - c_keywords - library_functions
-    user_ids2 = ids2 - c_keywords - library_functions
+    # 3. Create a single, unified, and deterministic mapping (The Fix)
+    
+    # Sort identifiers by length (longest first) to prevent partial word replacement (e.g., replacing 'a' inside 'another').
+    # Then sort lexicographically for deterministic ordering, ensuring a consistent VAR# assignment.
+    sorted_user_ids = sorted(user_ids_to_normalize, key=lambda x: (-len(x), x))
+    
+    replacement_map = {}
+    for idx, identifier in enumerate(sorted_user_ids):
+        # Assign unique, generic placeholder
+        replacement_map[identifier] = f'VAR{idx}'
 
-    # Create a mapping for normalization
-    def normalize_identifiers(code, user_ids):
+    # 4. Apply the single unified mapping to both codes
+    def normalize_code_with_map(code, replacement_map):
         normalized = code
-        # Sort identifiers by length (longest first) to avoid partial replacements
-        sorted_ids = sorted(user_ids, key=len, reverse=True)
-        for idx, identifier in enumerate(sorted_ids):
-            # Replace with generic placeholder
-            placeholder = f'VAR{idx}'
+        # Apply replacements from the map
+        for identifier, placeholder in replacement_map.items():
+            # Use regex word boundaries (\b) to ensure full word replacement
             normalized = re.sub(r'\b' + re.escape(identifier) + r'\b', placeholder, normalized)
         return normalized
 
-    # Normalize both codes
-    norm1 = normalize_identifiers(code1_nocomments, user_ids1)
-    norm2 = normalize_identifiers(code2_nocomments, user_ids2)
+    norm1 = normalize_code_with_map(code1_nocomments, replacement_map)
+    norm2 = normalize_code_with_map(code2_nocomments, replacement_map)
 
-    # Also normalize whitespace for better comparison
+    # 5. Normalize whitespace for better comparison (this step was already correct)
     norm1 = re.sub(r'\s+', ' ', norm1).strip()
     norm2 = re.sub(r'\s+', ' ', norm2).strip()
 
-    # Calculate similarity using sequence matcher
+    # 6. Calculate similarity
     similarity = SequenceMatcher(None, norm1, norm2).ratio()
     
     # Scale to percentage and round
