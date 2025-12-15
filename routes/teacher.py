@@ -181,7 +181,7 @@ def teacherGrades():
                         )
                         similarity_matrix[(i, j)] = sim
 
-                # Group submissions with high similarity (≥ 85%)
+                # Group submissions with high similarity (≥ 80%)
                 visited = set()
                 groups = []
 
@@ -202,7 +202,7 @@ def teacherGrades():
                         for k in range(len(group)):
                             idx_k = act_submissions.index(group[k])
                             sim = similarity_matrix.get((min(idx_k, j), max(idx_k, j)), 0)
-                            if sim >= 85:  # Threshold for potential copying
+                            if sim >= 80:  # Threshold for potential copying
                                 is_similar = True
                                 break
 
@@ -229,7 +229,7 @@ def teacherGrades():
                     )
                     similarity_matrix[(i, j)] = sim
 
-            # Group submissions with high similarity (≥ 90%)
+            # Group submissions with high similarity (≥ 80%)
             visited = set()
             groups = []
 
@@ -286,7 +286,6 @@ def teacherGrades():
                          activity_id=activity_id,
                          class_id=class_id,
                          show_similar=show_similar)
-
 
 
 @teacher_bp.route('/teacherDashboard')
