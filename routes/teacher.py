@@ -54,51 +54,45 @@ def calculate_code_similarity(code1, code2):
     # Combine keywords for faster lookup
     RESERVED_IDENTIFIERS = c_keywords.union(library_functions)
 
-    # 1. Remove comments
+    
     code1_nocomments = remove_comments(code1)
     code2_nocomments = remove_comments(code2)
 
-    # 2. Extract and filter all user-defined identifiers from both codes
+
     ids_all_1 = extract_identifiers(code1_nocomments)
     ids_all_2 = extract_identifiers(code2_nocomments)
-    
-    # Create a unified set of all identifiers used by the students
+
     unified_ids = ids_all_1 | ids_all_2
 
-    # Filter out keywords/library functions to get only user-defined identifiers
+ 
     user_ids_to_normalize = unified_ids - RESERVED_IDENTIFIERS
 
-    # 3. Create a single, unified, and deterministic mapping (The Fix)
-    
-    # Sort identifiers by length (longest first) to prevent partial word replacement (e.g., replacing 'a' inside 'another').
-    # Then sort lexicographically for deterministic ordering, ensuring a consistent VAR# assignment.
     sorted_user_ids = sorted(user_ids_to_normalize, key=lambda x: (-len(x), x))
     
     replacement_map = {}
     for idx, identifier in enumerate(sorted_user_ids):
-        # Assign unique, generic placeholder
+        
         replacement_map[identifier] = f'VAR{idx}'
 
-    # 4. Apply the single unified mapping to both codes
+   
     def normalize_code_with_map(code, replacement_map):
         normalized = code
         # Apply replacements from the map
         for identifier, placeholder in replacement_map.items():
-            # Use regex word boundaries (\b) to ensure full word replacement
+            
             normalized = re.sub(r'\b' + re.escape(identifier) + r'\b', placeholder, normalized)
         return normalized
 
     norm1 = normalize_code_with_map(code1_nocomments, replacement_map)
     norm2 = normalize_code_with_map(code2_nocomments, replacement_map)
 
-    # 5. Normalize whitespace for better comparison (this step was already correct)
     norm1 = re.sub(r'\s+', ' ', norm1).strip()
     norm2 = re.sub(r'\s+', ' ', norm2).strip()
 
-    # 6. Calculate similarity
+
     similarity = SequenceMatcher(None, norm1, norm2).ratio()
     
-    # Scale to percentage and round
+
     return round(similarity * 100, 1)
 
 @teacher_bp.route('/grades')
