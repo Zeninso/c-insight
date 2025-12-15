@@ -906,12 +906,13 @@ class CodeGrader:
         control_flow_score = self.calculate_control_flow_score(code)
         quality_score = self.calculate_code_quality_score(code)
 
-        # Apply weights: Algorithm (40%), Variables (30%), Control Flow (20%), Quality (10%)
+        # Apply weights: Algorithm (50%), Variables (30%), Control Flow (20%), Quality (5%)
+        # Increased focus on algorithm/logic, reduced emphasis on code quality/style
         final_score = (
-            algorithm_score * 0.40 +
+            algorithm_score * 0.50 +
             variable_score * 0.30 +
             control_flow_score * 0.20 +
-            quality_score * 0.10
+            quality_score * 0.05
         )
 
         # Ensure score is within valid range
