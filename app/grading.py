@@ -464,7 +464,7 @@ class CodeGrader:
 
     def format_comprehensive_feedback(self, syntax_score, syntax_msg, correctness_score, test_details,
                                      logic_score, logic_msg, overdue_penalty, code, requirements=None):
-        """Format feedback into 3 structured sections for students (removed similarity)."""
+        """Format feedback into 3 structured sections for students with detailed, readable guidance."""
         feedback = {}
 
         # Check if there are syntax errors that prevent further grading
@@ -474,16 +474,19 @@ class CodeGrader:
         if syntax_score >= 85:
             feedback['syntax'] = {
                 'status': 'Correct',
-                'message': 'Your code compiles successfully without syntax errors.',
+                'message': 'Great job! Your code compiles successfully without syntax errors. This means your code follows the basic rules of C programming.',
                 'score': f"{syntax_score:.0f}%"
             }
         else:
-            # Extract specific error from syntax_msg
+            # Extract specific error from syntax_msg and provide student-friendly explanations
             error_details = syntax_msg.split('|') if '|' in syntax_msg else [syntax_msg]
+            student_friendly_errors = self._explain_syntax_errors(error_details[0])
+
             feedback['syntax'] = {
                 'status': 'Error Found',
-                'message': f'Syntax errors detected: {error_details[0]}',
-                'details': error_details,
+                'message': f'I found some syntax errors in your code. Syntax errors prevent your program from compiling and running. Here\'s what I detected: {student_friendly_errors["main_message"]}',
+                'details': student_friendly_errors['detailed_explanations'],
+                'suggestions': student_friendly_errors['suggestions'],
                 'score': f"{syntax_score:.0f}%",
                 'submitted_code': code
             }
@@ -594,6 +597,75 @@ class CodeGrader:
             }
 
         return feedback
+
+    def _explain_syntax_errors(self, error_message):
+        """Convert GCC error messages into student-friendly explanations."""
+        explanations = {
+            'main_message': '',
+            'detailed_explanations': [],
+            'suggestions': []
+        }
+
+        error_lower = error_message.lower()
+
+        # Common syntax error patterns and their explanations
+        if 'expected' in error_lower and ';' in error_lower:
+            explanations['main_message'] = "Missing semicolon at the end of a statement."
+            explanations['detailed_explanations'].append("In C, most statements must end with a semicolon (;). This includes variable declarations, assignments, and function calls.")
+            explanations['suggestions'].append("Check the line mentioned in the error and add a semicolon at the end.")
+            explanations['suggestions'].append("Look for incomplete statements like 'int x' without '=' or ';'")
+
+        elif 'expected' in error_lower and ('{' in error_lower or '}' in error_lower):
+            explanations['main_message'] = "Missing or mismatched braces."
+            explanations['detailed_explanations'].append("Curly braces { } are used to define code blocks in functions, loops, and conditional statements.")
+            explanations['suggestions'].append("Ensure every opening brace { has a corresponding closing brace }")
+            explanations['suggestions'].append("Check indentation to identify where braces might be missing")
+
+        elif 'undeclared' in error_lower or 'not declared' in error_lower:
+            explanations['main_message'] = "Using a variable or function that hasn't been declared."
+            explanations['detailed_explanations'].append("In C, you must declare variables before using them, and functions must be declared or defined before being called.")
+            explanations['suggestions'].append("Add variable declarations at the beginning of functions")
+            explanations['suggestions'].append("Include necessary header files for library functions")
+            explanations['suggestions'].append("Check for typos in variable or function names")
+
+        elif 'expected' in error_lower and 'before' in error_lower:
+            explanations['main_message'] = "Incorrect syntax or missing elements in your code structure."
+            explanations['detailed_explanations'].append("This usually indicates a structural problem in your code, such as missing parentheses, incorrect operator usage, or malformed statements.")
+            explanations['suggestions'].append("Review the line mentioned and check for missing or extra symbols")
+            explanations['suggestions'].append("Ensure parentheses are properly balanced")
+
+        elif 'redefinition' in error_lower or 'redeclared' in error_lower:
+            explanations['main_message'] = "Variable or function declared multiple times."
+            explanations['detailed_explanations'].append("Each variable and function can only be declared once in the same scope.")
+            explanations['suggestions'].append("Remove duplicate declarations")
+            explanations['suggestions'].append("Use different variable names if you need multiple variables")
+
+        elif 'incompatible' in error_lower or 'type' in error_lower:
+            explanations['main_message'] = "Type mismatch in assignment or function call."
+            explanations['detailed_explanations'].append("C is strongly typed - you can't assign incompatible types without explicit conversion.")
+            explanations['suggestions'].append("Check variable types match in assignments")
+            explanations['suggestions'].append("Use appropriate type casting if needed")
+
+        elif 'too few arguments' in error_lower or 'too many arguments' in error_lower:
+            explanations['main_message'] = "Incorrect number of arguments in function call."
+            explanations['detailed_explanations'].append("Functions expect a specific number of arguments as defined in their declaration.")
+            explanations['suggestions'].append("Check the function documentation or header file for correct usage")
+            explanations['suggestions'].append("Verify you're calling the right function")
+
+        elif 'lvalue' in error_lower or 'left operand' in error_lower:
+            explanations['main_message'] = "Invalid assignment or operation."
+            explanations['detailed_explanations'].append("You can only assign to variables (lvalues), not to constants or expressions.")
+            explanations['suggestions'].append("Make sure you're assigning to a variable, not a constant")
+            explanations['suggestions'].append("Check for incorrect use of = instead of ==")
+
+        else:
+            # Generic explanation for unrecognized errors
+            explanations['main_message'] = "Syntax error detected in your code."
+            explanations['detailed_explanations'].append("There appears to be a syntax error that prevents compilation. Common issues include missing semicolons, mismatched braces, or incorrect function calls.")
+            explanations['suggestions'].append("Review your code line by line for common syntax issues")
+            explanations['suggestions'].append("Try compiling simpler versions of your code to isolate the problem")
+
+        return explanations
 
     def check_syntax(self, code):
         """Check syntax and basic compilation using GCC compiler for C code."""

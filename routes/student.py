@@ -656,10 +656,12 @@ def submit_activity(activity_id):
             flash('You are not enrolled in the class for this activity.', 'error')
             return redirect(url_for('student.studentActivities'))
 
-        # Insert or update submission
+        # Use SELECT FOR UPDATE to lock the submission row for this student-activity pair
+        # This prevents race conditions during simultaneous submissions
         cur.execute("""
             SELECT id FROM submissions
             WHERE activity_id = %s AND student_id = %s
+            FOR UPDATE
         """, (activity_id, student_id))
 
         submission = cur.fetchone()
@@ -672,8 +674,8 @@ def submit_activity(activity_id):
                 UPDATE submissions
                 SET code=%s, submitted_at=%s
                 WHERE id=%s
-            """, (code, now, submission[0]))
-            submission_id = submission[0]
+            """, (code, now, submission['id']))
+            submission_id = submission['id']
         else:
             # Insert new submission
             cur.execute("""
